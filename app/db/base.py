@@ -14,3 +14,6 @@ class TimestampMixin:
         server_default=func.now(),
         onupdate=func.now(), #UPDATE 될 때마다 자동으로 NOW()로 갱신
     )
+
+# Alembic autogenerate용
+import app.models  # noqa
