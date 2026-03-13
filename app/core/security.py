@@ -5,6 +5,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from pydantic import BaseModel, Field, EmailStr
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    name: str | None = Field(default=None, max_length=100)
 
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")

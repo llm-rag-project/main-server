@@ -11,7 +11,9 @@ class User(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    default_language: Mapped[str] = mapped_column(String(10), nullable=False, default="ko", server_default="ko")
 
     keywords = relationship("Keyword", back_populates="user", cascade="all, delete-orphan")
     feedbacks = relationship("Feedback", back_populates="user", cascade="all, delete-orphan")
