@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user, get_db
 from app.core.errors import ErrorCode, build_error
 from app.core.response import success_response
-from app.models.credit import Credit
+from app.models.credit import CreditWallet, CreditTransaction
 from app.models.user import User
 
 router = APIRouter()
@@ -25,18 +25,18 @@ async def get_my_credits(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Credit).where(Credit.user_id == current_user.id))
-    credit = result.scalar_one_or_none()
+    result = await db.execute(select(CreditWallet).where(CreditWallet.user_id == current_user.id))
+    CreditWallet = result.scalar_one_or_none()
 
-    if credit is None:
+    if CreditWallet is None:
         raise build_error(ErrorCode.NOT_FOUND, "credit not found")
 
     return success_response(
         request,
         data={
             "user_id": current_user.id,
-            "balance": credit.balance,
-            "updated_at": credit.updated_at.isoformat() if credit.updated_at else None,
+            "balance": CreditWallet.balance,
+            "updated_at": CreditTransaction.updated_at.isoformat() if CreditTransaction.updated_at else None,
         },
     )
 

@@ -10,7 +10,7 @@ from app.core.response import error_response
 from app.db.base import Base
 from app.db.session import engine
 from app.models.user import User
-from app.models.credit import Credit
+from app.models.credit import CreditWallet, CreditTransaction
 
 
 app = FastAPI(

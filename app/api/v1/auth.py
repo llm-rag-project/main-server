@@ -15,7 +15,7 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
-from app.models.credit import Credit
+from app.models.credit import CreditWallet, CreditTransaction
 from app.models.user import User
 
 router = APIRouter()
@@ -100,7 +100,7 @@ async def signup(
     await db.flush()
 
     # 4. 크레딧 자동 생성
-    new_credit = Credit(
+    new_credit = CreditWallet(
         user_id=new_user.id,
         balance=0,
     )
