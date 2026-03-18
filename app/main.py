@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.db.session import engine
 from app.models.user import User
 from app.models.credit import CreditWallet, CreditTransaction
+from app.models.auth_refresh_token import AuthRefreshToken
 
 
 app = FastAPI(

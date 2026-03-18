@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 
+from app.models.keyword import Keyword
+
 #대소문자 구분 x
 async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     result = await db.execute(
@@ -50,3 +52,32 @@ async def update_user_profile(
     await db.flush()
     await db.refresh(user)
     return user
+
+async def get_keywords_by_ids_for_user(
+    db: AsyncSession,
+    user_id: int,
+    keyword_ids: list[int],
+) -> list[Keyword]:
+    if not keyword_ids:
+        return []
+
+    result = await db.execute(
+        select(Keyword).where(
+            Keyword.user_id == user_id,
+            Keyword.id.in_(keyword_ids),
+        )
+    )
+    return result.scalars().all()
+
+
+async def get_all_active_keywords_for_user(
+    db: AsyncSession,
+    user_id: int,
+) -> list[Keyword]:
+    result = await db.execute(
+        select(Keyword).where(
+            Keyword.user_id == user_id,
+            Keyword.is_active == True,  # noqa: E712
+        )
+    )
+    return result.scalars().all()
