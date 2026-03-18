@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.credit_transaction import CreditTransaction
-from app.models.credit_wallet import CreditWallet
+from app.models.credit import CreditWallet
 from app.models.user import User
 from app.schemas.credits import CreditTransactionListQuery
 
