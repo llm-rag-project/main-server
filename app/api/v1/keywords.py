@@ -1,152 +1,108 @@
-from typing import Literal
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field, field_validator
-
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_db
 from app.core.response import success_response
 from app.models.user import User
+from app.schemas.keyword import (
+    BatchCreateKeywordRequest,
+    CreateKeywordRequest,
+    LanguageEnum,
+    UpdateKeywordStatusRequest,
+)
+from app.services.keyword_service import (
+    batch_create_user_keywords,
+    create_user_keyword,
+    get_my_keywords,
+    patch_keyword_is_active,
+    remove_keyword,
+)
 
-router = APIRouter()
-
-
-class CreateKeywordRequest(BaseModel):
-    keyword: str = Field(..., min_length=1, max_length=100)
-    language: Literal["ko", "en"] | None = None
-
-
-class UpdateKeywordActiveRequest(BaseModel):
-    is_active: bool
-
-
-class BatchKeywordRequest(BaseModel):
-    keywords: list[str] = Field(..., min_length=1)
-    language: Literal["ko", "en"] | None = None
-
-    @field_validator("keywords")
-    @classmethod
-    def validate_keywords(cls, value: list[str]) -> list[str]:
-        cleaned = [item.strip() for item in value if item.strip()]
-        if not cleaned:
-            raise ValueError("keywords must not be empty")
-        return cleaned
+router = APIRouter(prefix="/keywords", tags=["keywords"])
 
 
-@router.post("")
+@router.post("", status_code=201)
 async def create_keyword(
     request: Request,
-    body: CreateKeywordRequest,
+    payload: CreateKeywordRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return success_response(
-        request,
-        status_code=201,
-        data={
-            "id": 1,
-            "keyword": body.keyword,
-            "language": body.language or current_user.default_language,
-            "is_active": True,
-            "created_at": None,
-        },
+    data = await create_user_keyword(
+        db=db,
+        current_user=current_user,
+        keyword=payload.keyword,
+        language=payload.language,
     )
+    return success_response(request, data=data, status_code=201)
 
 
 @router.get("")
 async def list_keywords(
     request: Request,
-    page: int = 1,
-    size: int = 20,
-    is_active: bool | None = None,
-    language: Literal["ko", "en"] | None = None,
-    q: str | None = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1),
+    is_active: bool | None = Query(None),
+    language: LanguageEnum | None = Query(None),
+    q: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    items = [
-        {
-            "id": 1,
-            "keyword": "AI",
-            "language": "en",
-            "is_active": True,
-            "created_at": "2026-02-21T10:20:00Z",
-        },
-        {
-            "id": 2,
-            "keyword": "삼성전자",
-            "language": "ko",
-            "is_active": False,
-            "created_at": "2026-02-20T09:15:00Z",
-        },
-    ]
-
-    return success_response(
-        request,
-        data={
-            "items": items,
-            "page_info": {
-                "page": page,
-                "size": size,
-                "total": len(items),
-                "has_next": False,
-            },
-        },
+    data = await get_my_keywords(
+        db=db,
+        current_user=current_user,
+        page=page,
+        size=size,
+        is_active=is_active,
+        language=language,
+        q=q,
     )
+    return success_response(request, data=data)
 
 
 @router.patch("/{keyword_id}")
-async def update_keyword_active(
-    keyword_id: int,
+async def patch_keyword(
     request: Request,
-    body: UpdateKeywordActiveRequest,
+    keyword_id: int,
+    payload: UpdateKeywordStatusRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return success_response(
-        request,
-        data={
-            "id": keyword_id,
-            "keyword": "AI",
-            "language": "en",
-            "is_active": body.is_active,
-            "updated_at": None,
-        },
+    data = await patch_keyword_is_active(
+        db=db,
+        current_user=current_user,
+        keyword_id=keyword_id,
+        is_active=payload.is_active,
     )
+    return success_response(request, data=data)
 
 
 @router.delete("/{keyword_id}")
 async def delete_keyword(
-    keyword_id: int,
     request: Request,
+    keyword_id: int,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return success_response(
-        request,
-        data={
-            "deleted": True,
-            "keyword_id": keyword_id,
-        },
+    data = await remove_keyword(
+        db=db,
+        current_user=current_user,
+        keyword_id=keyword_id,
     )
+    return success_response(request, data=data)
 
 
 @router.post("/batch")
-async def create_keywords_batch(
+async def batch_create_keywords(
     request: Request,
-    body: BatchKeywordRequest,
+    payload: BatchCreateKeywordRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    items = [
-        {
-            "keyword": keyword,
-            "status": "CREATED",
-            "id": idx + 1,
-            "reason": None,
-        }
-        for idx, keyword in enumerate(body.keywords)
-    ]
-
-    return success_response(
-        request,
-        data={
-            "created_count": len(items),
-            "skipped_count": 0,
-            "items": items,
-        },
+    data = await batch_create_user_keywords(
+        db=db,
+        current_user=current_user,
+        keywords=payload.keywords,
+        language=payload.language,
     )
+    return success_response(request, data=data)

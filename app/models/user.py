@@ -24,7 +24,12 @@ class User(Base, TimestampMixin):
     token_records = relationship("UserToken", back_populates="user", cascade="all, delete-orphan")
     credit_wallet = relationship("CreditWallet", back_populates="user", uselist=False, cascade="all, delete-orphan")
     credit_transactions = relationship("CreditTransaction", back_populates="user", cascade="all, delete-orphan")
-
+    crawl_runs = relationship("CrawlRun", cascade="all, delete-orphan")
     __table_args__ = (
         Index("ux_users_email_lower", func.lower(email), unique=True),
     )
+    
+auth_refresh_tokens = relationship(
+    "AuthRefreshToken",
+    cascade="all, delete-orphan",
+)

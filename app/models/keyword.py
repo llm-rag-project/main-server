@@ -14,6 +14,7 @@ class Keyword(Base, TimestampMixin):
         nullable=False,
     )
     keyword_text: Mapped[str] = mapped_column(String(255), nullable=False)
+    language: Mapped[str] = mapped_column(String(10), nullable=False, default="ko", server_default="ko")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
     user = relationship("User", back_populates="keywords")
