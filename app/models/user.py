@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import BigInteger, String, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm.relationships import _RelationshipDeclared
 
 from app.db.base import Base, TimestampMixin
 
@@ -28,8 +29,7 @@ class User(Base, TimestampMixin):
     __table_args__ = (
         Index("ux_users_email_lower", func.lower(email), unique=True),
     )
-    
-auth_refresh_tokens = relationship(
-    "AuthRefreshToken",
-    cascade="all, delete-orphan",
-)
+    auth_refresh_tokens = relationship(
+        "AuthRefreshToken",
+        back_populates="user"
+    )

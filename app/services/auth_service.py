@@ -69,12 +69,11 @@ async def login_user(db: AsyncSession, email: str, password: str) -> LoginRespon
 
 async def logout_user(
     db: AsyncSession,
-    user_id: int,
     refresh_token: str,
 ) -> LogoutResponse:
     token_record = await get_refresh_token_record(db, refresh_token)
 
-    if token_record is None or token_record.user_id != user_id:
+    if token_record is None:
         return LogoutResponse(logged_out=True)
 
     if not token_record.is_revoked:

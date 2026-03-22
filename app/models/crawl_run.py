@@ -3,6 +3,8 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.article_match import ArticleMatch
+from app.models.crawl_run_keyword import CrawlRunKeyword
 
 
 class CrawlRun(Base):
@@ -19,4 +21,12 @@ class CrawlRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     user = relationship("User", back_populates="crawl_runs")
-    run_keywords = relationship("CrawlRunKeyword", back_populates="crawl_run")
+    run_keywords: Mapped[list["CrawlRunKeyword"]] = relationship(
+        "CrawlRunKeyword",
+        back_populates="crawl_run",
+        cascade="all, delete-orphan",
+    )
+    article_matches: Mapped[list["ArticleMatch"]] = relationship(
+        "ArticleMatch",
+        back_populates="crawl_run"
+    )

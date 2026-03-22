@@ -1,55 +1,107 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db
 from app.core.response import success_response
 from app.models.user import User
-from app.repositories.importance_repository import ImportanceRepository
-from app.schemas.importance import (
-    ImportanceListQuery,
-    ImportanceSort,
-    ImportanceStatus,
+from app.schemas.keyword import (
+    BatchCreateKeywordRequest,
+    CreateKeywordRequest,
+    UpdateKeywordStatusRequest,
 )
-from app.services.importance_service import ImportanceService
+from app.services.keyword_service import (
+    batch_create_user_keywords,
+    create_user_keyword,
+    get_my_keywords,
+    patch_keyword_is_active,
+    remove_keyword,
+)
 
-router = APIRouter(prefix="/importance", tags=["importance"])
+router = APIRouter(prefix="/keywords", tags=["keywords"])
 
 
-@router.get("")
-async def get_importance_list(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    keyword_id: int | None = Query(None, ge=1),
-    from_date: str | None = Query(None, alias="from"),
-    to_date: str | None = Query(None, alias="to"),
-    min_score: float | None = Query(None, ge=0.0, le=1.0),
-    max_score: float | None = Query(None, ge=0.0, le=1.0),
-    status_filter: ImportanceStatus | None = Query(None, alias="status"),
-    sort: ImportanceSort = Query(ImportanceSort.scored_at_desc),
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_keyword_api(
+    request: Request,
+    payload: CreateKeywordRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    try:
-        query = ImportanceListQuery(
-            page=page,
-            size=size,
-            keyword_id=keyword_id,
-            **{
-                "from": from_date,
-                "to": to_date,
-                "min_score": min_score,
-                "max_score": max_score,
-                "status": status_filter,
-                "sort": sort,
-            },
-        )
+    data = await create_user_keyword(
+        db=db,
+        current_user=current_user,
+        keyword=payload.keyword,
+        language=payload.language,
+    )
+    return success_response(request, data=data.model_dump(), status_code=status.HTTP_201_CREATED)
 
-        service = ImportanceService(ImportanceRepository(db))
-        result = await service.get_importance_list(user_id=current_user.id, query=query)
-        return success_response(data=result.model_dump())
 
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+@router.get("")
+async def get_keyword_list_api(
+    request: Request,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    is_active: bool | None = Query(None),
+    language: str | None = Query(None),
+    q: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await get_my_keywords(
+        db=db,
+        current_user=current_user,
+        page=page,
+        size=size,
+        is_active=is_active,
+        language=language,
+        q=q,
+    )
+    return success_response(request, data=data.model_dump())
+
+
+@router.patch("/{keyword_id}")
+async def update_keyword_status_api(
+    request: Request,
+    keyword_id: int,
+    payload: UpdateKeywordStatusRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await patch_keyword_is_active(
+        db=db,
+        current_user=current_user,
+        keyword_id=keyword_id,
+        is_active=payload.is_active,
+    )
+    return success_response(request, data=data.model_dump())
+
+
+@router.delete("/{keyword_id}")
+async def delete_keyword_api(
+    request: Request,
+    keyword_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await remove_keyword(
+        db=db,
+        current_user=current_user,
+        keyword_id=keyword_id,
+    )
+    return success_response(request, data=data.model_dump())
+
+
+@router.post("/batch", status_code=status.HTTP_201_CREATED)
+async def batch_create_keywords_api(
+    request: Request,
+    payload: BatchCreateKeywordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    data = await batch_create_user_keywords(
+        db=db,
+        current_user=current_user,
+        keywords=payload.keywords,
+        language=payload.language,
+    )
+    return success_response(request, data=data.model_dump(), status_code=status.HTTP_201_CREATED)

@@ -18,7 +18,11 @@ class Keyword(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
     user = relationship("User", back_populates="keywords")
-    crawl_runs = relationship("CrawlRun", back_populates="keyword", cascade="all, delete-orphan")
+    crawl_run_keywords = relationship(
+        "CrawlRunKeyword",
+        back_populates="keyword"
+    )
+   
     article_matches = relationship("ArticleMatch", back_populates="keyword", cascade="all, delete-orphan")
 
     __table_args__ = (

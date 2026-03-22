@@ -12,6 +12,7 @@ from app.models.summary import Summary
 from app.models.translation import Translation
 from app.models.user import User
 from app.models.user_token import UserToken
+from app.models.crawl_run_keyword import CrawlRunKeyword
 
 __all__ = [
     "User",
