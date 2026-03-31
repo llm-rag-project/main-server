@@ -1,153 +1,63 @@
-from typing import Literal
-
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
-from app.core.response import success_response
-from app.models.user import User
 from app.core.deps import get_current_user, get_db
 from app.core.response import success_response
 from app.models.user import User
 from app.repositories.article_repository import ArticleRepository
-from app.repositories.feedback_repository import FeedbackRepository
-from app.schemas.feedbacks import RankingFeedbackRequest
-from app.services.article_service import ArticleService
-from app.services.feedback_service import FeedbackService
+from app.repositories.importance_repository import ImportanceRepository
+from app.schemas.importance import ImportanceListQuery, ImportanceRunRequest
+from app.services.importance_service import ImportanceService
 
-router = APIRouter(prefix="/feedbacks", tags=["feedbacks"])
+router = APIRouter(prefix="/importance", tags=["importance"])
 
 
 @router.get("")
 async def list_importance(
-    request: Request,
-    page: int = 1,
-    size: int = 20,
-    keyword_id: int | None = None,
-    from_date: str | None = None,
-    to: str | None = None,
-    min_score: float | None = None,
-    max_score: float | None = None,
-    status: Literal["PENDING", "PROCESSING", "COMPLETED", "FAILED"] | None = None,
-    sort: Literal["scored_at_desc", "scored_at_asc", "score_desc", "score_asc"] = "scored_at_desc",
-    current_user: User = Depends(get_current_user),
-):
-    items = [
-        {
-            "article_id": 101,
-            "title": "OpenAI releases new model",
-            "url": "https://example.com/articles/101",
-            "keyword_id": 12,
-            "score": 0.82,
-            "status": "COMPLETED",
-            "scored_at": "2026-02-21T10:40:00Z",
-            "created_at": "2026-02-21T10:39:10Z",
-        }
-    ]
-
-    return success_response(
-        request,
-        data={
-            "items": items,
-            "page_info": {
-                "page": page,
-                "size": size,
-                "total": len(items),
-                "has_next": False,
-            },
-        },
-    )
-
-
-@router.get("/articles/{article_id}/importance")
-async def get_article_importance(
-    article_id: int,
-    request: Request,
-    current_user: User = Depends(get_current_user),
-):
-    return success_response(
-        request,
-        data={
-            "article_id": article_id,
-            "status": "COMPLETED",
-            "score": 0.82,
-            "model": "importance-v1",
-            "scored_at": "2026-02-21T10:40:00Z",
-            "created_at": "2026-02-21T10:39:10Z",
-            "updated_at": "2026-02-21T10:40:00Z",
-        },
-    )
-@router.delete("/{feedback_id}")
-async def delete_feedback(
-    feedback_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    keyword_id: int | None = Query(None, ge=1),
+    from_date: str | None = Query(None, alias="from"),
+    to_date: str | None = Query(None, alias="to"),
+    min_score: float | None = Query(None, ge=0.0, le=1.0),
+    max_score: float | None = Query(None, ge=0.0, le=1.0),
+    status: str | None = Query(None),
+    sort: str = Query("scored_at_desc"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    service = ArticleService(ArticleRepository(db))
+    query = ImportanceListQuery(
+        page=page,
+        size=size,
+        keyword_id=keyword_id,
+        **{
+            "from": from_date,
+            "to": to_date,
+            "min_score": min_score,
+            "max_score": max_score,
+            "status": status,
+            "sort": sort,
+        },
+    )
 
-    try:
-        result = await service.delete_feedback(
-            user_id=current_user.id,
-            feedback_id=feedback_id,
-        )
-        await db.commit()
-        return success_response(data=result.model_dump())
+    service = ImportanceService(ImportanceRepository(db))
+    result = await service.get_importance_list(user_id=current_user.id, query=query)
+    return success_response(data=result.model_dump())
 
-    except ValueError as e:
-        await db.rollback()
-        if str(e) == "NOT_FOUND":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="feedback not found",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
 
-    except PermissionError as e:
-        await db.rollback()
-        if str(e) == "FORBIDDEN":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to delete this feedback",
-            )
-        raise
-
-    except Exception:
-        await db.rollback()
-        raise
-
-@router.post("/ranking")
-async def save_ranking_feedback(
-    payload: RankingFeedbackRequest,
+@router.post("/run")
+async def run_importance(
+    payload: ImportanceRunRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    service = FeedbackService(FeedbackRepository(db))
-
-    try:
-        result = await service.save_ranking_feedback(
-            user_id=current_user.id,
-            payload=payload,
-        )
-        await db.commit()
-        return success_response(data=result.model_dump())
-
-    except ValueError as e:
-        await db.rollback()
-
-        if str(e) == "NOT_FOUND":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="article not found",
-            )
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-
-    except Exception:
-        await db.rollback()
-        raise
+    service = ImportanceService(
+        repository=ImportanceRepository(db),
+        article_repository=ArticleRepository(db),
+    )
+    result = await service.run_importance_scoring(
+        user_id=current_user.id,
+        article_ids=payload.article_ids,
+    )
+    await db.commit()
+    return success_response(data=result.model_dump())

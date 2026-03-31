@@ -1,5 +1,6 @@
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import Any, Dict, List, Tuple
+from sqlalchemy import update
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,3 +100,41 @@ class ImportanceRepository:
         result = await self.db.execute(stmt)
         rows = result.mappings().all()
         return [dict(row) for row in rows], total
+    async def clear_current_scores(self, user_id: int, article_ids: list[int]) -> None:
+        if not article_ids:
+            return
+
+        stmt = (
+            update(ImportanceScore)
+            .where(ImportanceScore.user_id == user_id)
+            .where(ImportanceScore.article_id.in_(article_ids))
+            .where(ImportanceScore.is_current.is_(True))
+            .values(is_current=False)
+        )
+        await self.db.execute(stmt)
+
+    async def bulk_insert_scores(
+        self,
+        user_id: int,
+        items: list[dict],
+        engine: str = "gpt-4o-mini",
+        version: int = 1,
+    ) -> None:
+        now = datetime.now(timezone.utc)
+
+        for item in items:
+            self.db.add(
+                ImportanceScore(
+                    article_id=item["article_id"],
+                    user_id=user_id,
+                    score=item["score"],
+                    reason=item.get("reason"),
+                    status="COMPLETED",
+                    scored_at=now,
+                    engine=engine,
+                    version=version,
+                    is_current=True,
+                )
+            )
+
+        await self.db.flush()

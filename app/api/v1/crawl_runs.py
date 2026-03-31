@@ -7,8 +7,11 @@ from app.core.deps import get_current_user
 from app.core.response import success_response
 from app.models.user import User
 
-router = APIRouter()
 
+router = APIRouter(
+    prefix="/crawl-runs",
+    tags=["crawl-runs"],
+)
 
 class CreateCrawlRunRequest(BaseModel):
     keyword_ids: list[int] | None = None

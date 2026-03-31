@@ -62,3 +62,24 @@ class PageInfo(BaseModel):
 class ImportanceListResponse(BaseModel):
     items: List[ImportanceListItem]
     page_info: PageInfo
+    
+class ImportanceWorkflowArticleInput(BaseModel):
+    article_id: int
+    title: str
+    content: str
+
+
+class ImportanceRunRequest(BaseModel):
+    article_ids: List[int] = Field(min_length=1)
+
+
+class ImportanceRunItem(BaseModel):
+    article_id: int
+    score: float = Field(ge=0.0, le=1.0)
+    reason: Optional[str] = None
+
+
+class ImportanceRunResponse(BaseModel):
+    workflow_run_id: Optional[str]
+    task_id: Optional[str]
+    items: List[ImportanceRunItem]

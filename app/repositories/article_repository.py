@@ -22,6 +22,8 @@ from app.schemas.articles import ArticleListQuery
 class ArticleRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
+    
+    
 
     async def get_article_list(
         self,
@@ -511,3 +513,37 @@ class ArticleRepository:
             "deleted": True,
             "article_id": article_id,
         }
+    
+        async def get_articles_for_importance_scoring(
+            self,
+            user_id: int,
+            article_ids: list[int],
+        ) -> list[dict]:
+            if not article_ids:
+                return []
+
+            stmt = (
+                select(
+                    Article.id.label("article_id"),
+                    Article.title,
+                    Article.content,
+                )
+                .select_from(Article)
+                .where(Article.id.in_(article_ids))
+                .where(
+                    exists(
+                        select(literal(1))
+                        .select_from(ArticleMatch)
+                        .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                        .where(
+                            ArticleMatch.article_id == Article.id,
+                            Keyword.user_id == user_id,
+                        )
+                    )
+                )
+                .order_by(Article.id.asc())
+            )
+
+            result = await self.db.execute(stmt)
+            rows = result.mappings().all()
+            return [dict(row) for row in rows]
