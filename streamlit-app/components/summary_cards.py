@@ -1,8 +1,7 @@
 import streamlit as st
 
-from api.client import api_post
 from api.articles import get_articles
-from api.client import api_get
+from api.client import api_get, api_post
 
 
 def render_summary_cards():
@@ -16,13 +15,14 @@ def render_summary_cards():
         articles, _ = get_articles(keyword_id=keyword_id, page=1, size=100)
         article_count = len(articles)
     except Exception:
-        pass
+        articles = []
 
     try:
-        result = api_get(
-            "/importance",
-            params={"page": 1, "size": 100, "keyword_id": keyword_id} if keyword_id else {"page": 1, "size": 100},
-        )
+        params = {"page": 1, "size": 100}
+        if keyword_id:
+            params["keyword_id"] = keyword_id
+
+        result = api_get("/importance", params=params)
         importance_items = result.get("items", []) if isinstance(result, dict) else []
         st.session_state["importance_items"] = importance_items
         importance_count = len(importance_items)
@@ -40,7 +40,8 @@ def render_summary_cards():
         for item in items[:5]:
             st.write(
                 f"- {item.get('title', '제목 없음')} | "
-                f"score={item.get('score')} | status={item.get('status')}"
+                f"score={item.get('score', '-')} | "
+                f"status={item.get('status', '-')}"
             )
     else:
         st.caption("중요도 데이터가 없습니다.")
@@ -52,7 +53,6 @@ def render_summary_cards():
             return
 
         try:
-            articles, _ = get_articles(keyword_id=keyword_id, page=1, size=20)
             article_ids = [a["id"] for a in articles if a.get("id")]
 
             if not article_ids:
