@@ -25,6 +25,7 @@ class CrawlRun(Base):
         "CrawlRunKeyword",
         back_populates="crawl_run",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     article_matches: Mapped[list["ArticleMatch"]] = relationship(
         "ArticleMatch",
