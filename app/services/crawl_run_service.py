@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any
+from email.utils import parsedate_to_datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -48,20 +49,24 @@ class CrawlRunService:
         # 3) 키워드별 뉴스 검색
         for keyword in keywords:
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
+            print("NEWS RESPONSE =", news_response)
 
-            # transnews 응답 형태에 맞게 조정
-            if not news_response.get("success"):
+            if news_response.get("status") != "SUCCESS":
+                print("SKIP: news search failed =", news_response)
                 continue
 
             news_items = news_response.get("data") or []
+            print("NEWS ITEMS COUNT =", len(news_items))
 
             for item in news_items:
+                print("RAW ITEM =", item)
+                print("MAPPED URL =", item.get("url") or item.get("link"))
+
                 article = await self._upsert_article(item)
-                
-                print("raw item =", item)
-                print("mapped url =", item.get("url") or item.get("link"))
-                
+                print("UPSERT RESULT =", article)
+
                 if article is None:
+                    print("SKIP: article is None")
                     continue
 
                 await self._ensure_article_match(
@@ -70,9 +75,10 @@ class CrawlRunService:
                     crawl_run_id=crawl_run.id,
                 )
 
-                # 필요하면 summary/content 채움
                 try:
                     summary_response = await self.transnews_client.summarize_news(article.url)
+                    print("SUMMARY RESPONSE =", summary_response)
+
                     if summary_response.get("status") == "SUCCESS":
                         data = summary_response.get("data") or {}
                         content = data.get("content")
@@ -83,8 +89,8 @@ class CrawlRunService:
 
                         if summary_text:
                             await self._upsert_summary(article.id, summary_text)
-                except Exception:
-                    # 요약 실패는 전체 크롤링 실패로 보지 않고 넘어감
+                except Exception as e:
+                    print("SUMMARY FAILED =", e)
                     pass
 
                 article_count += 1
@@ -105,7 +111,10 @@ class CrawlRunService:
     async def _get_user_keywords(self, *, user_id: int, keyword_ids: list[int] | None):
         from sqlalchemy import select
 
-        stmt = select(Keyword).where(Keyword.user_id == user_id, Keyword.is_active.is_(True))
+        stmt = select(Keyword).where(
+            Keyword.user_id == user_id,
+            Keyword.is_active.is_(True),
+        )
         if keyword_ids:
             stmt = stmt.where(Keyword.id.in_(keyword_ids))
 
@@ -115,22 +124,40 @@ class CrawlRunService:
     async def _upsert_article(self, item: dict[str, Any]) -> Article | None:
         from sqlalchemy import select
 
+        print("RAW ITEM IN UPSERT =", item)
+
         url = item.get("url") or item.get("link")
+        print("FINAL URL =", url)
+
+        published_raw = item.get("published_at") or item.get("published")
+        print("FINAL PUBLISHED RAW =", published_raw)
+
+        published_at = None
+        if published_raw:
+            try:
+                published_at = parsedate_to_datetime(published_raw)
+            except Exception as e:
+                print("DATE PARSE FAILED =", published_raw, e)
+
+        print("PARSED DATE =", published_at)
+
         if not url:
+            print("SKIP IN UPSERT: url is missing")
             return None
-        print("final url =", url)
 
         title = item.get("title") or "제목 없음"
         publisher = item.get("publisher") or item.get("source")
-        published_at = item.get("published_at") or item.get("published")
 
         result = await self.db.execute(select(Article).where(Article.url == url))
         article = result.scalar_one_or_none()
 
         if article:
+            print("EXISTING ARTICLE FOUND, id =", article.id)
             article.title = title
             article.publisher = publisher
             article.source_type = article.source_type or "TRANSNEWS"
+            if published_at is not None:
+                article.published_at = published_at
             return article
 
         article = Article(
@@ -145,6 +172,8 @@ class CrawlRunService:
         )
         self.db.add(article)
         await self.db.flush()
+
+        print("NEW ARTICLE INSERTED, id =", article.id)
         return article
 
     async def _ensure_article_match(self, *, article_id: int, keyword_id: int, crawl_run_id: int):
@@ -166,18 +195,25 @@ class CrawlRunService:
                     crawl_run_id=crawl_run_id,
                 )
             )
+            print(f"ARTICLE MATCH ADDED: article_id={article_id}, keyword_id={keyword_id}")
+        else:
+            print(f"ARTICLE MATCH EXISTS: article_id={article_id}, keyword_id={keyword_id}")
 
     async def _upsert_summary(self, article_id: int, summary_text: str):
         from sqlalchemy import select
 
         result = await self.db.execute(
-            select(Summary).where(Summary.article_id == article_id, Summary.language == "ko")
+            select(Summary).where(
+                Summary.article_id == article_id,
+                Summary.language == "ko",
+            )
         )
         summary = result.scalar_one_or_none()
 
         if summary:
             summary.summary_text = summary_text
             summary.model_name = "transnews-pipeline"
+            print(f"SUMMARY UPDATED: article_id={article_id}")
             return
 
         self.db.add(
@@ -188,3 +224,4 @@ class CrawlRunService:
                 model_name="transnews-pipeline",
             )
         )
+        print(f"SUMMARY ADDED: article_id={article_id}")
