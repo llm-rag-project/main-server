@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from requests import request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db
@@ -53,7 +54,7 @@ async def get_articles(
 
         service = ArticleService(ArticleRepository(db))
         result = await service.get_article_list(user_id=current_user.id, query=query)
-        return success_response(data=result.model_dump())
+        return success_response(request=request, data=result.model_dump())
 
     except ValueError as e:
         raise HTTPException(
