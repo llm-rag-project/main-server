@@ -57,6 +57,9 @@ class CrawlRunService:
 
             for item in news_items:
                 article = await self._upsert_article(item)
+                if article is None:
+                    continue
+
                 await self._ensure_article_match(
                     article_id=article.id,
                     keyword_id=keyword.id,
@@ -105,10 +108,13 @@ class CrawlRunService:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def _upsert_article(self, item: dict[str, Any]) -> Article:
+    async def _upsert_article(self, item: dict[str, Any]) -> Article | None:
         from sqlalchemy import select
 
         url = item.get("url")
+        if not url:
+            return None
+
         title = item.get("title") or "제목 없음"
         publisher = item.get("publisher") or item.get("source")
         published_at = item.get("published_at")
