@@ -10,20 +10,16 @@ def login(email: str, password: str):
         "password": password,
     }
 
-    # 로그인은 토큰 없이 요청
     result = api_post("/auth/login", payload, with_auth=False)
 
-    # 실제 응답 구조에 맞게 토큰 추출
     access_token = result.get("access_token") or result.get("accessToken")
     refresh_token = result.get("refresh_token") or result.get("refreshToken")
 
     if not access_token:
-        raise ValueError("로그인 응답에 access_token이 없습니다.")
+        raise ValueError(f"로그인 응답에 access_token이 없습니다: {result}")
 
-    user = None
-    set_auth_state(access_token=access_token, refresh_token=refresh_token, user=user)
+    set_auth_state(access_token=access_token, refresh_token=refresh_token, user=None)
 
-    # 로그인 후 사용자 정보 조회
     try:
         me = get_me()
         st.session_state["user"] = me
@@ -31,6 +27,18 @@ def login(email: str, password: str):
         pass
 
     return result
+
+
+def signup(email: str, password: str, name: str | None = None):
+    payload = {
+        "email": email,
+        "password": password,
+    }
+
+    if name:
+        payload["name"] = name
+
+    return api_post("/auth/signup", payload, with_auth=False)
 
 
 def get_me():
