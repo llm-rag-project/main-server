@@ -50,7 +50,7 @@ class CrawlRunService:
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
 
             # transnews 응답 형태에 맞게 조정
-            if news_response.get("status") != "SUCCESS":
+            if not news_response.get("success"):
                 continue
 
             news_items = news_response.get("data") or []
