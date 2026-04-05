@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000/api/v1")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8001/api/v1")
 AI_BASE_URL = os.getenv("AI_BASE_URL", "http://localhost/v1")
 TIMEOUT = 20
 
@@ -17,7 +17,9 @@ class APIError(Exception):
 
 
 def get_headers(with_auth: bool = True) -> Dict[str, str]:
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+    }
 
     if with_auth:
         token = st.session_state.get("access_token")
