@@ -57,6 +57,10 @@ class CrawlRunService:
 
             for item in news_items:
                 article = await self._upsert_article(item)
+                
+                print("raw item =", item)
+                print("mapped url =", item.get("url") or item.get("link"))
+                
                 if article is None:
                     continue
 
@@ -112,11 +116,13 @@ class CrawlRunService:
         from sqlalchemy import select
 
         url = item.get("url") or item.get("link")
-        published_at = item.get("published_at") or item.get("published")
+        if not url:
+            return None
+        print("final url =", url)
 
         title = item.get("title") or "제목 없음"
         publisher = item.get("publisher") or item.get("source")
-        
+        published_at = item.get("published_at") or item.get("published")
 
         result = await self.db.execute(select(Article).where(Article.url == url))
         article = result.scalar_one_or_none()
