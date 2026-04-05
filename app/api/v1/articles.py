@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from requests import request
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db
@@ -19,6 +18,7 @@ router = APIRouter(prefix="/articles", tags=["articles"])
 
 @router.get("")
 async def get_articles(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     keyword_id: int | None = Query(None, ge=1),
