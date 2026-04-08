@@ -54,16 +54,14 @@ class DifyService:
         user_id: int,
         message: str,
         conversation_id: str = "",
-        article_ids: list[int] | None = None,
-        context_type: str = "",
-        chat_id: int | None = None,
+        article_id: int | None = None,
     ) -> dict:
         inputs = {
             "user_id": user_id,
-            "article_ids": article_ids or [],
-            "context_type": context_type,
-            "chat_id": chat_id,
         }
+
+        if article_id is not None:
+            inputs["article_id"] = article_id
 
         payload = {
             "inputs": inputs,
@@ -79,14 +77,25 @@ class DifyService:
         print(data)
         print("================================\n")
 
+        answer = data.get("answer", "")
+        conv_id = data.get("conversation_id", "")
+        metadata = data.get("metadata") or {}
+        usage = metadata.get("usage") or {}
+
         return {
-            "answer": data.get("answer", ""),
-            "conversation_id": data.get("conversation_id", ""),
-            "created_at": data.get("created_at"),
-            "message_id": data.get("message_id"),
+            "success": True,
+            "data": {
+                "conversation_id": conv_id,
+                "answer": answer,
+                "total_tokens": usage.get("total_tokens", 0),
+            },
+            "error": None,
+            "meta": {
+                "request_id": data.get("message_id", ""),
+            },
             "raw": data,
         }
-
+    
     async def run_summary_workflow(
         self,
         *,

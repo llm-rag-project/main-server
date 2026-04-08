@@ -89,14 +89,16 @@ class ChatService:
                 "You do not have permission to access this chat",
             )
 
+        article_id = None
+        if payload.article_ids and len(payload.article_ids) > 0:
+            article_id = payload.article_ids[0]
+
         try:
             dify_result = await self.dify_service.send_chat_message(
                 user_id=user_id,
                 message=payload.message,
                 conversation_id=payload.conversation_id or chat.external_conversation_id or "",
-                article_ids=payload.article_ids or [],
-                context_type=str(chat.context_type) if chat.context_type is not None else "",
-                chat_id=chat.id,
+                article_id=article_id,
             )
         except RuntimeError:
             raise build_error(
@@ -104,9 +106,10 @@ class ChatService:
                 "LLM service temporarily unavailable",
             )
 
-        new_conversation_id = dify_result.get("conversation_id")
-        answer = dify_result.get("answer")
-        created_at = dify_result.get("created_at")
+        data = dify_result.get("data") or {}
+        new_conversation_id = data.get("conversation_id")
+        answer = data.get("answer")
+        created_at = None
 
         if not answer:
             raise build_error(
@@ -126,6 +129,7 @@ class ChatService:
             conversation_id=new_conversation_id,
             created_at=created_at,
         )
+   
     async def create_chat(
         self,
         user_id: int,
