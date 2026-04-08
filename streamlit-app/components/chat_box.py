@@ -60,19 +60,6 @@ def render_chat_box():
 
 
 def extract_chat_result(result):
-    """
-    채팅 API 응답 구조:
-    {
-      "success": true,
-      "data": {
-        "conversation_id": "conv_001",
-        "answer": "...",
-        "created_at": 1234567890
-      },
-      "error": null,
-      "meta": { "request_id": "..." }
-    }
-    """
     if not isinstance(result, dict):
         return "채팅 결과를 해석하지 못했습니다.", ""
 
