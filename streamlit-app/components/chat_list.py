@@ -2,6 +2,30 @@ import streamlit as st
 from api.chat_rooms import create_chat, get_chat_detail, get_chat_list
 
 
+def _unwrap_response(result):
+    """
+    응답 형태를 둘 다 지원:
+    1) 래핑 응답: {"success": true, "data": {...}, "error": null}
+    2) 직접 응답: {...}
+    """
+    if not isinstance(result, dict):
+        raise ValueError(f"응답 형식이 dict가 아닙니다: {type(result)}")
+
+    if "success" in result:
+        success = result.get("success", False)
+        if not success:
+            error = result.get("error")
+            if isinstance(error, dict):
+                message = error.get("message") or error.get("detail") or "요청에 실패했습니다."
+            else:
+                message = str(error) if error is not None else "요청에 실패했습니다."
+            raise ValueError(message)
+
+        return result.get("data", {})
+
+    return result
+
+
 def render_chat_list():
     st.subheader("채팅방")
 
@@ -14,11 +38,7 @@ def render_chat_list():
     if "chat_messages" not in st.session_state:
         st.session_state["chat_messages"] = []
 
-    if "chat_list_refresh_token" not in st.session_state:
-        st.session_state["chat_list_refresh_token"] = 0
-
-    # 생성 폼
-    with st.expander("새 채팅방 만들기", expanded=True):
+    with st.expander("새 채팅방 만들기", expanded=False):
         with st.form("create_chat_form", clear_on_submit=True):
             new_title = st.text_input("채팅방 제목", key="new_chat_title_input")
             context_type = st.selectbox(
@@ -35,40 +55,18 @@ def render_chat_list():
                 if not title:
                     st.warning("채팅방 제목을 입력하세요.")
                 else:
-                    result = create_chat(
-                        title=title,
-                        context_type=context_type,
-                    )
-
-                    if not isinstance(result, dict):
-                        st.error(f"생성 응답 형식이 이상합니다: {type(result)}")
-                        return
-
-                    # result가 바로 데이터일 경우 처리
-                    if "id" in result:
-                        data = result
-                    else:
-                        success = result.get("success", False)
-                        if not success:
-                            error = result.get("error")
-                            if isinstance(error, dict):
-                                st.error(error.get("message", "채팅방 생성 실패"))
-                            else:
-                                st.error(f"채팅방 생성 실패: {error}")
-                            return
-                        data = result.get("data", {})
+                    result = create_chat(title=title, context_type=context_type)
+                    data = _unwrap_response(result)
 
                     created_chat_id = data.get("id")
                     external_conversation_id = data.get("external_conversation_id") or ""
 
                     if not created_chat_id:
-                        st.error(f"생성은 됐지만 chat id가 없습니다: {data}")
-                        return
+                        raise ValueError(f"생성 응답에 id가 없습니다: {data}")
 
                     st.session_state["selected_chat_id"] = created_chat_id
                     st.session_state["chat_conversation_id"] = external_conversation_id
                     st.session_state["chat_messages"] = []
-                    st.session_state["chat_list_refresh_token"] += 1
 
                     st.success("채팅방이 생성되었습니다.")
                     st.rerun()
@@ -78,30 +76,17 @@ def render_chat_list():
 
     st.markdown("---")
 
-    # 목록 조회
     try:
         result = get_chat_list(page=1, size=50)
+        data = _unwrap_response(result)
 
-        if not isinstance(result, dict):
-            st.error(f"목록 응답 형식이 이상합니다: {type(result)}")
-            return
-
-        success = result.get("success", False)
-        data = result.get("data")
-        error = result.get("error")
-
-        if not success:
-            if isinstance(error, dict):
-                st.error(error.get("message", "채팅방 목록을 불러오지 못했습니다."))
-            else:
-                st.error(f"채팅방 목록을 불러오지 못했습니다: {error}")
-            return
-
-        if not isinstance(data, dict):
-            st.error(f"목록 data 형식이 이상합니다: {data}")
-            return
-
-        items = data.get("items", [])
+        # 직접 응답/래핑 응답 둘 다 처리
+        if isinstance(data, dict) and "items" in data:
+            items = data.get("items", [])
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = []
 
         if not items:
             st.info("채팅방이 없습니다.")
@@ -121,25 +106,7 @@ def render_chat_list():
             if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
                 try:
                     detail_result = get_chat_detail(chat_id)
-
-                    if not isinstance(detail_result, dict):
-                        st.error(f"상세 응답 형식이 이상합니다: {type(detail_result)}")
-                        return
-
-                    detail_success = detail_result.get("success", False)
-                    detail_data = detail_result.get("data")
-                    detail_error = detail_result.get("error")
-
-                    if not detail_success:
-                        if isinstance(detail_error, dict):
-                            st.error(detail_error.get("message", "채팅방 상세를 불러오지 못했습니다."))
-                        else:
-                            st.error(f"채팅방 상세를 불러오지 못했습니다: {detail_error}")
-                        return
-
-                    if not isinstance(detail_data, dict):
-                        st.error(f"상세 data 형식이 이상합니다: {detail_data}")
-                        return
+                    detail_data = _unwrap_response(detail_result)
 
                     st.session_state["selected_chat_id"] = detail_data.get("id")
                     st.session_state["chat_conversation_id"] = detail_data.get("external_conversation_id") or ""
@@ -157,4 +124,4 @@ def render_chat_list():
                     st.error(f"채팅방 선택 실패: {e}")
 
     except Exception as e:
-        st.error(f"채팅방 목록 조회 실패: {e}")
+        st.error(f"채팅방 목록을 불러오지 못했습니다: {e}")
