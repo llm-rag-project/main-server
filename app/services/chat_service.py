@@ -49,9 +49,9 @@ class ChatService:
     async def get_chat_detail(
         self,
         user_id: int,
-        chat_id: int,
+        conversation_id: int,
     ) -> ChatDetailResponse:
-        chat = await self.repository.get_chat_by_id(chat_id)
+        chat = await self.repository.get_chat_by_id(conversation_id)
 
         if not chat:
             raise build_error(ErrorCode.NOT_FOUND, "chat not found")
@@ -75,10 +75,10 @@ class ChatService:
     async def send_message(
         self,
         user_id: int,
-        chat_id: int,
+        conversation_id: int,
         payload: ChatSendMessageRequest,
     ) -> ChatSendMessageResponse:
-        chat = await self.repository.get_chat_by_id(chat_id)
+        chat = await self.repository.get_chat_by_id(conversation_id)
 
         if not chat:
             raise build_error(ErrorCode.NOT_FOUND, "chat not found")
@@ -91,7 +91,7 @@ class ChatService:
 
         # 기사 목록이 있으면 Dify inputs로 전달
         inputs = {
-            "chat_id": chat.id,
+            "conversation_id": chat.id,
             "context_type": chat.context_type,
             "article_ids": payload.article_ids or [],
         }

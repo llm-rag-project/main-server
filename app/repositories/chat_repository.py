@@ -34,8 +34,8 @@ class ChatRepository:
             "created_at": chat.created_at,
         }
 
-    async def get_chat_by_id(self, chat_id: int) -> Chat | None:
-        stmt = select(Chat).where(Chat.id == chat_id).limit(1)
+    async def get_chat_by_id(self, conversation_id: int) -> Chat | None:
+        stmt = select(Chat).where(Chat.id == conversation_id).limit(1)
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -87,7 +87,7 @@ class ChatRepository:
         last_message_at: datetime | None,
     ) -> None:
 
-        if external_conversation_id and not chat.external_conversation_id:
+        if external_conversaton_id and not chat.external_conversation_id:
             chat.external_conversation_id = external_conversation_id
 
         chat.last_message = last_message

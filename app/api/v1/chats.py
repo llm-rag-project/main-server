@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
@@ -18,6 +18,7 @@ router = APIRouter(prefix="/chats", tags=["chats"])
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_chat(
+    request: Request,
     payload: ChatCreateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
@@ -30,7 +31,7 @@ async def create_chat(
             payload=payload,
         )
         await db.commit()
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         await db.rollback()
@@ -46,6 +47,7 @@ async def create_chat(
 
 @router.get("")
 async def get_chats(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     q: str | None = Query(None),
@@ -66,7 +68,7 @@ async def get_chats(
             user_id=current_user.id,
             query=query,
         )
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         raise HTTPException(
@@ -75,9 +77,10 @@ async def get_chats(
         )
 
 
-@router.get("/{chat_id}")
+@router.get("/{conversation_id}")
 async def get_chat_detail(
-    chat_id: int,
+    request: Request,
+    conversation_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -86,9 +89,9 @@ async def get_chat_detail(
     try:
         result = await service.get_chat_detail(
             user_id=current_user.id,
-            chat_id=chat_id,
+            conversation_id=conversation_id,
         )
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         if str(e) == "NOT_FOUND":
@@ -110,9 +113,10 @@ async def get_chat_detail(
         raise
 
 
-@router.post("/{chat_id}/messages")
+@router.post("/{conversation_id}/messages")
 async def send_chat_message(
-    chat_id: int,
+    request: Request,
+    conversation_id: int,
     payload: ChatSendMessageRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
@@ -122,11 +126,11 @@ async def send_chat_message(
     try:
         result = await service.send_message(
             user_id=current_user.id,
-            chat_id=chat_id,
+            conversation_id=conversation_id,
             payload=payload,
         )
         await db.commit()
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         await db.rollback()

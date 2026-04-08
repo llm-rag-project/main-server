@@ -14,6 +14,7 @@ router = APIRouter(prefix="/importance", tags=["importance"])
 
 @router.get("")
 async def list_importance(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     keyword_id: int | None = Query(None, ge=1),
@@ -42,7 +43,7 @@ async def list_importance(
 
     service = ImportanceService(db)
     result = await service.get_importance_list(user_id=current_user.id, query=query)
-    return success_response(data=result)
+    return success_response(request, data=result)
 
 
 @router.post("/run")

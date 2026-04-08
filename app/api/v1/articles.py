@@ -111,6 +111,7 @@ async def get_article_detail(
 
 @router.get("/{article_id}/feedback")
 async def get_my_article_feedback(
+    request:Request,
     article_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
@@ -122,7 +123,7 @@ async def get_my_article_feedback(
             user_id=current_user.id,
             article_id=article_id,
         )
-        return success_response(data=result.model_dump() if result else None)
+        return success_response(request, data=result.model_dump() if result else None)
 
     except ValueError as e:
         if str(e) == "NOT_FOUND":
@@ -146,6 +147,7 @@ async def get_my_article_feedback(
 
 @router.delete("/{article_id}/feedback")
 async def delete_my_article_feedback(
+    request: Request,
     article_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
@@ -158,7 +160,7 @@ async def delete_my_article_feedback(
             article_id=article_id,
         )
         await db.commit()
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         await db.rollback()
