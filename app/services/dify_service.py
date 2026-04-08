@@ -139,6 +139,9 @@ class DifyService:
         }
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)
+        
+        print("=== DIFY IMPORTANCE RAW RESPONSE ===")
+        print(data)
 
         result_data = data.get("data") or {}
 
