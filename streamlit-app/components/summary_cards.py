@@ -1,7 +1,150 @@
+import json
 import streamlit as st
 
 from api.articles import get_articles
 from api.client import api_get, api_post
+
+def render_summary_result(summary_result):
+    """
+    summary_result가 dict이든 JSON 문자열이든 보기 좋게 렌더링
+    기대 형태 예:
+    {
+        "article_id": 38,
+        "title": "...",
+        "summary": "..."
+    }
+    """
+    if not summary_result:
+        st.info("요약 결과가 없습니다.")
+        return
+
+    parsed = summary_result
+
+    # 문자열이면 JSON 파싱 시도
+    if isinstance(summary_result, str):
+        try:
+            parsed = json.loads(summary_result)
+        except Exception:
+            parsed = {"summary": summary_result}
+
+    title = ""
+    summary_text = ""
+
+    if isinstance(parsed, dict):
+        title = parsed.get("title", "")
+        summary_text = (
+            parsed.get("summary")
+            or parsed.get("summary_text")
+            or parsed.get("result")
+            or parsed.get("text")
+            or ""
+        )
+
+    with st.container(border=True):
+        st.markdown("### 요약 결과")
+
+        if title:
+            st.caption(title)
+
+        if summary_text:
+            st.write(summary_text)
+        else:
+            st.warning("표시할 요약 텍스트가 없습니다.")
+
+
+def render_importance_result(importance_result):
+    """
+    importance_result 예:
+    {
+        "success": True,
+        "data": {
+            "workflow_run_id": "...",
+            "task_id": "...",
+            "items": [
+                {
+                    "article_id": 38,
+                    "score": 0.82,
+                    "reason": "...",
+                    "status": "COMPLETED"
+                }
+            ]
+        }
+    }
+
+    또는 data만 unwrap된 상태:
+    {
+        "workflow_run_id": "...",
+        "task_id": "...",
+        "items": [...]
+    }
+    """
+    if not importance_result:
+        st.info("중요도 실행 결과가 없습니다.")
+        return
+
+    parsed = importance_result
+
+    if isinstance(importance_result, str):
+        try:
+            parsed = json.loads(importance_result)
+        except Exception:
+            st.warning("중요도 응답을 해석할 수 없습니다.")
+            st.write(importance_result)
+            return
+
+    if not isinstance(parsed, dict):
+        st.warning("중요도 응답 형식이 올바르지 않습니다.")
+        st.write(parsed)
+        return
+
+    data = parsed.get("data") if isinstance(parsed.get("data"), dict) else parsed
+    items = data.get("items", []) if isinstance(data, dict) else []
+
+    with st.container(border=True):
+        st.markdown("### 중요도 실행 결과")
+
+        workflow_run_id = data.get("workflow_run_id") if isinstance(data, dict) else None
+        task_id = data.get("task_id") if isinstance(data, dict) else None
+
+        meta_cols = st.columns(2)
+        meta_cols[0].caption(f"workflow_run_id: {workflow_run_id or '-'}")
+        meta_cols[1].caption(f"task_id: {task_id or '-'}")
+
+        if not items:
+            st.warning("반환된 중요도 항목이 없습니다.")
+            return
+
+        for item in items:
+            article_id = item.get("article_id", "-")
+            score = item.get("score")
+            status = item.get("status", "COMPLETED")
+            reason = item.get("reason", "")
+
+            score_text = "-"
+            progress_value = 0.0
+
+            if score is not None:
+                try:
+                    progress_value = float(score)
+                    progress_value = max(0.0, min(progress_value, 1.0))
+                    score_text = f"{progress_value:.2f}"
+                except Exception:
+                    score_text = str(score)
+
+            st.markdown(f"**기사 ID:** {article_id}")
+
+            row_cols = st.columns([1, 1, 3])
+            row_cols[0].metric("점수", score_text)
+            row_cols[1].metric("상태", status)
+
+            if score is not None:
+                st.progress(progress_value)
+
+            if reason:
+                st.markdown("**사유**")
+                st.write(reason)
+
+            st.divider()
 
 
 def render_summary_cards():
@@ -61,6 +204,13 @@ def render_summary_cards():
 
             result = api_post("/importance/run", {"article_ids": article_ids})
             st.success("중요도 계산 요청 완료")
-            st.json(result)
+            if result:
+                st.session_state["last_importance_result"] = result
+                saved_importance_result = st.session_state.get("last_importance_result")
+                if saved_importance_result:
+                    render_importance_result(saved_importance_result)
+
+                    with st.expander("원본 중요도 응답 보기"):
+                        st.json(saved_importance_result)
         except Exception as e:
             st.error(f"중요도 실행 실패: {e}")
