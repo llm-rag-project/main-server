@@ -44,20 +44,19 @@ def render_chat_list():
                         st.error(f"생성 응답 형식이 이상합니다: {type(result)}")
                         return
 
-                    success = result.get("success", False)
-                    data = result.get("data")
-                    error = result.get("error")
-
-                    if not success:
-                        if isinstance(error, dict):
-                            st.error(error.get("message", "채팅방 생성에 실패했습니다."))
-                        else:
-                            st.error(f"채팅방 생성 실패: {error}")
-                        return
-
-                    if not isinstance(data, dict):
-                        st.error(f"생성 응답 data 형식이 이상합니다: {data}")
-                        return
+                    # result가 바로 데이터일 경우 처리
+                    if "id" in result:
+                        data = result
+                    else:
+                        success = result.get("success", False)
+                        if not success:
+                            error = result.get("error")
+                            if isinstance(error, dict):
+                                st.error(error.get("message", "채팅방 생성 실패"))
+                            else:
+                                st.error(f"채팅방 생성 실패: {error}")
+                            return
+                        data = result.get("data", {})
 
                     created_chat_id = data.get("id")
                     external_conversation_id = data.get("external_conversation_id") or ""
