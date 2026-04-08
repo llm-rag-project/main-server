@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
+from app.core.deps import get_db, get_current_user_or_dev_user
 from app.schemas.ai import (
     AIChatRequest,
     AIChatResponse,
