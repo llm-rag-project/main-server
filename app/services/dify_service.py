@@ -74,7 +74,9 @@ class DifyService:
         }
 
         data = await self._post("/chat-messages", self.chatflow_api_key, payload)
-
+        print("\n=== 🔥 DIFY IMPORTANCE RAW RESPONSE ===")
+        print(data)
+        print("=====================================\n")
         
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
@@ -109,7 +111,10 @@ class DifyService:
         }
 
         data = await self._post("/workflows/run", self.summary_workflow_api_key, payload)
-
+        print("\n=== 🔥 DIFY IMPORTANCE RAW RESPONSE ===")
+        print(data)
+        print("=====================================\n")
+        
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
 
@@ -142,8 +147,10 @@ class DifyService:
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)
         
-        print("=== DIFY IMPORTANCE RAW RESPONSE ===")
+        print("\n=== 🔥 DIFY IMPORTANCE RAW RESPONSE ===")
         print(data)
+        print("=====================================\n")
+        
 
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}

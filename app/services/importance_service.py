@@ -111,6 +111,8 @@ class ImportanceService:
 
             data = dify_result.get("data") or {}
             items = data.get("items") or []
+            if not items:
+                raise RuntimeError("Dify returned empty items")
 
             if not isinstance(items, list):
                 raise RuntimeError("Dify importance response items is not a list.")
