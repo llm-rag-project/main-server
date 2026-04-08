@@ -75,15 +75,16 @@ class DifyService:
 
         data = await self._post("/chat-messages", self.chatflow_api_key, payload)
 
-        # 네 명세 기준 응답 구조에 맞춤
+        
         result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
 
         return {
             "success": data.get("success", True),
             "data": {
-                "answer": result_data.get("answer", ""),
-                "conversation_id": result_data.get("conversation_id", ""),
-                "total_tokens": result_data.get("total_tokens"),
+                "workflow_run_id": result_data.get("workflow_run_id"),
+                "task_id": result_data.get("task_id"),
+                "items": outputs.get("items", []),  # 🔥 여기 핵심
             },
             "error": data.get("error"),
             "meta": data.get("meta"),
@@ -110,13 +111,14 @@ class DifyService:
         data = await self._post("/workflows/run", self.summary_workflow_api_key, payload)
 
         result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
 
         return {
             "success": data.get("success", True),
             "data": {
                 "workflow_run_id": result_data.get("workflow_run_id"),
                 "task_id": result_data.get("task_id"),
-                "summary_text": result_data.get("summary_text"),
+                "items": outputs.get("items", []),  # 🔥 여기 핵심
             },
             "error": data.get("error"),
             "meta": data.get("meta"),
@@ -144,13 +146,14 @@ class DifyService:
         print(data)
 
         result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
 
         return {
             "success": data.get("success", True),
             "data": {
                 "workflow_run_id": result_data.get("workflow_run_id"),
                 "task_id": result_data.get("task_id"),
-                "items": result_data.get("items", []),
+                "items": outputs.get("items", []),  # 🔥 여기 핵심
             },
             "error": data.get("error"),
             "meta": data.get("meta"),
