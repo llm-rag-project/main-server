@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 
 from api.keywords import (
     create_keyword_and_crawl,
@@ -8,17 +9,27 @@ from api.keywords import (
 )
 from components.login_box import render_login_box
 from utils.session import reset_chat, set_selected_keyword
-
+LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
 
 def render_sidebar():
     st.sidebar.title("키워드 관리")
 
-    render_login_box()
+    # render_login_box()
 
-    if not st.session_state.get("is_logged_in"):
-        st.sidebar.info("로그인 후 키워드를 조회할 수 있습니다.")
-        return
+    # if not st.session_state.get("is_logged_in"):
+    #     st.sidebar.info("로그인 후 키워드를 조회할 수 있습니다.")
+    #     return
+    
+    if not LOGIN_DISABLED:
+        render_login_box()
 
+        if not st.session_state.get("is_logged_in"):
+            st.sidebar.info("로그인 후 키워드를 조회할 수 있습니다.")
+            return
+    else:
+        st.sidebar.caption("개발 모드: 로그인 비활성화")
+        
+        
     try:
         keywords, page_info = get_keywords(page=1, size=100)
         st.session_state["keyword_page_info"] = page_info
