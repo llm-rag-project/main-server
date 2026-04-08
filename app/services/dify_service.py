@@ -55,7 +55,7 @@ class DifyService:
         message: str,
         conversation_id: str = "",
         article_id: int | None = None,
-    ) -> dict:
+    ):
         inputs = {
             "user_id": user_id,
         }
@@ -73,29 +73,11 @@ class DifyService:
 
         data = await self._post("/chat-messages", self.chatflow_api_key, payload)
 
-        print("\n=== 🔥 DIFY CHAT RAW RESPONSE ===")
-        print(data)
-        print("================================\n")
-
-        answer = data.get("answer", "")
-        conv_id = data.get("conversation_id", "")
-        metadata = data.get("metadata") or {}
-        usage = metadata.get("usage") or {}
-
         return {
-            "success": True,
-            "data": {
-                "conversation_id": conv_id,
-                "answer": answer,
-                "total_tokens": usage.get("total_tokens", 0),
-            },
-            "error": None,
-            "meta": {
-                "request_id": data.get("message_id", ""),
-            },
-            "raw": data,
+            "conversation_id": data.get("conversation_id"),
+            "answer": data.get("answer"),
         }
-    
+        
     async def run_summary_workflow(
         self,
         *,

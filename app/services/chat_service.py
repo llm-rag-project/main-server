@@ -90,21 +90,15 @@ class ChatService:
             )
 
         article_id = None
-        if payload.article_ids and len(payload.article_ids) > 0:
+        if payload.article_ids:
             article_id = payload.article_ids[0]
 
-        try:
-            dify_result = await self.dify_service.send_chat_message(
-                user_id=user_id,
-                message=payload.message,
-                conversation_id=payload.conversation_id or chat.external_conversation_id or "",
-                article_id=article_id,
-            )
-        except RuntimeError:
-            raise build_error(
-                ErrorCode.UPSTREAM_ERROR,
-                "LLM service temporarily unavailable",
-            )
+        dify_result = await self.dify_service.send_chat_message(
+            user_id=user_id,
+            message=payload.message,
+            conversation_id=payload.conversation_id or "",
+            article_id=article_id,
+        )
 
         data = dify_result.get("data") or {}
         new_conversation_id = data.get("conversation_id")
