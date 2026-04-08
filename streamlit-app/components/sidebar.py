@@ -3,12 +3,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-from api.keywords import (
-    create_keyword_and_crawl,
-    delete_keyword,
-    get_keywords,
-    update_keyword_active,
-)
+import api.keywords
 from components.login_box import render_login_box
 from utils.session import reset_chat, set_selected_keyword
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
@@ -35,7 +30,7 @@ def render_sidebar():
         
         
     try:
-        keywords, page_info = get_keywords(page=1, size=100)
+        keywords, page_info = api.keywords.get_keywords(page=1, size=100)
         st.session_state["keyword_page_info"] = page_info
     except Exception as e:
         st.sidebar.error(f"키워드 목록 조회 실패: {e}")
@@ -69,7 +64,7 @@ def render_sidebar():
 
         if row2.button("X", key=f"del_{keyword_id}", use_container_width=True):
             try:
-                delete_keyword(keyword_id)
+                api.keywords.delete_keyword(keyword_id)
                 if st.session_state.get("selected_keyword_id") == keyword_id:
                     st.session_state["selected_keyword_id"] = None
                     st.session_state["selected_keyword_name"] = None
@@ -87,7 +82,7 @@ def render_sidebar():
 
         if new_active != is_active:
             try:
-                update_keyword_active(keyword_id, new_active)
+                api.keywords.update_keyword_active(keyword_id, new_active)
                 st.rerun()
             except Exception as e:
                 st.sidebar.error(f"상태 변경 실패: {e}")
@@ -101,7 +96,7 @@ def render_sidebar():
             st.sidebar.warning("키워드를 입력해주세요.")
         else:
             try:
-                result = create_keyword_and_crawl(new_keyword.strip())
+                result = api.keywords.create_keyword_and_crawl(new_keyword.strip())
 
                 created_keyword = result.get("keyword", {})
                 created_keyword_id = created_keyword.get("id")
