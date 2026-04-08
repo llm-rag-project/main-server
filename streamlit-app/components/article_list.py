@@ -1,11 +1,10 @@
 import streamlit as st
 
+from api.ai_actions import request_article_summary
 from api.articles import (
-    delete_article_feedback,
     get_article_detail,
     get_article_importance,
     get_articles,
-    upsert_article_feedback,
 )
 
 
@@ -34,8 +33,6 @@ def render_article_list():
         summary = article.get("summary", "")
         url = article.get("url", "")
         importance = article.get("importance")
-        is_liked = article.get("is_liked", False)
-        has_feedback = article.get("has_feedback", False)
 
         with st.container(border=True):
             st.markdown(f"**{title}**")
@@ -44,10 +41,20 @@ def render_article_list():
             if importance is not None:
                 st.write(f"중요도: {importance}")
 
-            if summary:
-                st.write(summary)
+            summary_data = st.session_state.get(f"article_summary_{article_id}")
+            if summary_data:
+                st.markdown("##### 요약 결과")
 
-            col1, col2, col3, col4, col5 = st.columns(5)
+                if isinstance(summary_data, dict):
+                    summary_text = summary_data.get("summary_text") or summary_data.get("text")
+                    if summary_text:
+                        st.write(summary_text)
+                    else:
+                        st.json(summary_data)
+                else:
+                    st.write(summary_data)
+
+            col1, col2= st.columns(3)
 
             if col1.button("상세", key=f"detail_{article_id}"):
                 try:
@@ -55,33 +62,13 @@ def render_article_list():
                 except Exception as e:
                     st.error(f"상세 조회 실패: {e}")
 
-            if col2.button("중요도", key=f"importance_{article_id}"):
+            if col2.button("요약", key=f"summary_{article_id}"):
                 try:
-                    st.session_state[f"article_importance_{article_id}"] = get_article_importance(article_id)
+                    st.session_state[f"article_summary_{article_id}"] = request_article_summary(article_id)
                 except Exception as e:
-                    st.error(f"중요도 조회 실패: {e}")
+                    st.error(f"요약 요청 실패: {e}")
 
-            if col3.button("좋아요", key=f"like_{article_id}"):
-                try:
-                    upsert_article_feedback(article_id, "LIKE")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"피드백 저장 실패: {e}")
-
-            if col4.button("싫어요", key=f"dislike_{article_id}"):
-                try:
-                    upsert_article_feedback(article_id, "DISLIKE")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"피드백 저장 실패: {e}")
-
-            if has_feedback and col5.button("피드백 삭제", key=f"delete_feedback_{article_id}"):
-                try:
-                    delete_article_feedback(article_id)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"피드백 삭제 실패: {e}")
-
+           
             if url:
                 st.link_button("원문 링크", url)
 
@@ -90,10 +77,12 @@ def render_article_list():
                 st.markdown("##### 기사 상세")
                 st.json(detail_data)
 
+            summary_data = st.session_state.get(f"article_summary_{article_id}")
+            if summary_data:
+                st.markdown("##### 요약 결과")
+                st.json(summary_data)
+
             importance_data = st.session_state.get(f"article_importance_{article_id}")
             if importance_data:
                 st.markdown("##### 중요도 상세")
                 st.json(importance_data)
-
-            if has_feedback:
-                st.caption(f"내 피드백 있음 / 좋아요 여부: {is_liked}")

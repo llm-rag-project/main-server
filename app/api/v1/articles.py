@@ -6,6 +6,7 @@ from app.core.response import success_response
 from app.models.user import User
 import app.schemas.articles
 from app.services.article_service import ArticleService
+from app.services.importance_service import ImportanceService
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -229,3 +230,17 @@ async def delete_my_article_feedback(
     except Exception:
         await db.rollback()
         raise
+
+@router.get("/articles/{article_id}/importance")
+async def get_article_importance(
+    article_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ImportanceService(db)
+    result = await service.get_article_importance(
+        user_id=current_user.id,
+        article_id=article_id,
+    )
+    return success_response(request=request, data=result)
