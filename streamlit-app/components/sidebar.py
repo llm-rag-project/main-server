@@ -1,5 +1,7 @@
 import streamlit as st
 import os
+from dotenv import load_dotenv
+from pathlib import Path
 
 from api.keywords import (
     create_keyword_and_crawl,
@@ -9,6 +11,8 @@ from api.keywords import (
 )
 from components.login_box import render_login_box
 from utils.session import reset_chat, set_selected_keyword
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ENV_PATH)
 LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
 
 def render_sidebar():
