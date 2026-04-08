@@ -40,7 +40,7 @@ async def list_importance(
         },
     )
 
-    service = ImportanceService(ImportanceRepository(db))
+    service = ImportanceService(db)
     result = await service.get_importance_list(user_id=current_user.id, query=query)
     return success_response(data=result.model_dump())
 
@@ -51,10 +51,7 @@ async def run_importance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
-    service = ImportanceService(
-        repository=ImportanceRepository(db),
-        article_repository=ArticleRepository(db),
-    )
+    service = ImportanceService(db)
     result = await service.run_importance_scoring(
         user_id=current_user.id,
         article_ids=payload.article_ids,
