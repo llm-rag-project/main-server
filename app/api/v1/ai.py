@@ -145,6 +145,7 @@ async def score_articles_by_keyword(
     importance_service = ImportanceService(db)
 
     articles = await article_service.get_articles_by_keyword_id(request.keyword_id)
+
     if not articles:
         return ImportanceBatchResponse(
             keyword_id=request.keyword_id,
@@ -152,36 +153,44 @@ async def score_articles_by_keyword(
             results=[],
         )
 
-    response_items: list[ImportanceItemResponse] = []
-
     try:
-        for article in articles:
-            articles_payload = json.dumps(
-                [
-                    {
-                        "article_id": article.id,
-                        "title": article.title or "",
-                        "content": article.content or "",
-                    }
-                ],
-                ensure_ascii=False,
+        # ✅ 모든 기사 한 번에 payload 생성
+        articles_payload = json.dumps(
+            [
+                {
+                    "article_id": article.id,
+                    "title": article.title or "",
+                    "content": article.content or "",
+                }
+                for article in articles
+            ],
+            ensure_ascii=False,
+        )
+
+        # ✅ Dify 한 번만 호출
+        result = await dify_service.run_importance_workflow(
+            user_id=current_user.id,
+            articles=articles_payload,
+        )
+
+        items = result.get("data", {}).get("items", [])
+
+        if not items:
+            return ImportanceBatchResponse(
+                keyword_id=request.keyword_id,
+                processed_count=0,
+                results=[],
             )
 
-            result = await dify_service.run_importance_workflow(
-                user_id=current_user.id,
-                articles=articles_payload,
-            )
+        response_items: list[ImportanceItemResponse] = []
 
-            items = result.get("data", {}).get("items", [])
-            if not items:
-                continue
-
-            item = items[0]
+        # 🔥 여러 개 결과 처리
+        for item in items:
+            article_id = item.get("article_id")
             score = item.get("score")
             reason = item.get("reason")
-            article_id = item.get("article_id", article.id)
 
-            if score is None:
+            if article_id is None or score is None:
                 continue
 
             saved = await importance_service.save_score(

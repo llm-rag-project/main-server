@@ -11,7 +11,7 @@ ENV_PATH = Path(__file__).resolve().parents[2] / "main-server" / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8001/api/v1")
-TIMEOUT = 20
+TIMEOUT = 60
 
 
 class APIError(Exception):
