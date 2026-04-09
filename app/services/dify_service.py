@@ -68,7 +68,7 @@ class DifyService:
             "query": message,
             "conversation_id": conversation_id or "",
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         data = await self._post("/chat-messages", self.chatflow_api_key, payload)
@@ -92,7 +92,7 @@ class DifyService:
                 "articles": articles,
             },
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         data = await self._post("/workflows/run", self.summary_workflow_api_key, payload)
@@ -132,7 +132,7 @@ class DifyService:
                 "articles": articles,
             },
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)

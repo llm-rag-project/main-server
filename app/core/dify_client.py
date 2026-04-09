@@ -21,10 +21,16 @@ class DifyClient:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
+        
+        print("DIFY URL =", url)
+        print("DIFY PAYLOAD =", payload)
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(url, headers=headers, json=json_body)
-
+        
+        print("DIFY STATUS =", response.status_code)
+        print("DIFY BODY =", response.text)
+        
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
@@ -53,7 +59,7 @@ class DifyClient:
             "query": query,
             "conversation_id": conversation_id,
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         return await self._post(
@@ -76,7 +82,7 @@ class DifyClient:
                 "articles": json.dumps(articles, ensure_ascii=False),
             },
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         return await self._post(
@@ -97,7 +103,7 @@ class DifyClient:
                 "articles": json.dumps(articles, ensure_ascii=False),
             },
             "response_mode": "blocking",
-            "user": str(user_id),
+            "user": f"user-{user_id}",
         }
 
         return await self._post(
