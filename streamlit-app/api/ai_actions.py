@@ -1,15 +1,15 @@
+# api/ai_actions.py
 from api.client import api_post
 
 
 def request_article_summary(article_id: int):
-    payload = {
+    return api_post("/ai/summary", {
         "article_id": article_id,
-    }
-    return api_post("/ai/summary", payload)
+    })
 
 
-def request_articles_scoring(article_ids: list[int]):
-    payload = {
+def request_articles_scoring(keyword_id: int, article_ids: list[int]):
+    return api_post("/ai/scoring", {
+        "keyword_id": keyword_id,
         "article_ids": article_ids,
-    }
-    return api_post("/ai/scoring", payload)
+    })

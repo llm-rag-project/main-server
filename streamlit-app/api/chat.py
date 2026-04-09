@@ -1,3 +1,4 @@
+# api/chat.py
 from api.client import api_post
 
 
@@ -12,5 +13,4 @@ def send_chat_message(
         "article_id": article_id,
         "conversation_id": conversation_id,
     }
-
     return api_post(f"/chats/{chat_id}/messages", payload)
