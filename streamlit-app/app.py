@@ -3,6 +3,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
+from components.article_actions import render_article_action_buttons
 from components.article_list import render_article_list
 from components.chat_box import render_chat_box
 from components.chat_list import render_chat_list
@@ -50,6 +51,8 @@ def main():
     left, right = st.columns([3, 2])
 
     with left:
+        render_article_action_buttons()
+        st.markdown("---")
         render_article_list()
 
     with right:

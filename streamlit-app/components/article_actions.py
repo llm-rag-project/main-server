@@ -1,5 +1,11 @@
 import streamlit as st
+
 from api.ai_actions import request_article_summary, request_articles_scoring
+from utils.ai_response_parser import (
+    extract_summary_text,
+    extract_scoring_result,
+    extract_error_message,
+)
 
 
 def render_article_action_buttons():
@@ -18,135 +24,105 @@ def render_article_action_buttons():
     col1, col2 = st.columns(2)
 
     with col1:
-        if selected_article_title:
-            st.caption(f"선택 기사: {selected_article_title}")
-        else:
-            st.caption("선택된 기사가 없습니다.")
-
-        summary_disabled = selected_article_id is None
-
-        if st.button("선택 기사 요약", use_container_width=True, disabled=summary_disabled):
-            try:
-                with st.spinner("기사 요약 생성 중..."):
-                    result = request_article_summary(selected_article_id)
-
-                summary_text = extract_summary_text(result)
-                st.session_state["article_summary_result"] = summary_text
-                st.success("기사 요약이 완료되었습니다.")
-            except Exception as e:
-                st.error(f"요약 요청 실패: {e}")
+        render_summary_section(
+            selected_article_id=selected_article_id,
+            selected_article_title=selected_article_title,
+        )
 
     with col2:
-        st.caption(f"중요도 계산 대상 기사 수: {len(article_ids)}건")
+        render_scoring_section(article_ids=article_ids)
 
-        scoring_disabled = len(article_ids) == 0
+    render_summary_result()
+    render_scoring_result()
 
-        if st.button("전체 기사 중요도 계산", use_container_width=True, disabled=scoring_disabled):
-            try:
-                with st.spinner("전체 기사 중요도 계산 중..."):
-                    result = request_articles_scoring(article_ids)
 
-                scoring_items = extract_scoring_result(result)
-                st.session_state["article_scoring_result"] = scoring_items
-                st.success("전체 기사 중요도 계산이 완료되었습니다.")
-            except Exception as e:
-                st.error(f"중요도 계산 실패: {e}")
+def render_summary_section(selected_article_id: int | None, selected_article_title: str | None):
+    if selected_article_title:
+        st.caption(f"선택 기사: {selected_article_title}")
+    else:
+        st.caption("선택된 기사가 없습니다.")
 
+    summary_disabled = selected_article_id is None
+
+    if st.button("선택 기사 요약", use_container_width=True, disabled=summary_disabled):
+        try:
+            st.session_state["article_summary_result"] = None
+
+            with st.spinner("기사 요약 생성 중..."):
+                result = request_article_summary(selected_article_id)
+
+            if result.get("success") is False:
+                error_message = extract_error_message(result, "요약 요청에 실패했습니다.")
+                st.error(f"요약 요청 실패: {error_message}")
+                return
+
+            summary_text = extract_summary_text(result)
+            st.session_state["article_summary_result"] = summary_text
+            st.success("기사 요약이 완료되었습니다.")
+
+        except Exception as e:
+            st.error(f"요약 요청 실패: {e}")
+
+
+def render_scoring_section(article_ids: list[int]):
+    st.caption(f"중요도 계산 대상 기사 수: {len(article_ids)}건")
+
+    scoring_disabled = len(article_ids) == 0
+
+    if st.button("전체 기사 중요도 계산", use_container_width=True, disabled=scoring_disabled):
+        try:
+            st.session_state["article_scoring_result"] = None
+
+            with st.spinner("전체 기사 중요도 계산 중..."):
+                result = request_articles_scoring(article_ids)
+
+            if result.get("success") is False:
+                error_message = extract_error_message(result, "중요도 계산에 실패했습니다.")
+                st.error(f"중요도 계산 실패: {error_message}")
+                return
+
+            scoring_items = extract_scoring_result(result)
+            st.session_state["article_scoring_result"] = scoring_items
+
+            if not scoring_items:
+                st.warning("반환된 중요도 항목이 없습니다.")
+                return
+
+            st.success("전체 기사 중요도 계산이 완료되었습니다.")
+
+        except Exception as e:
+            st.error(f"중요도 계산 실패: {e}")
+
+
+def render_summary_result():
     summary_result = st.session_state.get("article_summary_result")
+
     if summary_result:
         st.markdown("### 요약 결과")
         st.write(summary_result)
 
+
+def render_scoring_result():
     scoring_result = st.session_state.get("article_scoring_result")
-    if scoring_result:
-        st.markdown("### 중요도 결과")
 
-        if isinstance(scoring_result, list):
-            sorted_items = sorted(
-                scoring_result,
-                key=lambda x: x.get("score", 0),
-                reverse=True
-            )
+    if not scoring_result:
+        return
 
-            for item in sorted_items:
-                article_id = item.get("article_id")
-                score = item.get("score")
-                reason = item.get("reason", "사유 없음")
+    st.markdown("### 중요도 결과")
 
-                st.write(f"- 기사 ID: {article_id}, 점수: {score}")
-                st.caption(f"사유: {reason}")
-        else:
-            st.write(scoring_result)
+    if isinstance(scoring_result, list):
+        sorted_items = sorted(
+            scoring_result,
+            key=lambda x: x.get("score", 0),
+            reverse=True,
+        )
 
+        for item in sorted_items:
+            article_id = item.get("article_id")
+            score = item.get("score")
+            reason = item.get("reason", "사유 없음")
 
-def extract_summary_text(result):
-    """
-    요약 API 응답 구조:
-    {
-      "success": true,
-      "data": {
-        "workflow_run_id": "...",
-        "task_id": "...",
-        "summary_text": "..."
-      },
-      "error": null,
-      "meta": {...}
-    }
-    """
-    if not isinstance(result, dict):
-        return "요약 결과를 해석하지 못했습니다."
-
-    success = result.get("success", False)
-    if not success:
-        error = result.get("error", {})
-        if isinstance(error, dict):
-            return error.get("message", "요약 요청에 실패했습니다.")
-        return "요약 요청에 실패했습니다."
-
-    data = result.get("data")
-    if not isinstance(data, dict):
-        return "요약 결과 데이터가 없습니다."
-
-    summary_text = data.get("summary_text")
-    if isinstance(summary_text, str) and summary_text.strip():
-        return summary_text
-
-    return "요약문이 비어 있습니다."
-
-
-def extract_scoring_result(result):
-    """
-    중요도 API 응답 구조:
-    {
-      "success": true,
-      "data": {
-        "workflow_run_id": "...",
-        "task_id": "...",
-        "items": [
-          {
-            "article_id": 101,
-            "score": 0.94,
-            "reason": "..."
-          }
-        ]
-      },
-      "error": null,
-      "meta": {...}
-    }
-    """
-    if not isinstance(result, dict):
-        return []
-
-    success = result.get("success", False)
-    if not success:
-        return []
-
-    data = result.get("data")
-    if not isinstance(data, dict):
-        return []
-
-    items = data.get("items", [])
-    if isinstance(items, list):
-        return items
-
-    return []
+            st.write(f"- 기사 ID: {article_id}, 점수: {score}")
+            st.caption(f"사유: {reason}")
+    else:
+        st.write(scoring_result)

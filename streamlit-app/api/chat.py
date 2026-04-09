@@ -9,7 +9,7 @@ def send_chat_message(
 ):
     payload = {
         "message": message,
-        "article_ids": [article_id] if article_id is not None else [],
+        "article_id": article_id,
         "conversation_id": conversation_id,
     }
 

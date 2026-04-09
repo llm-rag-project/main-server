@@ -26,44 +26,6 @@ def get_dify_service() -> DifyService:
     return DifyService.from_settings()
 
 
-def _extract_summary_text(result: dict) -> str | None:
-    """
-    DifyService의 래핑 응답과 raw 응답 둘 다 방어적으로 처리
-    """
-    data = result.get("data") or {}
-    if data.get("summary_text"):
-        return data.get("summary_text")
-
-    raw = result.get("raw") or {}
-    raw_data = raw.get("data") or {}
-    outputs = raw_data.get("outputs") or {}
-
-    return (
-        outputs.get("summary")
-        or outputs.get("summary_text")
-        or outputs.get("result")
-        or outputs.get("text")
-    )
-
-
-def _extract_importance_items(result: dict) -> list[dict]:
-    """
-    DifyService의 래핑 응답과 raw 응답 둘 다 방어적으로 처리
-    """
-    data = result.get("data") or {}
-    items = data.get("items")
-    if isinstance(items, list) and items:
-        return items
-
-    raw = result.get("raw") or {}
-    raw_data = raw.get("data") or {}
-    outputs = raw_data.get("outputs") or {}
-
-    raw_items = outputs.get("items")
-    if isinstance(raw_items, list):
-        return raw_items
-
-    return []
 
 
 @router.post("/chat", response_model=AIChatResponse)
