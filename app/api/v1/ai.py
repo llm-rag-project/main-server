@@ -102,7 +102,7 @@ async def summarize_article(
             articles=articles_payload,
         )
 
-        summary_text = _extract_summary_text(result)
+        summary_text = result.get("data", {}).get("items", [])
 
         if not summary_text:
             raise ValueError("요약 결과를 찾을 수 없습니다.")
@@ -172,7 +172,7 @@ async def score_articles_by_keyword(
                 articles=articles_payload,
             )
 
-            items = _extract_importance_items(result)
+            items = result.get("data", {}).get("items", [])
             if not items:
                 continue
 
