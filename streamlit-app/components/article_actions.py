@@ -7,7 +7,6 @@ from utils.ai_response_parser import (
     extract_error_message,
 )
 
-
 def render_article_action_buttons():
     st.subheader("AI 작업")
 
@@ -58,14 +57,14 @@ def render_article_action_buttons():
         scoring_disabled = (selected_keyword_id is None) or (len(article_ids) == 0)
 
         if st.button(
-            "전체 기사 중요도 계산",
+            "선택 키워드 기사 중요도 계산",
             use_container_width=True,
             disabled=scoring_disabled,
         ):
             try:
                 st.session_state["article_scoring_result"] = None
 
-                with st.spinner("전체 기사 중요도 계산 중..."):
+                with st.spinner("중요도 계산 중..."):
                     result = request_articles_scoring(
                         keyword_id=selected_keyword_id,
                         article_ids=article_ids,
@@ -84,7 +83,8 @@ def render_article_action_buttons():
                     st.warning("반환된 중요도 항목이 없습니다.")
                     return
 
-                st.success("전체 기사 중요도 계산이 완료되었습니다.")
+                st.success("중요도 계산이 완료되었습니다.")
+
             except Exception as e:
                 st.error(f"중요도 계산 실패: {e}")
 
@@ -96,10 +96,16 @@ def render_article_action_buttons():
     scoring_result = st.session_state.get("article_scoring_result")
     if scoring_result:
         st.markdown("### 중요도 결과")
-        for item in sorted(scoring_result, key=lambda x: x.get("score", 0), reverse=True):
-            st.write(f"- 기사 ID: {item.get('article_id')}, 점수: {item.get('score')}")
+        for item in sorted(
+            scoring_result,
+            key=lambda x: x.get("score", 0),
+            reverse=True
+        ):
+            st.write(
+                f"- 기사 ID: {item.get('article_id')}, 점수: {item.get('score')}"
+            )
             st.caption(f"사유: {item.get('reason', '사유 없음')}")
-            
+
             
 
 def render_summary_section(selected_article_id: int | None, selected_article_title: str | None):

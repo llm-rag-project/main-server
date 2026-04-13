@@ -9,11 +9,6 @@ from pydantic import BaseModel, Field
 # ENUMS
 # =========================
 
-class ChatContextType(str, Enum):
-    GENERAL = "GENERAL"
-    NEWS_ANALYSIS = "NEWS_ANALYSIS"
-    ARTICLE_QA = "ARTICLE_QA"
-
 
 # =========================
 # CREATE CHAT
@@ -21,13 +16,10 @@ class ChatContextType(str, Enum):
 
 class ChatCreateRequest(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
-    context_type: ChatContextType = ChatContextType.GENERAL
-
-
+    
 class ChatCreateResponse(BaseModel):
     id: int
     title: Optional[str]
-    context_type: str
     created_at: datetime
 
 
@@ -39,9 +31,7 @@ class ChatListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
     q: Optional[str] = None
-    context_type: Optional[ChatContextType] = None
-
-
+    
 class PageInfo(BaseModel):
     page: int
     size: int
@@ -52,7 +42,6 @@ class PageInfo(BaseModel):
 class ChatListItem(BaseModel):
     id: int
     title: Optional[str]
-    context_type: str
     last_message: Optional[str]
     last_message_at: Optional[datetime]
     created_at: datetime
@@ -70,7 +59,6 @@ class ChatListResponse(BaseModel):
 class ChatDetailResponse(BaseModel):
     id: int
     title: Optional[str]
-    context_type: str
     external_conversation_id: Optional[str]
     last_message: Optional[str]
     last_message_at: Optional[datetime]

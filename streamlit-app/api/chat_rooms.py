@@ -1,10 +1,9 @@
 from api.client import api_get, api_post
 
 
-def create_chat(title: str, context_type: str = "GENERAL"):
+def create_chat(title: str):
     payload = {
         "title": title,
-        "context_type": context_type,
     }
     return api_post("/chats", payload)
 

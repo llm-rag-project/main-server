@@ -17,7 +17,6 @@ class Chat(Base, TimestampMixin):
         nullable=False,
     )
     title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    context_type: Mapped[str] = mapped_column(String(50), nullable=False, default="GENERAL")
     external_conversation_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     last_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     last_message_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

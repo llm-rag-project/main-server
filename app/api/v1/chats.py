@@ -51,7 +51,6 @@ async def get_chats(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     q: str | None = Query(None),
-    context_type: ChatContextType | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -61,8 +60,7 @@ async def get_chats(
         query = ChatListQuery(
             page=page,
             size=size,
-            q=q,
-            context_type=context_type,
+            q=q
         )
         result = await service.get_chat_list(
             user_id=current_user.id,
