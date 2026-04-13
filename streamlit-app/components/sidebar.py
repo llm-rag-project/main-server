@@ -7,7 +7,7 @@ import api.keywords
 from components.login_box import render_login_box
 from utils.session import reset_chat, set_selected_keyword
 
-ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(ENV_PATH)
 LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
 
