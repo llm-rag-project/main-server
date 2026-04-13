@@ -43,6 +43,8 @@ async def create_keyword_api(
         keyword_ids=[data.id],
         force=False,
     )
+    print("created keyword id =", data.id)
+    print("crawl_result =", crawl_result)
 
     return success_response(
         request,
