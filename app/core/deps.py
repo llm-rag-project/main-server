@@ -19,9 +19,9 @@ from app.repositories.user_repository import get_user_by_id
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
+def is_login_disabled() -> bool:
+    return os.getenv("LOGIN_DISABLED", "false").lower() == "true"
 
-LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
-       
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
@@ -61,7 +61,7 @@ async def get_current_user_or_dev_user(
     db: AsyncSession = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> User:
-    if LOGIN_DISABLED:
+    if is_login_disabled:
         user = User()
         user.id = 1
         user.email = "dev@example.com"

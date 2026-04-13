@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(ENV_PATH, override=True)
+
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,
