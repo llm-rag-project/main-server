@@ -54,21 +54,16 @@ class CrawlRunService:
 
         for keyword in keywords:
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
-            print("NEWS RESPONSE =", news_response)
 
             if news_response.get("status") != "SUCCESS":
-                print("SKIP: news search failed =", news_response)
                 continue
 
             news_items = news_response.get("data") or []
-            print("NEWS ITEMS COUNT =", len(news_items))
 
             for item in news_items:
                 article, is_new = await self._upsert_article(item)
-                print("UPSERT RESULT =", article, "IS_NEW =", is_new)
 
                 if article is None:
-                    print("SKIP: article is None")
                     continue
 
                 await self._ensure_article_match(
@@ -82,6 +77,7 @@ class CrawlRunService:
 
                 article_count += 1
 
+        # 새 기사만 Dify 업로드
         dify_result = await self._upload_new_articles_to_dify(newly_created_articles)
 
         crawl_run.status = "COMPLETED"
@@ -94,50 +90,12 @@ class CrawlRunService:
         return {
             "crawl_run_id": crawl_run.id,
             "status": crawl_run.status,
-            "article_count": crawl_run.article_count,
+            "crawl_count": crawl_run.article_count,
             "new_article_count": len(newly_created_articles),
             "dify_uploaded_count": dify_result["uploaded_count"],
             "dify_failed_count": dify_result["failed_count"],
             "dify_failed_items": dify_result["failed"],
         }
-
-    async def crawl_active_keywords(self) -> list[dict[str, Any]]:
-        from sqlalchemy import select
-        from app.models.user import User
-
-        result = await self.db.execute(select(User.id).distinct())
-        user_ids = [row[0] for row in result.all()]
-
-        outcomes: list[dict[str, Any]] = []
-
-        for user_id in user_ids:
-            try:
-                keywords = await self._get_user_keywords(user_id=user_id, keyword_ids=None)
-                if not keywords:
-                    continue
-
-                outcome = await self.create_crawl_run(
-                    user_id=user_id,
-                    keyword_ids=[k.id for k in keywords],
-                    force=False,
-                )
-                outcomes.append(
-                    {
-                        "user_id": user_id,
-                        "status": "COMPLETED",
-                        "result": outcome,
-                    }
-                )
-            except Exception as e:
-                outcomes.append(
-                    {
-                        "user_id": user_id,
-                        "status": "FAILED",
-                        "reason": str(e),
-                    }
-                )
-
-        return outcomes
 
     async def _get_user_keywords(self, *, user_id: int, keyword_ids: list[int] | None):
         from sqlalchemy import select
@@ -162,11 +120,10 @@ class CrawlRunService:
         if published_raw:
             try:
                 published_at = parsedate_to_datetime(published_raw)
-            except Exception as e:
-                print("DATE PARSE FAILED =", published_raw, e)
+            except Exception:
+                pass
 
         if not url:
-            print("SKIP IN UPSERT: url is missing")
             return None, False
 
         title = item.get("title") or "제목 없음"
@@ -177,7 +134,6 @@ class CrawlRunService:
         article = result.scalar_one_or_none()
 
         if article:
-            print("EXISTING ARTICLE FOUND, id =", article.id)
             article.title = title
             article.publisher = publisher
             article.source_type = article.source_type or "TRANSNEWS"
@@ -199,7 +155,6 @@ class CrawlRunService:
         self.db.add(article)
         await self.db.flush()
 
-        print("NEW ARTICLE INSERTED, id =", article.id)
         return article, True
 
     async def _ensure_article_match(self, *, article_id: int, keyword_id: int, crawl_run_id: int):
@@ -221,9 +176,6 @@ class CrawlRunService:
                     crawl_run_id=crawl_run_id,
                 )
             )
-            print(f"ARTICLE MATCH ADDED: article_id={article_id}, keyword_id={keyword_id}")
-        else:
-            print(f"ARTICLE MATCH EXISTS: article_id={article_id}, keyword_id={keyword_id}")
 
     async def _upload_new_articles_to_dify(self, articles: list[Article]) -> dict[str, Any]:
         if not articles:
@@ -235,30 +187,3 @@ class CrawlRunService:
             }
 
         return await self.dify_upload_service.upload_articles_to_knowledge(articles)
-
-    async def _upsert_summary(self, article_id: int, summary_text: str):
-        from sqlalchemy import select
-
-        result = await self.db.execute(
-            select(Summary).where(
-                Summary.article_id == article_id,
-                Summary.language == "ko",
-            )
-        )
-        summary = result.scalar_one_or_none()
-
-        if summary:
-            summary.summary_text = summary_text
-            summary.model_name = "transnews-pipeline"
-            print(f"SUMMARY UPDATED: article_id={article_id}")
-            return
-
-        self.db.add(
-            Summary(
-                article_id=article_id,
-                language="ko",
-                summary_text=summary_text,
-                model_name="transnews-pipeline",
-            )
-        )
-        print(f"SUMMARY ADDED: article_id={article_id}")

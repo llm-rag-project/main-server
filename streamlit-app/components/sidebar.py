@@ -95,7 +95,7 @@ def render_sidebar():
                     with st.spinner("키워드 등록, 기사 크롤링, Dify 적재 요청 중..."):
                         result = api.keywords.create_keyword_and_crawl(new_keyword.strip())
 
-                created_keyword = result.get("data", {}).get("keyword", result.get("keyword", {}))
+                created_keyword = result.get("keyword", {})
                 created_keyword_id = created_keyword.get("id")
                 created_keyword_name = created_keyword.get("keyword", new_keyword.strip())
 
@@ -103,9 +103,9 @@ def render_sidebar():
                     set_selected_keyword(created_keyword_id, created_keyword_name)
                     reset_chat()
 
-                crawl_count = result.get("data", {}).get("crawl_count")
-                uploaded_count = result.get("data", {}).get("dify_uploaded_count")
-                failed_count = result.get("data", {}).get("dify_failed_count")
+                crawl_count = result.get("crawl_count")
+                uploaded_count = result.get("dify_uploaded_count")
+                failed_count = result.get("dify_failed_count")
 
                 st.sidebar.success("키워드 등록 및 크롤링 요청이 완료되었습니다.")
 
@@ -128,10 +128,10 @@ def render_sidebar():
             except Exception as e:
                 st.sidebar.error(f"추가 실패: {e}")
 
-    st.sidebar.divider()
+        st.sidebar.divider()
 
-    selected_name = st.session_state.get("selected_keyword_name")
-    if selected_name:
-        st.sidebar.caption(f"현재 선택: {selected_name}")
-    else:
-        st.sidebar.caption("선택된 키워드 없음")
+        selected_name = st.session_state.get("selected_keyword_name")
+        if selected_name:
+            st.sidebar.caption(f"현재 선택: {selected_name}")
+        else:
+            st.sidebar.caption("선택된 키워드 없음")
