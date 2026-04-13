@@ -21,21 +21,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
-
-
-async def get_dev_user() -> User:
-    user = User()
-    user.id = 1
-    user.email = "dev@example.com"
-    return user
-
-
-
-async def get_current_user_or_dev_user():
-    user = User()
-    user.id = 1
-    user.email = "dev@example.com"
-    return user
+       
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
@@ -69,3 +55,13 @@ async def get_current_user(
         raise build_error(ErrorCode.AUTH_REQUIRED, "Authentication required")
 
     return user
+
+
+async def get_current_user_or_dev_user():
+    if LOGIN_DISABLED:
+        user = User()
+        user.id = 1
+        user.email = "dev@example.com"
+        return user
+    else:
+        get_current_user
