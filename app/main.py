@@ -12,7 +12,11 @@ from app.models.user import User
 from app.models.credit import CreditWallet, CreditTransaction
 from app.models.auth_refresh_token import AuthRefreshToken
 from app.services.crawl_scheduler_service import start_scheduler, shutdown_scheduler
+from pathlib import Path
+from dotenv import load_dotenv
 
+ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ENV_PATH, override=True)
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,
