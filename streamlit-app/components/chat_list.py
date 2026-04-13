@@ -38,24 +38,17 @@ def render_chat_list():
     if "chat_messages" not in st.session_state:
         st.session_state["chat_messages"] = []
 
-    with st.expander("새 채팅방 만들기", expanded=False):
+    with st.expander("새 채팅 세션 만들기", expanded=False):
         with st.form("create_chat_form", clear_on_submit=True):
-            new_title = st.text_input("채팅방 제목", key="new_chat_title_input")
-            context_type = st.selectbox(
-                "컨텍스트 타입",
-                options=["GENERAL", "ARTICLE"],
-                index=0,
-                key="new_chat_context_type_input",
-            )
-            submitted = st.form_submit_button("채팅방 생성", use_container_width=True)
+            new_title = st.text_input("채팅세션 제목", key="new_chat_title_input")
+            submitted = st.form_submit_button("채팅세션 생성", use_container_width=True)
 
         if submitted:
             try:
                 title = (new_title or "").strip()
                 if not title:
-                    st.warning("채팅방 제목을 입력하세요.")
+                    st.warning("채팅세션 제목을 입력하세요.")
                 else:
-                    result = create_chat(title=title, context_type=context_type)
                     data = _unwrap_response(result)
 
                     created_chat_id = data.get("id")
@@ -68,11 +61,11 @@ def render_chat_list():
                     st.session_state["chat_conversation_id"] = external_conversation_id
                     st.session_state["chat_messages"] = []
 
-                    st.success("채팅방이 생성되었습니다.")
+                    st.success("세션이 생성되었습니다.")
                     st.rerun()
 
             except Exception as e:
-                st.error(f"채팅방 생성 실패: {e}")
+                st.error(f"세션 생성 실패: {e}")
 
     st.markdown("---")
 
@@ -89,7 +82,7 @@ def render_chat_list():
             items = []
 
         if not items:
-            st.info("채팅방이 없습니다.")
+            st.info("채팅세션이 없습니다.")
             return
 
         for chat in items:
@@ -97,7 +90,7 @@ def render_chat_list():
                 continue
 
             chat_id = chat.get("id")
-            title = chat.get("title", f"채팅방 {chat_id}")
+            title = chat.get("title", f"채팅세션 {chat_id}")
             last_message = chat.get("last_message") or ""
             is_selected = st.session_state.get("selected_chat_id") == chat_id
 
@@ -121,7 +114,7 @@ def render_chat_list():
                     st.rerun()
 
                 except Exception as e:
-                    st.error(f"채팅방 선택 실패: {e}")
+                    st.error(f"세션 선택 실패: {e}")
 
     except Exception as e:
-        st.error(f"채팅방 목록을 불러오지 못했습니다: {e}")
+        st.error(f"채팅 세션 목록을 불러오지 못했습니다: {e}")

@@ -15,13 +15,11 @@ class ChatRepository:
     async def create_chat(
         self,
         user_id: int,
-        title: str | None,
-        context_type: str,
+        title: str | None        
     ) -> dict[str, Any]:
         chat = Chat(
             user_id=user_id,
-            title=title,
-            context_type=context_type,
+            title=title            
         )
         self.db.add(chat)
         await self.db.flush()
@@ -30,7 +28,6 @@ class ChatRepository:
         return {
             "id": chat.id,
             "title": chat.title,
-            "context_type": chat.context_type,
             "created_at": chat.created_at,
         }
 
@@ -48,7 +45,6 @@ class ChatRepository:
             select(
                 Chat.id,
                 Chat.title,
-                Chat.context_type,
                 Chat.last_message,
                 Chat.last_message_at,
                 Chat.created_at,
@@ -59,9 +55,7 @@ class ChatRepository:
         if query.q:
             stmt = stmt.where(Chat.title.ilike(f"%{query.q.strip()}%"))
 
-        if query.context_type:
-            stmt = stmt.where(Chat.context_type == query.context_type.value)
-
+    
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = await self.db.scalar(count_stmt)
         total = total or 0
