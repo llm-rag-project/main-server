@@ -13,7 +13,7 @@ class MeResponse(BaseModel):
     id: int
     email: EmailStr
     name: str | None = None
-    created_at: datetime
+    created_at: datetime | None = None
 
 
 class UpdateMeRequest(BaseModel):
