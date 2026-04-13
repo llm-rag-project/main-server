@@ -57,11 +57,15 @@ async def get_current_user(
     return user
 
 
-async def get_current_user_or_dev_user():
+async def get_current_user_or_dev_user(
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> User:
     if LOGIN_DISABLED:
         user = User()
         user.id = 1
         user.email = "dev@example.com"
+        user.name = "dev user"
         return user
-    else:
-        get_current_user
+
+    return await get_current_user(db=db, credentials=credentials)
