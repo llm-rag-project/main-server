@@ -67,7 +67,7 @@ class DifyKnowledgeClient:
         }
 
         result = await self._post(
-            f"/datasets/{self.dataset_id}/documents/create-by-text",
+            f"/datasets/{self.dataset_id}/document/create-by-text",
             payload,
         )
 

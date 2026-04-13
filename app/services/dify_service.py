@@ -96,9 +96,6 @@ class DifyService:
         }
 
         data = await self._post("/workflows/run", self.summary_workflow_api_key, payload)
-        print("\n=== 🔥 DIFY SUMMARY RAW RESPONSE ===")
-        print(data)
-        print("===================================\n")
 
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
@@ -137,9 +134,6 @@ class DifyService:
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)
 
-        print("\n=== 🔥 DIFY IMPORTANCE RAW RESPONSE ===")
-        print(data)
-        print("======================================\n")
 
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
@@ -198,27 +192,3 @@ class DifyArticleUploadService:
 
         except DifyKnowledgeClientError as e:
             raise DifyUploadError(f"article_id={article.id} Dify 업로드 실패: {e}") from e
-
-    async def upload_articles_to_knowledge(self, articles: list[Article]) -> dict[str, Any]:
-        uploaded = []
-        failed = []
-
-        for article in articles:
-            try:
-                result = await self.upload_article_to_knowledge(article)
-                uploaded.append(result)
-            except Exception as e:
-                failed.append(
-                    {
-                        "article_id": article.id,
-                        "status": "FAILED",
-                        "reason": str(e),
-                    }
-                )
-
-        return {
-            "uploaded_count": len(uploaded),
-            "failed_count": len(failed),
-            "uploaded": uploaded,
-            "failed": failed,
-        }
