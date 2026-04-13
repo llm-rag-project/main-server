@@ -6,7 +6,6 @@ from app.core.response import success_response
 from app.models.user import User
 from app.repositories.chat_repository import ChatRepository
 from app.schemas.chats import (
-    ChatContextType,
     ChatCreateRequest,
     ChatListQuery,
     ChatSendMessageRequest,
