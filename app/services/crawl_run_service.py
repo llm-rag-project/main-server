@@ -76,7 +76,7 @@ class CrawlRunService:
                     newly_created_articles.append(article)
 
                 article_count += 1
-
+        print("newly_created_articles =", len(newly_created_articles))
         # 새 기사만 Dify 업로드
         dify_result = await self._upload_new_articles_to_dify(newly_created_articles)
 
@@ -186,4 +186,4 @@ class CrawlRunService:
                 "failed": [],
             }
 
-        return await self.dify_upload_service.upload_articles_to_knowledge(articles)
+        return await self.dify_upload_service.upload_article_to_knowledge(articles)
