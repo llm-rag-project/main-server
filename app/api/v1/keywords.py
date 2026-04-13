@@ -23,7 +23,6 @@ from app.services.keyword_service import (
 
 router = APIRouter(prefix="/keywords", tags=["keywords"])
 
-
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_keyword_api(
     request: Request,
@@ -37,14 +36,22 @@ async def create_keyword_api(
         keyword=payload.keyword,
         language=payload.language,
     )
-    
+
     crawl_service = CrawlRunService(db=db, transnews_client=TransNewsClient())
-    await crawl_service.create_crawl_run(
+    crawl_result = await crawl_service.create_crawl_run(
         user_id=current_user.id,
         keyword_ids=[data.id],
         force=False,
     )
-    return success_response(request, data=data.model_dump(), status_code=status.HTTP_201_CREATED)
+
+    return success_response(
+        request,
+        data={
+            "keyword": data.model_dump(),
+            "crawl_result": crawl_result,
+        },
+        status_code=status.HTTP_201_CREATED,
+    )
 
 
 @router.get("")
