@@ -147,14 +147,6 @@ def render_importance_result(importance_result):
             st.divider()
 
 
-def request_articles_scoring(keyword_id, article_ids):
-    payload = {
-        "keyword_id": keyword_id,
-        "article_ids": article_ids,
-    }
-    return api_post("/importance/run", payload)
-
-
 def render_summary_cards():
     selected_keyword = st.session_state.get("selected_keyword_name")
     keyword_id = st.session_state.get("selected_keyword_id")
@@ -165,10 +157,8 @@ def render_summary_cards():
     try:
         articles, _ = get_articles(keyword_id=keyword_id, page=1, size=100)
         article_count = len(articles)
-        st.session_state["articles"] = articles
     except Exception:
         articles = []
-        st.session_state["articles"] = []
 
     try:
         params = {"page": 1, "size": 100}
@@ -198,3 +188,29 @@ def render_summary_cards():
             )
     else:
         st.caption("중요도 데이터가 없습니다.")
+
+    st.markdown("### 중요도 실행")
+    if st.button("선택 키워드 기사 중요도 계산"):
+        if not keyword_id:
+            st.warning("먼저 키워드를 선택하세요.")
+            return
+
+        try:
+            article_ids = [a["id"] for a in articles if a.get("id")]
+
+            if not article_ids:
+                st.warning("해당 키워드에 연결된 기사가 없습니다.")
+                return
+
+            result = api_post("/importance/run", {"article_ids": article_ids})
+            st.success("중요도 계산 요청 완료")
+            if result:
+                st.session_state["last_importance_result"] = result
+                saved_importance_result = st.session_state.get("last_importance_result")
+                if saved_importance_result:
+                    render_importance_result(saved_importance_result)
+
+                    with st.expander("원본 중요도 응답 보기"):
+                        st.json(saved_importance_result)
+        except Exception as e:
+            st.error(f"중요도 실행 실패: {e}")
