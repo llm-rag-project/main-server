@@ -63,13 +63,34 @@ class CrawlRunService:
                 if not url:
                     continue
 
-                # 이번 응답 안에서 처음 본 URL인지 먼저 저장
                 first_seen_in_response = url not in seen_urls
                 if first_seen_in_response:
                     seen_urls.add(url)
                 else:
-                    # 같은 응답 내 중복 URL은 스킵
                     continue
+
+                # 뉴스 목록 응답에는 본문이 비어 있을 수 있어서, 기사 상세 크롤링으로 본문 보강
+                try:
+                    crawl_data = await self.transnews_client.crawl_article(url)
+                    crawled = crawl_data.get("data") or {}
+
+                    content = (
+                        crawled.get("content")
+                        or crawled.get("body")
+                        or crawled.get("article_content")
+                        or crawled.get("text")
+                        or item.get("content")
+                        or ""
+                    ).strip()
+
+                    if content:
+                        item["content"] = content
+
+                    print(
+                        f"[DEBUG] CRAWL ARTICLE url={url}, content_length={len(item.get('content') or '')}"
+                    )
+                except Exception as e:
+                    print(f"[DEBUG] crawl_article failed url={url}: {e}")
 
                 article, is_new_article = await self._upsert_article(item)
                 if article is None:
@@ -81,7 +102,6 @@ class CrawlRunService:
                     crawl_run_id=crawl_run.id,
                 )
 
-                # 현재 키워드에 대해 이번 응답에서 처음 본 기사면 업로드
                 should_upload = is_new_article or is_new_match or first_seen_in_response
 
                 if should_upload:
