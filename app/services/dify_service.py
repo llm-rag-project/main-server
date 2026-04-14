@@ -77,7 +77,7 @@ class DifyService:
             "conversation_id": data.get("conversation_id"),
             "answer": data.get("answer"),
         }
-        
+
     async def run_summary_workflow(
         self,
         *,
@@ -134,7 +134,6 @@ class DifyService:
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)
 
-
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
 
@@ -166,10 +165,12 @@ class DifyArticleUploadService:
         self.knowledge_client = knowledge_client or DifyKnowledgeClient()
 
     async def upload_article_to_knowledge(self, article: Article) -> dict[str, Any]:
+        # 본문이 없으면 Dify에 업로드할 수 없으므로 예외 발생
         if not article.content or not article.content.strip():
             raise DifyUploadError(f"article_id={article.id} 본문이 비어 있어 업로드할 수 없습니다.")
 
         try:
+            # 기사 본문을 기반으로 Dify 문서 생성
             created = await self.knowledge_client.create_document_by_text(
                 title=article.title or f"article-{article.id}",
                 text=article.content,
@@ -178,6 +179,7 @@ class DifyArticleUploadService:
             document_id = created["document_id"]
             batch = created.get("batch")
 
+            # 나중에 article_id로 추적할 수 있게 메타데이터 연결
             await self.knowledge_client.attach_article_id_metadata(
                 document_id=document_id,
                 article_id=article.id,
@@ -192,3 +194,28 @@ class DifyArticleUploadService:
 
         except DifyKnowledgeClientError as e:
             raise DifyUploadError(f"article_id={article.id} Dify 업로드 실패: {e}") from e
+
+    async def upload_articles_to_knowledge(self, articles: list[Article]) -> dict[str, Any]:
+        # 여러 기사를 순차적으로 업로드하고 성공/실패를 집계하는 메서드
+        uploaded: list[dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
+
+        for article in articles:
+            try:
+                result = await self.upload_article_to_knowledge(article)
+                uploaded.append(result)
+            except Exception as e:
+                failed.append(
+                    {
+                        "article_id": getattr(article, "id", None),
+                        "title": getattr(article, "title", None),
+                        "error": str(e),
+                    }
+                )
+
+        return {
+            "uploaded_count": len(uploaded),
+            "failed_count": len(failed),
+            "uploaded": uploaded,
+            "failed": failed,
+        }
