@@ -6,8 +6,13 @@ def extract_summary_text(result: dict) -> str:
         error = result.get("error") or {}
         return f"요약 생성 실패: {error.get('message', '알 수 없는 오류')}"
 
-    data = result.get("data") or {}
-    summary_text = data.get("summary_text")
+    data = result.get("data") if isinstance(result.get("data"), dict) else result
+    summary_text = (
+        data.get("summary_text")
+        or data.get("summary")
+        or data.get("result")
+        or data.get("text")
+    ) if isinstance(data, dict) else None
 
     if summary_text:
         return summary_text
@@ -22,8 +27,8 @@ def extract_scoring_result(result: dict) -> list[dict]:
     if result.get("success") is False:
         return []
 
-    data = result.get("data") or {}
-    items = data.get("items")
+    data = result.get("data") if isinstance(result.get("data"), dict) else result
+    items = data.get("items") if isinstance(data, dict) else None
 
     if isinstance(items, list):
         return items

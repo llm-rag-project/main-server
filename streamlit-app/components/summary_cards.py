@@ -4,6 +4,7 @@ import streamlit as st
 from api.articles import get_articles
 from api.client import api_get, api_post
 
+
 def render_summary_result(summary_result):
     """
     summary_result가 dict이든 JSON 문자열이든 보기 좋게 렌더링
@@ -20,7 +21,6 @@ def render_summary_result(summary_result):
 
     parsed = summary_result
 
-    # 문자열이면 JSON 파싱 시도
     if isinstance(summary_result, str):
         try:
             parsed = json.loads(summary_result)
@@ -31,12 +31,13 @@ def render_summary_result(summary_result):
     summary_text = ""
 
     if isinstance(parsed, dict):
-        title = parsed.get("title", "")
+        data = parsed.get("data") if isinstance(parsed.get("data"), dict) else parsed
+        title = data.get("title", "")
         summary_text = (
-            parsed.get("summary")
-            or parsed.get("summary_text")
-            or parsed.get("result")
-            or parsed.get("text")
+            data.get("summary")
+            or data.get("summary_text")
+            or data.get("result")
+            or data.get("text")
             or ""
         )
 
@@ -125,9 +126,14 @@ def render_importance_result(importance_result):
 
             if score is not None:
                 try:
-                    progress_value = float(score)
+                    numeric_score = float(score)
+                    score_text = f"{numeric_score:.2f}"
+
+                    # progress는 0~1 범위만 받아서 보정
+                    progress_value = numeric_score
+                    if numeric_score > 1:
+                        progress_value = numeric_score / 100.0
                     progress_value = max(0.0, min(progress_value, 1.0))
-                    score_text = f"{progress_value:.2f}"
                 except Exception:
                     score_text = str(score)
 
@@ -166,7 +172,11 @@ def render_summary_cards():
             params["keyword_id"] = keyword_id
 
         result = api_get("/importance", params=params)
-        importance_items = result.get("items", []) if isinstance(result, dict) else []
+
+        # 래핑 응답 / 직접 응답 둘 다 처리
+        data = result.get("data") if isinstance(result, dict) and isinstance(result.get("data"), dict) else result
+        importance_items = data.get("items", []) if isinstance(data, dict) else []
+
         st.session_state["importance_items"] = importance_items
         importance_count = len(importance_items)
     except Exception:
