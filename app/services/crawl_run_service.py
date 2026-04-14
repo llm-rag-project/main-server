@@ -32,14 +32,7 @@ class CrawlRunService:
         keyword_ids: list[int] | None = None,
         force: bool = False,
     ) -> dict[str, Any]:
-        # 어떤 keyword_ids가 들어왔는지 먼저 확인
-        print("[DEBUG] REQUEST keyword_ids =", keyword_ids)
-
         keywords = await self._get_user_keywords(user_id=user_id, keyword_ids=keyword_ids)
-
-        # 실제로 선택된 키워드가 무엇인지 확인
-        print("[DEBUG] SELECTED keywords =", [(k.id, k.keyword_text) for k in keywords])
-
         if not keywords:
             raise ValueError("크롤링할 키워드가 없습니다.")
 
@@ -57,37 +50,28 @@ class CrawlRunService:
         articles_to_upload: list[Article] = []
 
         for keyword in keywords:
-            # 어떤 키워드로 실제 검색하는지 확인
-            print(f"[DEBUG] SEARCH keyword_id={keyword.id}, keyword_text={keyword.keyword_text}")
-
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
 
-            # 검색 API 성공 여부 확인
-            print(
-                f"[DEBUG] NEWS RESPONSE status={news_response.get('status')}, "
-                f"count={len(news_response.get('data') or [])}"
-            )
-
             if news_response.get("status") != "SUCCESS":
-                print(f"[DEBUG] SEARCH FAILED for keyword_id={keyword.id}")
                 continue
 
             news_items = news_response.get("data") or []
+            seen_urls: set[str] = set()
 
             for item in news_items:
                 url = item.get("url") or item.get("link")
+                if not url:
+                    continue
 
-                # 현재 처리 중인 기사 URL 확인
-                print(f"[DEBUG] ARTICLE URL = {url}")
+                # 이번 응답 안에서 처음 본 URL인지 먼저 저장
+                first_seen_in_response = url not in seen_urls
+                if first_seen_in_response:
+                    seen_urls.add(url)
+                else:
+                    # 같은 응답 내 중복 URL은 스킵
+                    continue
 
                 article, is_new_article = await self._upsert_article(item)
-
-                # article이 None이면 URL이 없어서 스킵된 경우
-                print(
-                    f"[DEBUG] UPSERT RESULT article_id={None if article is None else article.id}, "
-                    f"is_new_article={is_new_article}"
-                )
-
                 if article is None:
                     continue
 
@@ -97,33 +81,16 @@ class CrawlRunService:
                     crawl_run_id=crawl_run.id,
                 )
 
-                # 현재 키워드와의 매칭이 새로 생겼는지 확인
-                print(
-                    f"[DEBUG] MATCH RESULT article_id={article.id}, "
-                    f"keyword_id={keyword.id}, is_new_match={is_new_match}"
-                )
+                # 현재 키워드에 대해 이번 응답에서 처음 본 기사면 업로드
+                should_upload = is_new_article or is_new_match or first_seen_in_response
 
-                # 기사 자체가 새롭거나, 현재 키워드에 처음 연결된 경우 업로드 대상
-                if is_new_article or is_new_match:
-                    # 같은 article이 중복으로 upload 리스트에 들어가지 않게 방지
+                if should_upload:
                     if not any(existing.id == article.id for existing in articles_to_upload):
                         articles_to_upload.append(article)
-                        print(f"[DEBUG] ADDED TO UPLOAD article_id={article.id}")
-                else:
-                    print(
-                        f"[DEBUG] SKIPPED FROM UPLOAD article_id={article.id} "
-                        f"(existing article + existing match)"
-                    )
 
                 article_count += 1
 
-        # 최종 업로드 대상 개수 확인
-        print("[DEBUG] FINAL upload_target_count =", len(articles_to_upload))
-
         dify_result = await self._upload_articles_to_dify(articles_to_upload)
-
-        # Dify 업로드 결과 확인
-        print("[DEBUG] DIFY RESULT =", dify_result)
 
         crawl_run.status = "COMPLETED"
         crawl_run.article_count = article_count
