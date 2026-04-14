@@ -50,7 +50,7 @@ class CrawlRunService:
         articles_to_upload: list[Article] = []
 
         for keyword in keywords:
-            news_response = await self.transnews_client.search_news(keyword.keyword)
+            news_response = await self.transnews_client.search_news(keyword.keyword_text)
 
             if news_response.get("status") != "SUCCESS":
                 continue
@@ -69,7 +69,6 @@ class CrawlRunService:
                     crawl_run_id=crawl_run.id,
                 )
 
-                # 기사 자체가 새롭거나, 현재 키워드에 새로 연결된 경우 업로드 대상
                 if is_new_article or is_new_match:
                     if not any(existing.id == article.id for existing in articles_to_upload):
                         articles_to_upload.append(article)
@@ -141,7 +140,6 @@ class CrawlRunService:
             if published_at is not None:
                 article.published_at = published_at
 
-            # 기존 기사 content가 비어 있을 때만 보완
             if content and not (article.content or "").strip():
                 article.content = content
 
