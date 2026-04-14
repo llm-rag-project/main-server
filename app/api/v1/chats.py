@@ -59,7 +59,7 @@ async def get_chats(
         query = ChatListQuery(
             page=page,
             size=size,
-            q=q
+            q=q,
         )
         result = await service.get_chat_list(
             user_id=current_user.id,
@@ -166,6 +166,52 @@ async def send_chat_message(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+    except Exception:
+        await db.rollback()
+        raise
+
+
+@router.delete("/{chat_id}")
+async def delete_chat(
+    request: Request,
+    chat_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ChatService(ChatRepository(db))
+
+    try:
+        result = await service.delete_chat(
+            user_id=current_user.id,
+            chat_id=chat_id,
+        )
+        await db.commit()
+        return success_response(request, data=result)
+
+    except ValueError as e:
+        await db.rollback()
+
+        if str(e) == "NOT_FOUND":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="chat not found",
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    except PermissionError as e:
+        await db.rollback()
+
+        if str(e) == "FORBIDDEN":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this chat",
+            )
+        raise
 
     except Exception:
         await db.rollback()

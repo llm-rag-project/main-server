@@ -25,6 +25,15 @@ class CrawlRunService:
         self.transnews_client = transnews_client
         self.dify_upload_service = dify_upload_service or DifyArticleUploadService()
 
+    def _extract_article_url(self, item: dict[str, Any]) -> str | None:
+        return (
+            item.get("original_url")
+            or item.get("source_url")
+            or item.get("article_url")
+            or item.get("url")
+            or item.get("link")
+        )
+
     async def create_crawl_run(
         self,
         *,
@@ -66,8 +75,10 @@ class CrawlRunService:
                     "url": item.get("url"),
                     "link": item.get("link"),
                 })
-                url = item.get("url") or item.get("link")
+
+                url = self._extract_article_url(item)
                 if not url:
+                    print("[DEBUG] SKIP ITEM: no usable url")
                     continue
 
                 first_seen_in_response = url not in seen_urls
@@ -75,6 +86,9 @@ class CrawlRunService:
                     seen_urls.add(url)
                 else:
                     continue
+
+                # 뒤 로직에서도 같은 URL 기준을 쓰도록 item에 통일해서 넣어줌
+                item["url"] = url
 
                 # 뉴스 목록 응답에는 본문이 비어 있을 수 있어서, 기사 상세 크롤링으로 본문 보강
                 try:
@@ -149,7 +163,6 @@ class CrawlRunService:
         result = await self.db.execute(stmt)
         keywords = list(result.scalars().all())
 
-        # DB에서 실제로 어떤 키워드들이 조회됐는지 확인
         print("[DEBUG] _get_user_keywords result =", [(k.id, k.keyword_text) for k in keywords])
 
         return keywords
@@ -157,7 +170,7 @@ class CrawlRunService:
     async def _upsert_article(self, item: dict[str, Any]) -> tuple[Article | None, bool]:
         from sqlalchemy import select
 
-        url = item.get("url") or item.get("link")
+        url = self._extract_article_url(item)
         published_raw = item.get("published_at") or item.get("published")
 
         published_at = None
@@ -167,7 +180,6 @@ class CrawlRunService:
             except Exception:
                 pass
 
-        # URL이 없으면 기사로 저장할 수 없으므로 스킵
         if not url:
             print("[DEBUG] UPSERT SKIP: url is missing")
             return None, False
@@ -180,7 +192,6 @@ class CrawlRunService:
         result = await self.db.execute(select(Article).where(Article.url == url))
         article = result.scalar_one_or_none()
 
-        # 같은 URL이 이미 있으면 기존 기사로 판단
         print("[DEBUG] UPSERT CHECK =", {"url": url, "exists": article is not None})
 
         if article:
@@ -192,14 +203,12 @@ class CrawlRunService:
             if published_at is not None:
                 article.published_at = published_at
 
-            # 기존 기사에 content가 비어 있으면 이번 content로 보완
             if content and not (article.content or "").strip():
                 article.content = content
                 print(f"[DEBUG] FILLED EMPTY CONTENT article_id={article.id}")
 
             return article, False
 
-        # 같은 URL이 없으면 새 기사로 생성
         article = Article(
             source_type="TRANSNEWS",
             source_article_id=None,
@@ -234,7 +243,6 @@ class CrawlRunService:
         )
         match = result.scalar_one_or_none()
 
-        # 이미 같은 article_id + keyword_id 매칭이 있는지 확인
         print(
             "[DEBUG] ENSURE_MATCH CHECK =",
             {
@@ -260,7 +268,6 @@ class CrawlRunService:
             )
             return True
 
-        # 기존 매칭인데 crawl_run_id가 비어 있으면 보완
         if getattr(match, "crawl_run_id", None) is None:
             match.crawl_run_id = crawl_run_id
             print(
@@ -271,7 +278,6 @@ class CrawlRunService:
         return False
 
     async def _upload_articles_to_dify(self, articles: list[Article]) -> dict[str, Any]:
-        # 업로드 대상이 없으면 바로 0건 반환
         if not articles:
             print("[DEBUG] NO ARTICLES TO UPLOAD TO DIFY")
             return {
@@ -281,7 +287,6 @@ class CrawlRunService:
                 "failed": [],
             }
 
-        # 실제 Dify 업로드 대상 article_id 확인
         print("[DEBUG] DIFY UPLOAD ARTICLE IDS =", [article.id for article in articles])
 
         return await self.dify_upload_service.upload_articles_to_knowledge(articles)

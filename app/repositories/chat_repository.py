@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat import Chat
@@ -15,11 +15,11 @@ class ChatRepository:
     async def create_chat(
         self,
         user_id: int,
-        title: str | None        
+        title: str | None,
     ) -> dict[str, Any]:
         chat = Chat(
             user_id=user_id,
-            title=title            
+            title=title,
         )
         self.db.add(chat)
         await self.db.flush()
@@ -55,7 +55,6 @@ class ChatRepository:
         if query.q:
             stmt = stmt.where(Chat.title.ilike(f"%{query.q.strip()}%"))
 
-    
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = await self.db.scalar(count_stmt)
         total = total or 0
@@ -71,8 +70,6 @@ class ChatRepository:
 
         return [dict(row) for row in rows], total
 
-
-
     async def update_chat_conversation_and_last_message(
         self,
         chat: Chat,
@@ -80,10 +77,13 @@ class ChatRepository:
         last_message: str | None,
         last_message_at: datetime | None,
     ) -> None:
-
         if external_conversation_id and not chat.external_conversation_id:
             chat.external_conversation_id = external_conversation_id
 
         chat.last_message = last_message
         chat.last_message_at = last_message_at
+        await self.db.flush()
+
+    async def delete_chat(self, chat: Chat) -> None:
+        await self.db.delete(chat)
         await self.db.flush()

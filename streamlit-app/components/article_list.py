@@ -47,7 +47,12 @@ def render_article_list():
         source = article.get("source", "출처 없음")
         published_at = article.get("published_at", "")
         summary = article.get("summary", "")
-        url = article.get("url", "")
+        url = (
+            article.get("original_url")
+            or article.get("url")
+            or article.get("link")
+            or ""
+        )
         importance = article.get("importance")
 
         with st.container(border=True):

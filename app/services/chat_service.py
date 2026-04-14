@@ -65,7 +65,6 @@ class ChatService:
         return ChatDetailResponse(
             id=chat.id,
             title=chat.title,
-           
             external_conversation_id=chat.external_conversation_id,
             last_message=chat.last_message,
             last_message_at=chat.last_message_at,
@@ -123,7 +122,7 @@ class ChatService:
             conversation_id=new_conversation_id,
             created_at=created_at,
         )
-   
+
     async def create_chat(
         self,
         user_id: int,
@@ -142,9 +141,31 @@ class ChatService:
         return ChatDetailResponse(
             id=chat["id"],
             title=chat["title"],
-           
             external_conversation_id=chat.get("external_conversation_id"),
             last_message=chat.get("last_message"),
             last_message_at=chat.get("last_message_at"),
             created_at=chat["created_at"],
         )
+
+    async def delete_chat(
+        self,
+        user_id: int,
+        chat_id: int,
+    ) -> dict:
+        chat = await self.repository.get_chat_by_id(chat_id)
+
+        if not chat:
+            raise build_error(ErrorCode.NOT_FOUND, "chat not found")
+
+        if chat.user_id != user_id:
+            raise build_error(
+                ErrorCode.FORBIDDEN,
+                "You do not have permission to delete this chat",
+            )
+
+        await self.repository.delete_chat(chat)
+
+        return {
+            "id": chat_id,
+            "deleted": True,
+        }
