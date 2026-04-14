@@ -46,14 +46,11 @@ class CrawlRunService:
         self.db.add(crawl_run)
         await self.db.flush()
 
-        for keyword in keywords:
-            self.db.add(CrawlRunKeyword(crawl_run_id=crawl_run.id, keyword_id=keyword.id))
-
         article_count = 0
-        newly_created_articles: list[Article] = []
+        articles_to_upload: list[Article] = []
 
         for keyword in keywords:
-            news_response = await self.transnews_client.search_news(keyword.keyword_text)
+            news_response = await self.transnews_client.search_news(keyword.keyword)
 
             if news_response.get("status") != "SUCCESS":
                 continue
@@ -61,24 +58,25 @@ class CrawlRunService:
             news_items = news_response.get("data") or []
 
             for item in news_items:
-                article, is_new = await self._upsert_article(item)
+                article, is_new_article = await self._upsert_article(item)
 
                 if article is None:
                     continue
 
-                await self._ensure_article_match(
+                is_new_match = await self._ensure_article_match(
                     article_id=article.id,
                     keyword_id=keyword.id,
                     crawl_run_id=crawl_run.id,
                 )
 
-                if is_new:
-                    newly_created_articles.append(article)
+                # 기사 자체가 새롭거나, 현재 키워드에 새로 연결된 경우 업로드 대상
+                if is_new_article or is_new_match:
+                    if not any(existing.id == article.id for existing in articles_to_upload):
+                        articles_to_upload.append(article)
 
                 article_count += 1
-        print("newly_created_articles =", len(newly_created_articles))
-        # 새 기사만 Dify 업로드
-        dify_result = await self._upload_new_articles_to_dify(newly_created_articles)
+
+        dify_result = await self._upload_articles_to_dify(articles_to_upload)
 
         crawl_run.status = "COMPLETED"
         crawl_run.article_count = article_count
@@ -91,12 +89,12 @@ class CrawlRunService:
             "crawl_run_id": crawl_run.id,
             "status": crawl_run.status,
             "crawl_count": crawl_run.article_count,
-            "new_article_count": len(newly_created_articles),
+            "upload_target_count": len(articles_to_upload),
             "dify_uploaded_count": dify_result["uploaded_count"],
             "dify_failed_count": dify_result["failed_count"],
             "dify_failed_items": dify_result["failed"],
         }
-
+    
     async def _get_user_keywords(self, *, user_id: int, keyword_ids: list[int] | None):
         from sqlalchemy import select
 
@@ -129,6 +127,7 @@ class CrawlRunService:
         title = item.get("title") or "제목 없음"
         publisher = item.get("publisher") or item.get("source")
         language = item.get("language") or "ko"
+        content = (item.get("content") or "").strip()
 
         result = await self.db.execute(select(Article).where(Article.url == url))
         article = result.scalar_one_or_none()
@@ -138,8 +137,14 @@ class CrawlRunService:
             article.publisher = publisher
             article.source_type = article.source_type or "TRANSNEWS"
             article.language = article.language or language
+
             if published_at is not None:
                 article.published_at = published_at
+
+            # 기존 기사 content가 비어 있을 때만 보완
+            if content and not (article.content or "").strip():
+                article.content = content
+
             return article, False
 
         article = Article(
@@ -149,15 +154,21 @@ class CrawlRunService:
             title=title,
             publisher=publisher,
             published_at=published_at,
-            content=item.get("content") or "",
+            content=content,
             language=language,
         )
         self.db.add(article)
         await self.db.flush()
 
         return article, True
-
-    async def _ensure_article_match(self, *, article_id: int, keyword_id: int, crawl_run_id: int):
+    
+    async def _ensure_article_match(
+        self,
+        *,
+        article_id: int,
+        keyword_id: int,
+        crawl_run_id: int,
+    ) -> bool:
         from sqlalchemy import select
 
         result = await self.db.execute(
@@ -176,8 +187,16 @@ class CrawlRunService:
                     crawl_run_id=crawl_run_id,
                 )
             )
+            await self.db.flush()
+            return True
 
-    async def _upload_new_articles_to_dify(self, articles: list[Article]) -> dict[str, Any]:
+        # 기존 매칭인데 crawl_run_id가 비어 있으면 보완
+        if getattr(match, "crawl_run_id", None) is None:
+            match.crawl_run_id = crawl_run_id
+
+        return False
+
+    async def _upload_articles_to_dify(self, articles: list[Article]) -> dict[str, Any]:
         if not articles:
             return {
                 "uploaded_count": 0,
@@ -186,4 +205,4 @@ class CrawlRunService:
                 "failed": [],
             }
 
-        return await self.dify_upload_service.upload_article_to_knowledge(articles)
+        return await self.dify_upload_service.upload_articles_to_knowledge(articles)
