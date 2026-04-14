@@ -59,6 +59,13 @@ class CrawlRunService:
             seen_urls: set[str] = set()
 
             for item in news_items:
+                print("[DEBUG] ITEM URL CANDIDATES =", {
+                    "original_url": item.get("original_url"),
+                    "source_url": item.get("source_url"),
+                    "article_url": item.get("article_url"),
+                    "url": item.get("url"),
+                    "link": item.get("link"),
+                })
                 url = item.get("url") or item.get("link")
                 if not url:
                     continue
