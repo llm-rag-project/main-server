@@ -1,5 +1,5 @@
 import streamlit as st
-from api.chat_rooms import create_chat, get_chat_detail, get_chat_list
+from api.chat_rooms import create_chat, delete_chat, get_chat_detail, get_chat_list
 
 
 def _unwrap_response(result):
@@ -49,6 +49,7 @@ def render_chat_list():
                 if not title:
                     st.warning("채팅세션 제목을 입력하세요.")
                 else:
+                    result = create_chat(title=title)
                     data = _unwrap_response(result)
 
                     created_chat_id = data.get("id")
@@ -73,7 +74,6 @@ def render_chat_list():
         result = get_chat_list(page=1, size=50)
         data = _unwrap_response(result)
 
-        # 직접 응답/래핑 응답 둘 다 처리
         if isinstance(data, dict) and "items" in data:
             items = data.get("items", [])
         elif isinstance(data, list):
@@ -96,25 +96,47 @@ def render_chat_list():
 
             label = f"✅ {title}" if is_selected else title
 
-            if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
-                try:
-                    detail_result = get_chat_detail(chat_id)
-                    detail_data = _unwrap_response(detail_result)
+            col1, col2 = st.columns([5, 1])
 
-                    st.session_state["selected_chat_id"] = detail_data.get("id")
-                    st.session_state["chat_conversation_id"] = detail_data.get("external_conversation_id") or ""
-                    st.session_state["chat_messages"] = []
+            with col1:
+                if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
+                    try:
+                        detail_result = get_chat_detail(chat_id)
+                        detail_data = _unwrap_response(detail_result)
 
-                    if last_message:
-                        st.session_state["chat_messages"].append({
-                            "role": "assistant",
-                            "content": last_message
-                        })
+                        st.session_state["selected_chat_id"] = detail_data.get("id")
+                        st.session_state["chat_conversation_id"] = (
+                            detail_data.get("external_conversation_id") or ""
+                        )
+                        st.session_state["chat_messages"] = []
 
-                    st.rerun()
+                        if last_message:
+                            st.session_state["chat_messages"].append({
+                                "role": "assistant",
+                                "content": last_message,
+                            })
 
-                except Exception as e:
-                    st.error(f"세션 선택 실패: {e}")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"세션 선택 실패: {e}")
+
+            with col2:
+                if st.button("삭제", key=f"delete_chat_{chat_id}", use_container_width=True):
+                    try:
+                        result = delete_chat(chat_id)
+                        _unwrap_response(result)
+
+                        if st.session_state.get("selected_chat_id") == chat_id:
+                            st.session_state["selected_chat_id"] = None
+                            st.session_state["chat_conversation_id"] = ""
+                            st.session_state["chat_messages"] = []
+
+                        st.success("채팅세션이 삭제되었습니다.")
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"세션 삭제 실패: {e}")
 
     except Exception as e:
         st.error(f"채팅 세션 목록을 불러오지 못했습니다: {e}")

@@ -1,4 +1,4 @@
-from api.client import api_get, api_post
+from api.client import api_delete, api_get, api_post
 
 
 def create_chat(title: str):
@@ -22,3 +22,7 @@ def get_chat_list(page: int = 1, size: int = 20, q: str | None = None):
 
 def get_chat_detail(chat_id: int):
     return api_get(f"/chats/{chat_id}")
+
+def delete_chat(chat_id: int):
+    return api_delete(f"/chats/{chat_id}")
+
