@@ -98,11 +98,16 @@ async def summarize_article(
 
         result = await dify_service.run_summary_workflow(
             user_id=current_user.id,
-            message="이 기사를 한국어로 핵심만 간결하게 요약해줘. 반드시 JSON 형식으로 반환해줘.",
-            articles=articles_payload,
+            article_id=article.id,
+            title=article.title or "",
+            content=article.content or "",
         )
 
-        summary_text = result.get("data", {}).get("items", [])
+        outputs = result.get("data", {}).get("outputs", {})
+        summary_text = outputs.get("summary_text")
+
+        if not summary_text:
+            raise ValueError("요약 결과를 찾을 수 없습니다.")
 
         if not summary_text:
             raise ValueError("요약 결과를 찾을 수 없습니다.")
