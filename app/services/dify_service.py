@@ -99,7 +99,7 @@ class DifyService:
         }
 
         headers = {
-            "Authorization": f"Bearer {settings.SUMMARY_WORKFLOW_API_KEY}",
+            "Authorization": f"Bearer {settings.summary_workflow_api_key}",
             "Content-Type": "application/json",
         }
 
