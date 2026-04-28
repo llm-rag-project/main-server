@@ -47,7 +47,9 @@ class TransNewsClient:
         return response.json()
 
     async def search_news(self, keyword: str) -> dict[str, Any]:
-        return await self._get("/news", params={"keyword": keyword})
+        result =  await self._get("/news", params={"keyword": keyword})
+        print("[DEBUG] TRANSNEWS RAW RESPONSE = ", result)
+        return result
 
     async def crawl_article(self, url: str) -> dict[str, Any]:
         return await self._get("/crawl", params={"url": url})
