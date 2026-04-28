@@ -12,16 +12,29 @@ def extract_summary_text(result):
     if not isinstance(result, dict):
         return "요약 결과를 해석하지 못했습니다."
 
-    summary_text = (
-        result.get("summary_text")
-        or result.get("text")
-        or result.get("result")
-    )
+    # 1. 메인서버 공통 응답 형식
+    data = result.get("data")
+    if isinstance(data, dict):
+        summary = data.get("summary")
+        if isinstance(summary, str) and summary.strip():
+            return summary
 
+        # 혹시 Dify 결과를 data 안에 summary_text로 넣은 경우
+        summary_text = data.get("summary_text")
+        if isinstance(summary_text, str) and summary_text.strip():
+            return summary_text
+
+    # 2. 예전 방식: 최상위 summary
+    summary = result.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary
+
+    # 3. 예전 방식: 최상위 summary_text
+    summary_text = result.get("summary_text")
     if isinstance(summary_text, str) and summary_text.strip():
         return summary_text
 
-    return str(result)
+    return "요약 결과가 비어 있습니다."
 
 
 def render_article_list():

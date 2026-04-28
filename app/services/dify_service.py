@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import httpx
@@ -82,39 +83,59 @@ class DifyService:
         self,
         *,
         user_id: int,
-        message: str,
-        articles: str,
+        article_id: int,
+        title: str,
+        content: str,
     ) -> dict:
         payload = {
             "inputs": {
                 "user_id": user_id,
-                "message": message,
-                "articles": articles,
+                "article_id": article_id,
+                "title": title,
+                "content": content,
             },
             "response_mode": "blocking",
             "user": f"user-{user_id}",
         }
 
-        data = await self._post("/workflows/run", self.summary_workflow_api_key, payload)
+        headers = {
+            "Authorization": f"Bearer {settings.DIFY_SUMMARY_API_KEY}",
+            "Content-Type": "application/json",
+        }
 
-        result_data = data.get("data") or {}
-        outputs = result_data.get("outputs") or {}
+        async with httpx.AsyncClient(timeout=60) as client:
+            response = await client.post(
+                f"{settings.DIFY_BASE_URL}/workflows/run",
+                headers=headers,
+                json=payload,
+            )
+
+        response.raise_for_status()
+        dify_result = response.json()
+
+        outputs = dify_result.get("data", {}).get("outputs", {})
+
+        summary_text = outputs.get("summary_text")
+
+        if not summary_text:
+            raise ValueError("Dify 요약 결과가 비어 있습니다.")
+
+        if isinstance(summary_text, str):
+            try:
+                parsed = json.loads(summary_text)
+                return parsed
+            except json.JSONDecodeError:
+                return {
+                    "article_id": article_id,
+                    "summary": summary_text,
+                }
+
+        if isinstance(summary_text, dict):
+            return summary_text
 
         return {
-            "success": data.get("success", True),
-            "data": {
-                "workflow_run_id": result_data.get("workflow_run_id"),
-                "task_id": result_data.get("task_id"),
-                "summary_text": (
-                    outputs.get("summary")
-                    or outputs.get("summary_text")
-                    or outputs.get("result")
-                    or outputs.get("text")
-                ),
-            },
-            "error": data.get("error"),
-            "meta": data.get("meta"),
-            "raw": data,
+            "article_id": article_id,
+            "summary": str(summary_text),
         }
 
     async def run_importance_workflow(
