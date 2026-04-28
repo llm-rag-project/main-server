@@ -112,7 +112,7 @@ def render_importance_result(importance_result):
         meta_cols[1].caption(f"task_id: {task_id or '-'}")
 
         if not items:
-            st.warning("반환된 중요도 항목이 없습니다.")
+            # st.warning("반환된 중요도 항목이 없습니다.")
             return
 
         for item in items:

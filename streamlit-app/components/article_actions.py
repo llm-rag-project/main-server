@@ -58,7 +58,7 @@ def render_article_action_buttons():
             st.session_state["article_scoring_result"] = scoring_items
 
             if not scoring_items:
-                st.warning("반환된 중요도 항목이 없습니다.")
+                # st.warning("반환된 중요도 항목이 없습니다.")
                 return
 
             st.success("중요도 계산이 완료되었습니다.")
