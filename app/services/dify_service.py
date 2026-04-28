@@ -105,7 +105,7 @@ class DifyService:
 
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
-                f"{settings.DIFY_BASE_URL}/workflows/run",
+                f"{settings.dify_base_url}/workflows/run",
                 headers=headers,
                 json=payload,
             )
