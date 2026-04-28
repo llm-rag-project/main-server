@@ -90,6 +90,7 @@ class DifyService:
         payload = {
             "inputs": {
                 "user_id": user_id,
+                "message": "이 기사를 한국어로 핵심만 간결하게 요약해줘.",
                 "article_id": article_id,
                 "title": title,
                 "content": content,
