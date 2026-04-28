@@ -6,10 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.transnews_client import TransNewsClient
 from app.models.crawl_run import CrawlRun
-from app.models.crawl_run_keyword import CrawlRunKeyword
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
-from app.models.summary import Summary
 from app.models.keyword import Keyword
 from app.services.dify_service import DifyArticleUploadService
 
@@ -25,14 +23,36 @@ class CrawlRunService:
         self.transnews_client = transnews_client
         self.dify_upload_service = dify_upload_service or DifyArticleUploadService()
 
+    def _is_google_news_url(self, url: str | None) -> bool:
+        return bool(url) and "news.google.com/rss/articles" in url
+
     def _extract_article_url(self, item: dict[str, Any]) -> str | None:
-        return (
-            item.get("original_url")
-            or item.get("source_url")
-            or item.get("article_url")
-            or item.get("url")
-            or item.get("link")
-        )
+        """
+        실제 기사 원문 URL만 반환한다.
+        Google News RSS 링크(link/google_news_url)는 원문 URL이 아니므로 fallback으로 쓰지 않는다.
+        """
+        candidates = [
+            item.get("original_url"),
+            item.get("source_url"),
+            item.get("article_url"),
+            item.get("resolved_url"),
+            item.get("url"),
+        ]
+
+        for url in candidates:
+            if not url:
+                continue
+
+            url = str(url).strip()
+            if not url:
+                continue
+
+            if self._is_google_news_url(url):
+                continue
+
+            return url
+
+        return None
 
     async def create_crawl_run(
         self,
@@ -62,35 +82,41 @@ class CrawlRunService:
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
 
             if news_response.get("status") != "SUCCESS":
+                print("[DEBUG] NEWS RESPONSE NOT SUCCESS =", news_response)
                 continue
 
             news_items = news_response.get("data") or []
             seen_urls: set[str] = set()
 
             for item in news_items:
+                google_news_url = item.get("google_news_url") or item.get("link")
+                url = self._extract_article_url(item)
+
                 print("[DEBUG] ITEM URL CANDIDATES =", {
                     "original_url": item.get("original_url"),
                     "source_url": item.get("source_url"),
                     "article_url": item.get("article_url"),
+                    "resolved_url": item.get("resolved_url"),
                     "url": item.get("url"),
-                    "link": item.get("link"),
+                    "google_news_url": google_news_url,
+                    "selected_url": url,
                 })
 
-                url = self._extract_article_url(item)
                 if not url:
-                    print("[DEBUG] SKIP ITEM: no usable url")
+                    print("[DEBUG] SKIP ITEM: original_url not resolved", {
+                        "title": item.get("title"),
+                        "google_news_url": google_news_url,
+                    })
                     continue
 
-                first_seen_in_response = url not in seen_urls
-                if first_seen_in_response:
-                    seen_urls.add(url)
-                else:
+                if url in seen_urls:
                     continue
+                seen_urls.add(url)
 
-                # 뒤 로직에서도 같은 URL 기준을 쓰도록 item에 통일해서 넣어줌
+                # 뒤 로직에서도 같은 실제 기사 URL 기준을 쓰도록 통일
                 item["url"] = url
+                item["original_url"] = url
 
-                # 뉴스 목록 응답에는 본문이 비어 있을 수 있어서, 기사 상세 크롤링으로 본문 보강
                 try:
                     crawl_data = await self.transnews_client.crawl_article(url)
                     crawled = crawl_data.get("data") or {}
@@ -108,8 +134,10 @@ class CrawlRunService:
                         item["content"] = content
 
                     print(
-                        f"[DEBUG] CRAWL ARTICLE url={url}, content_length={len(item.get('content') or '')}"
+                        f"[DEBUG] CRAWL ARTICLE url={url}, "
+                        f"content_length={len(item.get('content') or '')}"
                     )
+
                 except Exception as e:
                     print(f"[DEBUG] crawl_article failed url={url}: {e}")
 
@@ -123,7 +151,7 @@ class CrawlRunService:
                     crawl_run_id=crawl_run.id,
                 )
 
-                should_upload = is_new_article or is_new_match or first_seen_in_response
+                should_upload = is_new_article or is_new_match
 
                 if should_upload:
                     if not any(existing.id == article.id for existing in articles_to_upload):
@@ -181,7 +209,7 @@ class CrawlRunService:
                 pass
 
         if not url:
-            print("[DEBUG] UPSERT SKIP: url is missing")
+            print("[DEBUG] UPSERT SKIP: original_url is missing or invalid")
             return None, False
 
         title = item.get("title") or "제목 없음"
