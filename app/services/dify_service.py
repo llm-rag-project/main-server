@@ -165,7 +165,7 @@ class DifyService:
 
             # 2-2. 현재 사진처럼 일반 텍스트로 온 경우 처리
             article_id_match = re.search(r"기사\s*id\s*:\s*(\d+)", text)
-            summary_match = re.search(r"요약문\s*:\s*(.+)", text, re.DOTALL)
+            summary_match = re.search(r"요약본\s*:\s*(.+)", text, re.DOTALL)
 
             return {
                 "article_id": int(article_id_match.group(1)) if article_id_match else article_id,
