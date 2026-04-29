@@ -102,6 +102,9 @@ async def summarize_article(
             title=article.title or "",
             content=article.content or "",
         )
+        print("====== SUMMARY WORKFLOW RESULT ======")
+        print(result)
+
 
         summary_text = result.get("summary")
 
