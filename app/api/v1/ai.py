@@ -103,8 +103,7 @@ async def summarize_article(
             content=article.content or "",
         )
 
-        outputs = result.get("data", {}).get("outputs", {})
-        summary_text = outputs.get("summary_text")
+        summary_text = result.get("summary")
 
         if not summary_text:
             raise ValueError("요약 결과를 찾을 수 없습니다.")
