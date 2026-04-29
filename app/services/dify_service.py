@@ -113,44 +113,69 @@ class DifyService:
             self.summary_workflow_api_key,
             payload,
         )
-
         result_data = dify_result.get("data") or {}
         outputs = result_data.get("outputs") or {}
 
         summary_text = outputs.get("summary_text")
 
         if not summary_text:
-            raise ValueError(f"Dify 요약 결과가 비어 있습니다. raw={dify_result}")
+            raise ValueError(f"요약 결과를 찾을 수 없습니다. outputs={outputs}")
 
-        parsed_summary = None
-
-        if isinstance(summary_text, str):
-            try:
-                parsed_summary = json.loads(summary_text)
-            except json.JSONDecodeError:
-                parsed_summary = {
-                    "article_id": article_id,
-                    "summary": summary_text,
-                }
-        elif isinstance(summary_text, dict):
-            parsed_summary = summary_text
-        else:
-            parsed_summary = {
-                "article_id": article_id,
-                "summary": str(summary_text),
+        # 1. Dify가 JSON 객체로 준 경우
+        if isinstance(summary_text, dict):
+            return {
+                "article_id": summary_text.get("article_id", article_id),
+                "summary": summary_text.get("summary") or summary_text.get("요약문") or str(summary_text),
             }
 
+        # 2. Dify가 문자열로 준 경우
+        if isinstance(summary_text, str):
+            text = summary_text.strip()
+
+            # 2-1. 문자열 내용이 JSON이면 파싱
+            try:
+                parsed = json.loads(text)
+
+                if isinstance(parsed, dict):
+                    if "articles" in parsed and parsed["articles"]:
+                        first = parsed["articles"][0]
+                        return {
+                            "article_id": first.get("article_id", article_id),
+                            "summary": first.get("summary", ""),
+                        }
+
+                    if "기사 목록" in parsed and parsed["기사 목록"]:
+                        first = parsed["기사 목록"][0]
+                        return {
+                            "article_id": first.get("article_id") or first.get("기사 id") or article_id,
+                            "summary": first.get("summary") or first.get("요약문") or first.get("요약") or "",
+                        }
+
+                    if "summary" in parsed:
+                        return {
+                            "article_id": parsed.get("article_id", article_id),
+                            "summary": parsed.get("summary", ""),
+                        }
+
+            except json.JSONDecodeError:
+                pass
+
+            # 2-2. 현재 사진처럼 일반 텍스트로 온 경우 처리
+            article_id_match = re.search(r"기사\s*id\s*:\s*(\d+)", text)
+            summary_match = re.search(r"요약문\s*:\s*(.+)", text, re.DOTALL)
+
+            return {
+                "article_id": int(article_id_match.group(1)) if article_id_match else article_id,
+                "summary": summary_match.group(1).strip() if summary_match else text,
+            }
+
+        # 3. 그 외 타입
         return {
-            "success": dify_result.get("success", True),
-            "data": parsed_summary,
-            "error": dify_result.get("error"),
-            "meta": {
-                "workflow_run_id": result_data.get("workflow_run_id"),
-                "task_id": result_data.get("task_id"),
-            },
-            "raw": dify_result,
+            "article_id": article_id,
+            "summary": str(summary_text),
         }
 
+       
     async def run_importance_workflow(
         self,
         *,
