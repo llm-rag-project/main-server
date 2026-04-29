@@ -95,7 +95,7 @@ async def summarize_article(
             ],
             ensure_ascii=False,
         )
-
+        print("====== BEFORE RUN SUMMARY WORKFLOW ======", flush=True)
         result = await dify_service.run_summary_workflow(
             user_id=current_user.id,
             article_id=article.id,

@@ -107,12 +107,15 @@ class DifyService:
             "response_mode": "blocking",
             "user": f"user-{user_id}",
         }
-
+        print("====== RUN SUMMARY WORKFLOW START ======", flush=True)
         dify_result = await self._post(
             "/workflows/run",
             self.summary_workflow_api_key,
             payload,
         )
+                
+        print("====== DIFY RESULT ======", flush=True)
+        print(dify_result, flush=True)
         result_data = dify_result.get("data") or {}
         outputs = result_data.get("outputs") or {}
 
