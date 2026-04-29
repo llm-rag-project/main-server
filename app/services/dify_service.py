@@ -98,52 +98,57 @@ class DifyService:
         payload = {
             "inputs": {
                 "user_id": user_id,
-                "message": "이 기사를 한국어로 핵심만 간결하게 요약해줘. 반드시 JSON 형식으로 반환해줘.",
+                "message": (
+                    "이 기사를 한국어로 핵심만 간결하게 요약해줘. "
+                    
+                ),
                 "articles": json.dumps(articles, ensure_ascii=False),
             },
             "response_mode": "blocking",
             "user": f"user-{user_id}",
         }
 
+        dify_result = await self._post(
+            "/workflows/run",
+            self.summary_workflow_api_key,
+            payload,
+        )
 
-        headers = {
-            "Authorization": f"Bearer {settings.summary_workflow_api_key}",
-            "Content-Type": "application/json",
-        }
-
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                f"{settings.dify_base_url}/workflows/run",
-                headers=headers,
-                json=payload,
-            )
-
-        response.raise_for_status()
-        dify_result = response.json()
-
-        outputs = dify_result.get("data", {}).get("outputs", {})
+        result_data = dify_result.get("data") or {}
+        outputs = result_data.get("outputs") or {}
 
         summary_text = outputs.get("summary_text")
 
         if not summary_text:
-            raise ValueError("Dify 요약 결과가 비어 있습니다.")
+            raise ValueError(f"Dify 요약 결과가 비어 있습니다. raw={dify_result}")
+
+        parsed_summary = None
 
         if isinstance(summary_text, str):
             try:
-                parsed = json.loads(summary_text)
-                return parsed
+                parsed_summary = json.loads(summary_text)
             except json.JSONDecodeError:
-                return {
+                parsed_summary = {
                     "article_id": article_id,
                     "summary": summary_text,
                 }
-
-        if isinstance(summary_text, dict):
-            return summary_text
+        elif isinstance(summary_text, dict):
+            parsed_summary = summary_text
+        else:
+            parsed_summary = {
+                "article_id": article_id,
+                "summary": str(summary_text),
+            }
 
         return {
-            "article_id": article_id,
-            "summary": str(summary_text),
+            "success": dify_result.get("success", True),
+            "data": parsed_summary,
+            "error": dify_result.get("error"),
+            "meta": {
+                "workflow_run_id": result_data.get("workflow_run_id"),
+                "task_id": result_data.get("task_id"),
+            },
+            "raw": dify_result,
         }
 
     async def run_importance_workflow(
