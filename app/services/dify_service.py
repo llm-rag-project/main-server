@@ -100,7 +100,7 @@ class DifyService:
                 "user_id": user_id,
                 "message": (
                     "이 기사를 한국어로 핵심만 간결하게 요약해줘. "
-                    
+                    "반드시 JSON 형식으로 반환해줘."
                 ),
                 "articles": json.dumps(articles, ensure_ascii=False),
             },
