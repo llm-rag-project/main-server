@@ -1,8 +1,10 @@
 from typing import Any
 
 import httpx
+from jsonschema import ValidationError
 
 from app.core.config import settings
+from repo.app.schemas.articles import ArticleSearchResponse
 
 
 class TransNewsClientError(Exception):
@@ -47,9 +49,17 @@ class TransNewsClient:
         return response.json()
 
     async def search_news(self, keyword: str) -> dict[str, Any]:
-        result =  await self._get("/news", params={"keyword": keyword})
+        result = await self._get("/api/v1/news", params={"keyword": keyword})
         print("[DEBUG] TRANSNEWS RAW RESPONSE = ", result)
-        return result
+
+        try:
+            parsed = ArticleSearchResponse.model_validate(result)
+        except ValidationError as e:
+            raise TransNewsClientError(
+                f"Invalid search_news response schema: {e}"
+            ) from e
+
+        return parsed.model_dump()
 
     async def crawl_article(self, url: str) -> dict[str, Any]:
         return await self._get("/crawl", params={"url": url})

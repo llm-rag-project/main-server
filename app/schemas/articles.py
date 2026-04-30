@@ -46,6 +46,21 @@ class ArticleListQuery(BaseModel):
         return self
 
 
+class ArticleSearchItem(BaseModel):
+    title: str
+    url: str
+    original_url: Optional[str] = None
+    source: Optional[str] = None
+    language: str = "ko"
+    published_at: Optional[str] = None
+    content: Optional[str] = None
+
+
+class ArticleSearchResponse(BaseModel):
+    status: str
+    message: str
+    data: List[ArticleSearchItem]
+
 class ArticleListItem(BaseModel):
     id: int
     title: str
