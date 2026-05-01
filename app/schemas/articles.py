@@ -66,8 +66,8 @@ class ArticleListItem(BaseModel):
     title: str
     summary: Optional[str]
     url: str
-    original_url: Optional[str]
-    source: Optional[str]
+    original_url: Optional[str] = None
+    source: Optional[str] = None
     language: str
     published_at: Optional[datetime]
     keyword_id: Optional[int]
