@@ -50,7 +50,7 @@ class ArticleSearchItem(BaseModel):
     title: str
     url: str
     original_url: Optional[str] = None
-    source: str
+    source: Optional[str] = None
     language: str = "ko"
     published_at: Optional[str] = None
     content: Optional[str] = None
@@ -67,7 +67,7 @@ class ArticleListItem(BaseModel):
     summary: Optional[str]
     url: str
     original_url: str
-    source: str
+    source: Optional[str]
     language: str
     published_at: Optional[datetime]
     keyword_id: Optional[int]
@@ -83,7 +83,7 @@ class ArticleDetailResponse(BaseModel):
     content: Optional[str]
     url: str
     original_url: str
-    source: str
+    source: Optional[str]
     language: str
     published_at: Optional[datetime]
     keyword_id: Optional[int]
