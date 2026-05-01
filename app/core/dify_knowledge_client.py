@@ -33,7 +33,7 @@ class DifyKnowledgeClient:
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
 
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             try:
                 response = await client.post(url, headers=self._headers(), json=payload)
             except httpx.HTTPError as e:
