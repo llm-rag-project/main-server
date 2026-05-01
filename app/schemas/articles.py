@@ -50,9 +50,9 @@ class ArticleSearchItem(BaseModel):
     title: str
     url: str
     original_url: Optional[str] = None
-    source: Optional[str] = None
+    source_name: Optional[str] = None
     language: str = "ko"
-    published_at: Optional[str] = None
+    published: Optional[str] = None
     content: Optional[str] = None
 
 

@@ -213,7 +213,7 @@ class CrawlRunService:
             return None, False
 
         title = item.get("title") or "제목 없음"
-        publisher = item.get("publisher") or item.get("source")
+        publisher = item.get("publisher") or item.get("source_name")
         language = item.get("language") or "ko"
         content = (item.get("content") or "").strip()
 
