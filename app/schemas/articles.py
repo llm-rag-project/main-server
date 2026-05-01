@@ -66,7 +66,7 @@ class ArticleListItem(BaseModel):
     title: str
     summary: Optional[str]
     url: str
-    original_url: str
+    original_url: Optional[str]
     source: Optional[str]
     language: str
     published_at: Optional[datetime]
@@ -82,7 +82,7 @@ class ArticleDetailResponse(BaseModel):
     summary: Optional[str]
     content: Optional[str]
     url: str
-    original_url: str
+    original_url: Optional[str]
     source: Optional[str]
     language: str
     published_at: Optional[datetime]
