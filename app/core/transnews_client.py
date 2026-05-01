@@ -1,10 +1,10 @@
 from typing import Any
 
 import httpx
-from jsonschema import ValidationError
+from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.articles import ArticleSearchResponse
+from app.schemas.articles import TransNewsSearchResponse
 
 
 class TransNewsClientError(Exception):
@@ -16,8 +16,13 @@ class TransNewsClient:
         self.base_url = settings.transnews_base_url.rstrip("/")
         self.timeout = settings.transnews_request_timeout
 
-    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _get(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(url, params=params)
 
@@ -32,8 +37,13 @@ class TransNewsClient:
 
         return response.json()
 
-    async def _post(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    async def _post(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.post(url, params=params)
 
@@ -53,7 +63,7 @@ class TransNewsClient:
         print("[DEBUG] TRANSNEWS RAW RESPONSE = ", result)
 
         try:
-            parsed = ArticleSearchResponse.model_validate(result)
+            parsed = TransNewsSearchResponse.model_validate(result)
         except ValidationError as e:
             raise TransNewsClientError(
                 f"Invalid search_news response schema: {e}"

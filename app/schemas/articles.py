@@ -45,21 +45,22 @@ class ArticleListQuery(BaseModel):
             raise ValueError("'min_importance' must be less than or equal to 'max_importance'")
         return self
 
-
-class ArticleSearchItem(BaseModel):
+class TransNewsArticleItem(BaseModel):
     title: str
-    url: str
+    link: Optional[str] = None
+    article_link: Optional[str] = None
     original_url: Optional[str] = None
     source_name: Optional[str] = None
+    source_url: Optional[str] = None
     language: str = "ko"
     published: Optional[str] = None
     content: Optional[str] = None
 
 
-class ArticleSearchResponse(BaseModel):
+class TransNewsSearchResponse(BaseModel):
     status: str
     message: str
-    data: List[ArticleSearchItem]
+    data: List[TransNewsArticleItem]
 
 class ArticleListItem(BaseModel):
     id: int
