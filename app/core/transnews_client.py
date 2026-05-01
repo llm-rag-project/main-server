@@ -4,7 +4,7 @@ import httpx
 from jsonschema import ValidationError
 
 from app.core.config import settings
-from repo.app.schemas.articles import ArticleSearchResponse
+from app.schemas.articles import ArticleSearchResponse
 
 
 class TransNewsClientError(Exception):
