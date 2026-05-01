@@ -79,17 +79,17 @@ class ArticleListItem(BaseModel):
 class ArticleDetailResponse(BaseModel):
     id: int
     title: str
-    summary: Optional[str]
-    content: Optional[str]
+    summary: Optional[str] = None
+    content: Optional[str] = None
     url: str
-    original_url: Optional[str]
-    source: Optional[str]
+    original_url: Optional[str] = None
+    source: Optional[str] = None
     language: str
-    published_at: Optional[datetime]
-    keyword_id: Optional[int]
-    importance: Optional[float]
-    is_liked: bool
-    has_feedback: bool
+    published_at: Optional[datetime] = None
+    keyword_id: Optional[int] = None
+    importance: Optional[float] = None
+    is_liked: bool = False
+    has_feedback: bool = False
     created_at: datetime
 
 
