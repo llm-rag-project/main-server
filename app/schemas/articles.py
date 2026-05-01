@@ -82,7 +82,6 @@ class ArticleDetailResponse(BaseModel):
     summary: Optional[str] = None
     content: Optional[str] = None
     url: str
-    original_url: Optional[str] = None
     source: Optional[str] = None
     language: str
     published_at: Optional[datetime] = None
