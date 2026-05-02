@@ -95,19 +95,18 @@ class ChatService:
         dify_result = await self.dify_service.send_chat_message(
             user_id=user_id,
             message=payload.message,
-            conversation_id=payload.conversation_id or "",
+            conversation_id=payload.conversation_id or chat.external_conversation_id or "",
             article_id=article_id,
         )
 
-       
-        new_conversation_id = data.get("conversation_id")
-        answer = data.get("answer")
+        new_conversation_id = dify_result.get("conversation_id")
+        answer = dify_result.get("answer")
         created_at = None
 
         if not answer:
             raise build_error(
                 ErrorCode.UPSTREAM_ERROR,
-                "LLM service temporarily unavailable",
+                f"LLM 응답에 answer가 없습니다. dify_result={dify_result}",
             )
 
         await self.repository.update_chat_conversation_and_last_message(
@@ -122,6 +121,8 @@ class ChatService:
             conversation_id=new_conversation_id,
             created_at=created_at,
         )
+        
+    
 
     async def create_chat(
         self,
