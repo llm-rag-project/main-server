@@ -152,7 +152,14 @@ class DifyService:
                         first = parsed["기사 목록"][0]
                         return {
                             "article_id": first.get("article_id") or first.get("기사 id") or article_id,
-                            "summary": first.get("summary") or first.get("요약문") or first.get("요약") or "",
+                            "summary": (
+                                first.get("summary")
+                                or first.get("summary_text")
+                                or first.get("요약본")
+                                or first.get("요약문")
+                                or first.get("요약")
+                                or ""
+                            ),
                         }
 
                     if "summary" in parsed:
