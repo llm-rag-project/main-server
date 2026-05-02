@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from app.core.errors import ErrorCode, build_error
 from app.repositories.chat_repository import ChatRepository
 from app.services.dify_service import DifyService
@@ -101,7 +102,7 @@ class ChatService:
 
         new_conversation_id = dify_result.get("conversation_id")
         answer = dify_result.get("answer")
-        created_at = None
+        created_at = datetime.now(timezone.utc)
 
         if not answer:
             raise build_error(
