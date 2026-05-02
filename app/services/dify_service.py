@@ -36,19 +36,22 @@ class DifyService:
         }
 
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(url, headers=headers, json=payload)
+            try:
+                response = await client.post(url, headers=headers, json=payload)
+            except httpx.TimeoutException as e:
+                raise RuntimeError(f"DIFY_TIMEOUT: {e}") from e
+            except httpx.HTTPError as e:
+                raise RuntimeError(f"DIFY_CONNECTION_ERROR: {e}") from e
 
-        if response.status_code >= 500:
-            raise RuntimeError("UPSTREAM_ERROR")
+        try:
+            detail = response.json()
+        except Exception:
+            detail = response.text
 
         if response.status_code >= 400:
-            try:
-                detail = response.json()
-            except Exception:
-                detail = response.text
-            raise RuntimeError(f"DIFY_ERROR: {detail}")
+            raise RuntimeError(f"DIFY_ERROR status={response.status_code}, detail={detail}")
 
-        return response.json()
+        return detail
 
     async def send_chat_message(
         self,
