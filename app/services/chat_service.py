@@ -99,7 +99,7 @@ class ChatService:
             article_id=article_id,
         )
 
-        data = dify_result.get("data") or {}
+       
         new_conversation_id = data.get("conversation_id")
         answer = data.get("answer")
         created_at = None
