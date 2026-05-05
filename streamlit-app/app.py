@@ -2,6 +2,9 @@ import os
 
 import streamlit as st
 from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv(Path(__file__).parent / ".env", override=False)
 
 from components.article_actions import render_article_action_buttons
 from components.article_list import render_article_list
@@ -11,7 +14,7 @@ from components.sidebar import LOGIN_DISABLED, render_sidebar
 from components.summary_cards import render_summary_cards
 from utils.session import init_state
 
-load_dotenv()
+
 
 APP_TITLE = os.getenv("APP_TITLE", "AI Agent 기반 기사 모니터링")
 
