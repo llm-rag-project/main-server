@@ -11,15 +11,21 @@ services:
       - .env
 
   streamlit:
-    build: .
-    container_name: streamlit-app
-    working_dir: /code/streamlit-app
-    command: streamlit run app.py --server.address=0.0.0.0 --server.port=8501
-    ports:
-      - "8502:8501"
-    volumes:
-      - .:/code
-    env_file:
-      - ./streamlit-app/.env
-    depends_on:
-      - fastapi
+  build: .
+  container_name: streamlit-app
+  working_dir: /code/streamlit-app
+  command: >
+    streamlit run app.py
+    --server.address=0.0.0.0
+    --server.port=8501
+    --server.headless=true
+    --server.enableCORS=false
+    --server.enableXsrfProtection=false
+  ports:
+    - "8502:8501"
+  volumes:
+    - .:/code
+  env_file:
+    - ./streamlit-app/.env
+  depends_on:
+    - fastapi
