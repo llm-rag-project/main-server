@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
 
-    streamlit:
+  streamlit:
       build: .
       container_name: streamlit-app
       working_dir: /code/streamlit-app
