@@ -15,7 +15,7 @@ services:
   container_name: streamlit-app
   working_dir: /code/streamlit-app
   command: >
-    streamlit run app.py
+    streamlit run test_app.py
     --server.address=0.0.0.0
     --server.port=8501
     --server.headless=true
