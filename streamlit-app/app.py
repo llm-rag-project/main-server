@@ -1,5 +1,4 @@
 import os
-
 import streamlit as st
 from dotenv import load_dotenv
 from pathlib import Path
@@ -9,7 +8,6 @@ load_dotenv(Path(__file__).parent / ".env", override=False)
 from components.article_actions import render_article_action_buttons
 from components.article_list import render_article_list
 from components.chat_box import render_chat_box
-from components.chat_list import render_chat_list
 from components.sidebar import LOGIN_DISABLED, render_sidebar
 from components.summary_cards import render_summary_cards
 from components.stats_chart import render_stats_charts
@@ -32,7 +30,7 @@ def render_header():
 
 
 def main():
-    render_sidebar()
+    render_sidebar()  # ✅ 채팅 세션도 사이드바 안에 포함됨
     render_header()
 
     if not LOGIN_DISABLED and not st.session_state.get("is_logged_in"):
@@ -47,7 +45,6 @@ def main():
     render_summary_cards()
     st.markdown("---")
 
-    # ✅ 채팅을 별도 탭으로 분리 → columns 중첩 문제 완전 해결
     tab_articles, tab_chat, tab_stats = st.tabs(["📰 기사 목록", "💬 AI 채팅", "📊 통계 그래프"])
 
     with tab_articles:
@@ -56,9 +53,7 @@ def main():
         render_article_list()
 
     with tab_chat:
-        render_chat_list()
-        st.markdown("---")
-        render_chat_box()
+        render_chat_box()  # ✅ chat_list 제거, chat_box만 남김
 
     with tab_stats:
         render_stats_charts()

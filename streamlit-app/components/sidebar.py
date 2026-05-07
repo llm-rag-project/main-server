@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 import api.keywords
+from api.chat_rooms import create_chat, delete_chat, get_chat_detail, get_chat_list
 from components.login_box import render_login_box
 from utils.session import reset_chat, set_selected_keyword
 
@@ -12,12 +13,97 @@ load_dotenv(ENV_PATH)
 LOGIN_DISABLED = os.getenv("LOGIN_DISABLED", "false").lower() == "true"
 
 
+def _unwrap(result):
+    if not isinstance(result, dict):
+        raise ValueError(f"응답 형식 오류: {type(result)}")
+    if "success" in result:
+        if not result.get("success", False):
+            error = result.get("error")
+            message = error.get("message") if isinstance(error, dict) else str(error)
+            raise ValueError(message or "요청 실패")
+        return result.get("data", {})
+    return result
+
+
+def render_chat_session_sidebar():
+    st.sidebar.divider()
+    st.sidebar.subheader("💬 채팅 세션")
+
+    # 새 세션 만들기
+    with st.sidebar.expander("새 세션 만들기", expanded=False):
+        with st.sidebar.form("create_chat_form_sidebar", clear_on_submit=True):
+            new_title = st.text_input("세션 제목", key="sidebar_chat_title_input")
+            submitted = st.form_submit_button("생성", use_container_width=True)
+
+        if submitted:
+            try:
+                title = (new_title or "").strip()
+                if not title:
+                    st.sidebar.warning("제목을 입력하세요.")
+                else:
+                    result = create_chat(title=title)
+                    data = _unwrap(result)
+                    created_id = data.get("id")
+                    if not created_id:
+                        raise ValueError(f"id 없음: {data}")
+                    st.session_state["selected_chat_id"] = created_id
+                    st.session_state["chat_conversation_id"] = data.get("external_conversation_id") or ""
+                    st.session_state["chat_messages"] = []
+                    st.sidebar.success("세션 생성 완료!")
+                    st.rerun()
+            except Exception as e:
+                st.sidebar.error(f"생성 실패: {e}")
+
+    # 세션 목록
+    try:
+        result = get_chat_list(page=1, size=50)
+        data = _unwrap(result)
+        items = data.get("items", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+
+        if not items:
+            st.sidebar.caption("채팅 세션이 없습니다.")
+        else:
+            for chat in items:
+                if not isinstance(chat, dict):
+                    continue
+                chat_id = chat.get("id")
+                title = chat.get("title", f"세션 {chat_id}")
+                is_selected = st.session_state.get("selected_chat_id") == chat_id
+                label = f"✅ {title}" if is_selected else title
+
+                if st.sidebar.button(label, key=f"sb_chat_{chat_id}", use_container_width=True):
+                    try:
+                        detail = _unwrap(get_chat_detail(chat_id))
+                        st.session_state["selected_chat_id"] = detail.get("id")
+                        st.session_state["chat_conversation_id"] = detail.get("external_conversation_id") or ""
+                        st.session_state["chat_messages"] = []
+                        last_msg = chat.get("last_message")
+                        if last_msg:
+                            st.session_state["chat_messages"].append({"role": "assistant", "content": last_msg})
+                        st.rerun()
+                    except Exception as e:
+                        st.sidebar.error(f"선택 실패: {e}")
+
+                if st.sidebar.button("🗑️", key=f"sb_del_{chat_id}", use_container_width=True):
+                    try:
+                        _unwrap(delete_chat(chat_id))
+                        if st.session_state.get("selected_chat_id") == chat_id:
+                            st.session_state["selected_chat_id"] = None
+                            st.session_state["chat_conversation_id"] = ""
+                            st.session_state["chat_messages"] = []
+                        st.rerun()
+                    except Exception as e:
+                        st.sidebar.error(f"삭제 실패: {e}")
+
+    except Exception as e:
+        st.sidebar.error(f"세션 목록 오류: {e}")
+
+
 def render_sidebar():
     st.sidebar.title("키워드 관리")
 
     if not LOGIN_DISABLED:
         render_login_box()
-
         if not st.session_state.get("is_logged_in"):
             st.sidebar.info("로그인 후 키워드를 조회할 수 있습니다.")
             return
@@ -47,10 +133,7 @@ def render_sidebar():
         is_active = kw.get("is_active", True)
 
         row1, row2 = st.sidebar.columns([4, 1])
-
-        label = keyword_name
-        if not is_active:
-            label += " (비활성)"
+        label = keyword_name if is_active else f"{keyword_name} (비활성)"
 
         if row1.button(label, key=f"kw_{keyword_id}", use_container_width=True):
             set_selected_keyword(keyword_id, keyword_name)
@@ -74,7 +157,6 @@ def render_sidebar():
             value=is_active,
             key=toggle_key,
         )
-
         if new_active != is_active:
             try:
                 api.keywords.update_keyword_active(keyword_id, new_active)
@@ -92,7 +174,7 @@ def render_sidebar():
         else:
             try:
                 with st.sidebar:
-                    with st.spinner("키워드 등록, 기사 크롤링, Dify 적재 요청 중..."):
+                    with st.spinner("키워드 등록, 기사 크롤링 요청 중..."):
                         result = api.keywords.create_keyword_and_crawl(new_keyword.strip())
 
                 created_keyword = result.get("keyword", {})
@@ -103,35 +185,15 @@ def render_sidebar():
                     set_selected_keyword(created_keyword_id, created_keyword_name)
                     reset_chat()
 
-                crawl_count = result.get("crawl_count")
-                uploaded_count = result.get("dify_uploaded_count")
-                failed_count = result.get("dify_failed_count")
-
-                st.sidebar.success("키워드 등록 및 크롤링 요청이 완료되었습니다.")
-
-                if crawl_count is not None:
-                    st.sidebar.caption(f"수집 기사 수: {crawl_count}")
-
-                if uploaded_count is not None:
-                    st.sidebar.caption(f"Dify 적재 성공: {uploaded_count}")
-
-                if failed_count is not None and failed_count > 0:
-                    st.sidebar.warning(f"Dify 적재 실패: {failed_count}건")
-
-                st.sidebar.info(
-                    "기사는 DB에 저장되고 Dify Knowledge에도 적재됩니다. "
-                    "다만 인덱싱이 끝나기 전까지는 AI 채팅 검색 결과에 바로 반영되지 않을 수 있습니다."
-                )
-
+                st.sidebar.success("키워드 등록 및 크롤링 요청 완료!")
                 st.rerun()
 
             except Exception as e:
                 st.sidebar.error(f"추가 실패: {e}")
 
-        st.sidebar.divider()
+    selected_name = st.session_state.get("selected_keyword_name")
+    if selected_name:
+        st.sidebar.caption(f"현재 선택: {selected_name}")
 
-        selected_name = st.session_state.get("selected_keyword_name")
-        if selected_name:
-            st.sidebar.caption(f"현재 선택: {selected_name}")
-        else:
-            st.sidebar.caption("선택된 키워드 없음")
+    # ✅ 채팅 세션을 사이드바 하단에 배치
+    render_chat_session_sidebar()
