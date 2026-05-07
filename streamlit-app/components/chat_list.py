@@ -3,11 +3,6 @@ from api.chat_rooms import create_chat, delete_chat, get_chat_detail, get_chat_l
 
 
 def _unwrap_response(result):
-    """
-    응답 형태를 둘 다 지원:
-    1) 래핑 응답: {"success": true, "data": {...}, "error": null}
-    2) 직접 응답: {...}
-    """
     if not isinstance(result, dict):
         raise ValueError(f"응답 형식이 dict가 아닙니다: {type(result)}")
 
@@ -20,7 +15,6 @@ def _unwrap_response(result):
             else:
                 message = str(error) if error is not None else "요청에 실패했습니다."
             raise ValueError(message)
-
         return result.get("data", {})
 
     return result
@@ -93,50 +87,48 @@ def render_chat_list():
             title = chat.get("title", f"채팅세션 {chat_id}")
             last_message = chat.get("last_message") or ""
             is_selected = st.session_state.get("selected_chat_id") == chat_id
-
             label = f"✅ {title}" if is_selected else title
 
-            col1, col2 = st.columns([5, 1])
+            # ✅ columns 제거 — 버튼을 위아래로 배치
+            if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
+                try:
+                    detail_result = get_chat_detail(chat_id)
+                    detail_data = _unwrap_response(detail_result)
 
-            with col1:
-                if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
-                    try:
-                        detail_result = get_chat_detail(chat_id)
-                        detail_data = _unwrap_response(detail_result)
+                    st.session_state["selected_chat_id"] = detail_data.get("id")
+                    st.session_state["chat_conversation_id"] = (
+                        detail_data.get("external_conversation_id") or ""
+                    )
+                    st.session_state["chat_messages"] = []
 
-                        st.session_state["selected_chat_id"] = detail_data.get("id")
-                        st.session_state["chat_conversation_id"] = (
-                            detail_data.get("external_conversation_id") or ""
-                        )
+                    if last_message:
+                        st.session_state["chat_messages"].append({
+                            "role": "assistant",
+                            "content": last_message,
+                        })
+
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"세션 선택 실패: {e}")
+
+            if st.button("🗑️ 삭제", key=f"delete_chat_{chat_id}", use_container_width=True):
+                try:
+                    delete_result = delete_chat(chat_id)
+                    _unwrap_response(delete_result)
+
+                    if st.session_state.get("selected_chat_id") == chat_id:
+                        st.session_state["selected_chat_id"] = None
+                        st.session_state["chat_conversation_id"] = ""
                         st.session_state["chat_messages"] = []
 
-                        if last_message:
-                            st.session_state["chat_messages"].append({
-                                "role": "assistant",
-                                "content": last_message,
-                            })
+                    st.success("채팅세션이 삭제되었습니다.")
+                    st.rerun()
 
-                        st.rerun()
+                except Exception as e:
+                    st.error(f"세션 삭제 실패: {e}")
 
-                    except Exception as e:
-                        st.error(f"세션 선택 실패: {e}")
-
-            with col2:
-                if st.button("삭제", key=f"delete_chat_{chat_id}", use_container_width=True):
-                    try:
-                        result = delete_chat(chat_id)
-                        _unwrap_response(result)
-
-                        if st.session_state.get("selected_chat_id") == chat_id:
-                            st.session_state["selected_chat_id"] = None
-                            st.session_state["chat_conversation_id"] = ""
-                            st.session_state["chat_messages"] = []
-
-                        st.success("채팅세션이 삭제되었습니다.")
-                        st.rerun()
-
-                    except Exception as e:
-                        st.error(f"세션 삭제 실패: {e}")
+            st.markdown("---")
 
     except Exception as e:
         st.error(f"채팅 세션 목록을 불러오지 못했습니다: {e}")
