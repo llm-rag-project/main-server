@@ -1,11 +1,11 @@
+import logging
+
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.transnews_client import TransNewsClient
-from app.services.crawl_run_service import CrawlRunService
-
 from app.core.deps import get_current_user_or_dev_user, get_db
 from app.core.response import success_response
+from app.core.transnews_client import TransNewsClient
 from app.models.user import User
 from app.schemas.keyword import (
     BatchCreateKeywordRequest,
@@ -21,7 +21,10 @@ from app.services.keyword_service import (
     remove_keyword,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/keywords", tags=["keywords"])
+
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_keyword_api(
@@ -43,8 +46,8 @@ async def create_keyword_api(
         keyword_ids=[data.id],
         force=False,
     )
-    print("created keyword id =", data.id)
-    print("crawl_result =", crawl_result)
+    logger.debug("created keyword id = %s", data.id)
+    logger.debug("crawl_result = %s", crawl_result)
 
     return success_response(
         request,

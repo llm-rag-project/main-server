@@ -85,17 +85,18 @@ def _request(
     return handle_response(response)
 
 
-def api_get(path: str, params: Optional[Dict[str, Any]] = None, with_auth: bool = False) -> Any:
+# with_auth 기본값 False → True 로 통일
+def api_get(path: str, params: Optional[Dict[str, Any]] = None, with_auth: bool = True) -> Any:
     return _request("GET", BASE_URL, path, params=params, with_auth=with_auth)
 
 
-def api_post(path: str, data: Optional[Dict[str, Any]] = None, with_auth: bool = False) -> Any:
+def api_post(path: str, data: Optional[Dict[str, Any]] = None, with_auth: bool = True) -> Any:
     return _request("POST", BASE_URL, path, data=data, with_auth=with_auth)
 
 
-def api_patch(path: str, data: Optional[Dict[str, Any]] = None, with_auth: bool = False) -> Any:
+def api_patch(path: str, data: Optional[Dict[str, Any]] = None, with_auth: bool = True) -> Any:
     return _request("PATCH", BASE_URL, path, data=data, with_auth=with_auth)
 
 
-def api_delete(path: str, with_auth: bool = False) -> Any:
+def api_delete(path: str, with_auth: bool = True) -> Any:
     return _request("DELETE", BASE_URL, path, with_auth=with_auth)

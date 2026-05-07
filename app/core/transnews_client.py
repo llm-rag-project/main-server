@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import httpx
@@ -5,6 +6,8 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.schemas.articles import NewsStatsResponse, TransNewsSearchResponse
+
+logger = logging.getLogger(__name__)
 
 
 class TransNewsClientError(Exception):
@@ -60,7 +63,7 @@ class TransNewsClient:
 
     async def search_news(self, keyword: str) -> dict[str, Any]:
         result = await self._get("/news", params={"keyword": keyword})
-        print("[DEBUG] TRANSNEWS RAW RESPONSE = ", result)
+        logger.debug("TRANSNEWS RAW RESPONSE = %s", result)
 
         try:
             parsed = TransNewsSearchResponse.model_validate(result)
@@ -70,7 +73,7 @@ class TransNewsClient:
             ) from e
 
         return parsed.model_dump()
-    
+
     async def get_news_stats(self, keyword: str) -> dict[str, Any]:
         result = await self._get("/news/stats", params={"keyword": keyword})
         try:
