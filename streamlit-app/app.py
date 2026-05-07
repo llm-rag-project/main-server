@@ -76,14 +76,10 @@ def main():
 
         with right:
             st.markdown("## AI 채팅")
-            chat_left, chat_right = st.columns([1, 2])
-
-            with chat_left:
-                render_chat_list()
-
-            with chat_right:
-                render_chat_box()
-
+            render_chat_list()
+            st.markdown("---")
+            render_chat_box()
+            
     with tab_stats:
         render_stats_charts()
 
