@@ -12,9 +12,8 @@ from components.chat_box import render_chat_box
 from components.chat_list import render_chat_list
 from components.sidebar import LOGIN_DISABLED, render_sidebar
 from components.summary_cards import render_summary_cards
-from utils.session import init_state
 from components.stats_chart import render_stats_charts
-
+from utils.session import init_state
 
 APP_TITLE = os.getenv("APP_TITLE", "AI Agent 기반 기사 모니터링")
 
@@ -45,25 +44,9 @@ def main():
         st.warning("왼쪽 사이드바에서 키워드를 선택하세요.")
         st.stop()
 
-    # 상단 요약 카드
-    render_summary_cards()
-    
-    render_sidebar()
-    render_header()
-
-    if not LOGIN_DISABLED and not st.session_state.get("is_logged_in"):
-        st.warning("왼쪽 사이드바에서 로그인하세요.")
-        st.stop()
-
-    selected_keyword_id = st.session_state.get("selected_keyword_id")
-    if not selected_keyword_id:
-        st.warning("왼쪽 사이드바에서 키워드를 선택하세요.")
-        st.stop()
-
     render_summary_cards()
     st.markdown("---")
 
-    # ✅ 탭으로 분리
     tab_articles, tab_stats = st.tabs(["📰 기사 목록", "📊 통계 그래프"])
 
     with tab_articles:
@@ -79,7 +62,7 @@ def main():
             render_chat_list()
             st.markdown("---")
             render_chat_box()
-            
+
     with tab_stats:
         render_stats_charts()
 
