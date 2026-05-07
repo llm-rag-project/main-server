@@ -14,7 +14,6 @@ def render_article_action_buttons():
     selected_keyword_id = st.session_state.get("selected_keyword_id")
 
     article_ids = []
-
     try:
         articles, _ = get_articles(
             keyword_id=selected_keyword_id,
@@ -34,37 +33,31 @@ def render_article_action_buttons():
 
     scoring_disabled = (selected_keyword_id is None) or (len(article_ids) == 0)
 
+    msg_placeholder = st.empty()
+
     if st.button(
         "선택 키워드 기사 중요도 계산",
         use_container_width=True,
         disabled=scoring_disabled,
     ):
-        try:
-            st.session_state["article_scoring_result"] = None
+        st.session_state["article_scoring_result"] = None
+        msg_placeholder.empty()
 
+        try:
             with st.spinner("중요도 계산 중..."):
                 result = request_articles_scoring(
                     keyword_id=selected_keyword_id,
                     article_ids=article_ids,
                 )
 
-            if result.get("success") is False:
-                st.error(
-                    f"중요도 계산 실패: {extract_error_message(result, '중요도 계산 실패')}"
-                )
-                return
-
             scoring_items = extract_scoring_result(result)
             st.session_state["article_scoring_result"] = scoring_items
 
-            if not scoring_items:
-                # st.warning("반환된 중요도 항목이 없습니다.")
-                return
-
-            st.success("중요도 계산이 완료되었습니다.")
+            if scoring_items:
+                msg_placeholder.success("중요도 계산이 완료되었습니다.")
 
         except Exception as e:
-            st.error(f"중요도 계산 실패: {e}")
+            msg_placeholder.error(f"중요도 계산 실패: {e}")
 
     render_scoring_result()
 
