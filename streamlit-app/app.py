@@ -47,21 +47,18 @@ def main():
     render_summary_cards()
     st.markdown("---")
 
-    tab_articles, tab_stats = st.tabs(["📰 기사 목록", "📊 통계 그래프"])
+    # ✅ 채팅을 별도 탭으로 분리 → columns 중첩 문제 완전 해결
+    tab_articles, tab_chat, tab_stats = st.tabs(["📰 기사 목록", "💬 AI 채팅", "📊 통계 그래프"])
 
     with tab_articles:
-        left, right = st.columns([3, 2])
+        render_article_action_buttons()
+        st.markdown("---")
+        render_article_list()
 
-        with left:
-            render_article_action_buttons()
-            st.markdown("---")
-            render_article_list()
-
-        with right:
-            st.markdown("## AI 채팅")
-            render_chat_list()
-            st.markdown("---")
-            render_chat_box()
+    with tab_chat:
+        render_chat_list()
+        st.markdown("---")
+        render_chat_box()
 
     with tab_stats:
         render_stats_charts()
