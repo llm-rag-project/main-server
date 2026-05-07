@@ -15,14 +15,14 @@ services:
       container_name: streamlit-app
       working_dir: /code/streamlit-app
       command: >
-        streamlit run test_app.py
+        streamlit run app.py
         --server.address=0.0.0.0
         --server.port=8501
         --server.headless=true
         --server.enableCORS=false
         --server.enableXsrfProtection=false
       ports:
-        - "8502:8501"
+        - "8501:8501"
       volumes:
         - .:/code
       env_file:
