@@ -128,3 +128,9 @@ class ArticleFeedbackResponse(BaseModel):
     action: str
     created: bool
     updated_at: datetime
+    
+class NewsStatsResponse(BaseModel):
+    keyword: str
+    total_count: int
+    min_count: int
+    max_count: int

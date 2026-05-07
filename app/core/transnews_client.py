@@ -4,7 +4,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.articles import TransNewsSearchResponse
+from app.schemas.articles import NewsStatsResponse, TransNewsSearchResponse
 
 
 class TransNewsClientError(Exception):
@@ -69,6 +69,16 @@ class TransNewsClient:
                 f"Invalid search_news response schema: {e}"
             ) from e
 
+        return parsed.model_dump()
+    
+    async def get_news_stats(self, keyword: str) -> dict[str, Any]:
+        result = await self._get("/news/stats", params={"keyword": keyword})
+        try:
+            parsed = NewsStatsResponse.model_validate(result.get("data", result))
+        except ValidationError as e:
+            raise TransNewsClientError(
+                f"Invalid get_news_stats response schema: {e}"
+            ) from e
         return parsed.model_dump()
 
     async def crawl_article(self, url: str) -> dict[str, Any]:
