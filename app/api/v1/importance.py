@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
 from app.core.response import success_response
 from app.models.user import User
-from app.repositories.article_repository import ArticleRepository
-from app.repositories.importance_repository import ImportanceRepository
 from app.schemas.importance import ImportanceListQuery, ImportanceRunRequest
 from app.services.importance_service import ImportanceService
 
@@ -58,5 +56,13 @@ async def run_importance(
         user_id=current_user.id,
         article_ids=payload.article_ids,
     )
-    await db.commit()
-    return success_response(request=request, data=result)
+
+    # ✅ 핵심 수정: success=False면 HTTP 502로 올려서 Streamlit이 에러로 인식하게
+    if not result.get("success"):
+        error = result.get("error", {})
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=error.get("message", "중요도 계산에 실패했습니다."),
+        )
+
+    return success_response(request=request, data=result.get("data"))
