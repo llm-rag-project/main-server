@@ -50,7 +50,11 @@ def render_article_action_buttons():
 
             scoring_items = extract_scoring_result(result)
             st.session_state["article_scoring_result"] = scoring_items
-            st.session_state["scoring_msg"] = ("success", "중요도 계산이 완료되었습니다.")
+
+            if scoring_items:
+                st.session_state["scoring_msg"] = ("success", f"중요도 계산이 완료되었습니다. ({len(scoring_items)}건)")
+            else:
+                st.session_state["scoring_msg"] = ("error", "중요도 계산 결과가 없습니다. Dify 워크플로우 로그를 확인하세요.")
 
         except Exception as e:
             err_str = str(e)
