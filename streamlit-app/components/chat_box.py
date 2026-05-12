@@ -49,7 +49,11 @@ def render_chat_box():
                         st.session_state["chat_conversation_id"] = new_conversation_id
 
                 except Exception as e:
-                    answer = f"채팅 요청 실패: {e}"
+                    err_str = str(e)
+                    if any(k in err_str for k in ("503", "UNAVAILABLE", "high demand", "DIFY_ERROR", "DIFY_TIMEOUT")):
+                        answer = "AI 모델 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해 주세요."
+                    else:
+                        answer = f"채팅 요청 실패: {e}"
 
                 st.write(answer)
 
