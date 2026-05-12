@@ -1,13 +1,14 @@
 from datetime import datetime, time, timezone
 from typing import Any, Dict, List, Tuple
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.models.importance_score import ImportanceScore
 from app.models.keyword import Keyword
+from app.models.scoring_feedback import ScoringFeedback
 from app.schemas.importance import ImportanceListQuery
 
 
@@ -165,86 +166,40 @@ class ImportanceRepository:
         row = result.mappings().first()
         return dict(row) if row else None
 
-    async def save_user_score(
+    async def save_scoring_feedback(
         self,
         user_id: int,
         article_id: int,
-        score: float,
-        reason: str | None,
-    ) -> ImportanceScore:
-        now = datetime.now(timezone.utc)
-
-        await self.db.execute(
-            update(ImportanceScore)
-            .where(ImportanceScore.user_id == user_id)
-            .where(ImportanceScore.article_id == article_id)
-            .where(ImportanceScore.is_current.is_(True))
-            .values(is_current=False)
-        )
-
-        row = ImportanceScore(
-            article_id=article_id,
+        original_score: int,
+        user_score: int,
+        reason: str,
+    ) -> ScoringFeedback:
+        row = ScoringFeedback(
             user_id=user_id,
-            score=score,
+            article_id=article_id,
+            original_score=original_score,
+            user_score=user_score,
             reason=reason,
-            status="COMPLETED",
-            scored_at=now,
-            engine="user",
-            version=1,
-            is_current=True,
         )
         self.db.add(row)
         await self.db.flush()
         return row
 
-    async def get_paired_scores(self, user_id: int) -> list[dict[str, Any]]:
-        """Return rows where the user has both a manual score and a prior AI score."""
-        user_scores_stmt = (
-            select(ImportanceScore.article_id, ImportanceScore.score.label("user_score"))
-            .where(ImportanceScore.user_id == user_id)
-            .where(ImportanceScore.engine == "user")
+    async def get_feedback_history(
+        self,
+        user_id: int,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        stmt = (
+            select(
+                ScoringFeedback.article_id,
+                ScoringFeedback.original_score,
+                ScoringFeedback.user_score,
+                ScoringFeedback.reason,
+            )
+            .where(ScoringFeedback.user_id == user_id)
+            .order_by(ScoringFeedback.created_at.desc())
+            .limit(limit)
         )
-        result = await self.db.execute(user_scores_stmt)
-        user_rows = result.mappings().all()
-
-        if not user_rows:
-            return []
-
-        article_ids = [r["article_id"] for r in user_rows]
-
-        ai_scores_stmt = (
-            select(ImportanceScore.article_id, ImportanceScore.score.label("ai_score"))
-            .where(ImportanceScore.user_id == user_id)
-            .where(ImportanceScore.engine != "user")
-            .where(ImportanceScore.article_id.in_(article_ids))
-            .order_by(ImportanceScore.article_id, ImportanceScore.id.desc())
-        )
-        ai_result = await self.db.execute(ai_scores_stmt)
-        ai_rows = ai_result.mappings().all()
-
-        ai_by_article = {}
-        for row in ai_rows:
-            if row["article_id"] not in ai_by_article:
-                ai_by_article[row["article_id"]] = row["ai_score"]
-
-        pairs = []
-        for row in user_rows:
-            aid = row["article_id"]
-            if aid in ai_by_article:
-                pairs.append({
-                    "article_id": aid,
-                    "user_score": row["user_score"],
-                    "ai_score": ai_by_article[aid],
-                })
-
-        return pairs
-
-    async def get_user_scored_article_ids(self, user_id: int) -> set[int]:
-        """Article IDs where the current score was set manually by the user."""
-        result = await self.db.execute(
-            select(ImportanceScore.article_id)
-            .where(ImportanceScore.user_id == user_id)
-            .where(ImportanceScore.engine == "user")
-            .where(ImportanceScore.is_current.is_(True))
-        )
-        return {row[0] for row in result.all()}
+        result = await self.db.execute(stmt)
+        return [dict(row) for row in result.mappings().all()]

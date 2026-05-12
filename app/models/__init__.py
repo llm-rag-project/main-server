@@ -8,6 +8,7 @@ from app.models.importance_score import ImportanceScore
 from app.models.job import Job
 from app.models.keyword import Keyword
 from app.models.report import Report
+from app.models.scoring_feedback import ScoringFeedback
 from app.models.summary import Summary
 from app.models.translation import Translation
 from app.models.user import User
@@ -24,6 +25,7 @@ __all__ = [
     "Translation",
     "Feedback",
     "ImportanceScore",
+    "ScoringFeedback",
     "Job",
     "CreditWallet",
     "CreditTransaction",

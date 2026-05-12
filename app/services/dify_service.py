@@ -191,19 +191,16 @@ class DifyService:
         *,
         user_id: int,
         articles: str,
-        user_preference: str | None = None,
+        feedback_history: str = "",
     ) -> dict:
-        inputs: dict = {
-            "user_id": user_id,
-            "articles": articles,
-        }
-        if user_preference:
-            inputs["user_preference"] = user_preference
-
         payload = {
-            "inputs": inputs,
+            "inputs": {
+                "user_id": user_id,
+                "articles": articles,
+                "feedback_history": feedback_history,
+            },
             "response_mode": "blocking",
-            "user": f"user-{user_id}",
+            "user": str(user_id),
         }
 
         data = await self._post("/workflows/run", self.scoring_workflow_api_key, payload)

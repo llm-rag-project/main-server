@@ -6,7 +6,7 @@ from api.articles import (
     get_article_importance,
     get_articles,
 )
-from api.importance import set_user_score
+from api.importance import submit_scoring_feedback
 from utils.ai_response_parser import extract_summary_text
 
 
@@ -102,31 +102,34 @@ def render_article_list():
                 st.markdown("##### AI 중요도 상세")
                 st.json(importance_data)
 
-            # ── 사용자 개인 중요도 설정 ───────────────────────────────
-            with st.expander("✏️ 내 중요도 직접 설정"):
-                score_key = f"my_score_input_{article_id}"
-                reason_key = f"my_reason_input_{article_id}"
+            # ── 사용자 피드백 ───────────────────────────────
+            with st.expander("✏️ AI 점수 피드백 남기기"):
+                original_score = int(importance) if isinstance(importance, (int, float)) else 50
 
                 user_score = st.slider(
-                    "중요도 점수 (1~100)",
+                    "내 점수 (1~100)",
                     min_value=1,
                     max_value=100,
-                    value=50,
-                    key=score_key,
+                    value=original_score,
+                    key=f"my_score_input_{article_id}",
                 )
                 user_reason = st.text_input(
-                    "사유 (선택)",
-                    key=reason_key,
+                    "사유 (필수)",
+                    key=f"my_reason_input_{article_id}",
                     placeholder="예: 업계에 직접 영향을 미치는 정책 기사",
                 )
 
                 if st.button("저장", key=f"save_my_score_{article_id}"):
-                    try:
-                        set_user_score(
-                            article_id=article_id,
-                            score=float(user_score),
-                            reason=user_reason.strip() or None,
-                        )
-                        st.success(f"중요도 {user_score}점으로 저장되었습니다.")
-                    except Exception as e:
-                        st.error(f"저장 실패: {e}")
+                    if not user_reason.strip():
+                        st.warning("사유를 입력해 주세요.")
+                    else:
+                        try:
+                            submit_scoring_feedback(
+                                article_id=article_id,
+                                original_score=original_score,
+                                user_score=user_score,
+                                reason=user_reason.strip(),
+                            )
+                            st.success(f"피드백이 저장되었습니다. (내 점수: {user_score}점)")
+                        except Exception as e:
+                            st.error(f"저장 실패: {e}")

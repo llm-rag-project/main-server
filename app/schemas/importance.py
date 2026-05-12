@@ -85,20 +85,17 @@ class ImportanceRunResponse(BaseModel):
     items: List[ImportanceRunItem]
 
 
-class UserScoreRequest(BaseModel):
+class ScoringFeedbackRequest(BaseModel):
     article_id: int
-    score: float = Field(ge=1, le=100)
-    reason: Optional[str] = None
+    original_score: int = Field(ge=1, le=100)
+    user_score: int = Field(ge=1, le=100)
+    reason: str = Field(min_length=1)
 
 
-class UserScoreResponse(BaseModel):
+class ScoringFeedbackResponse(BaseModel):
+    id: int
     article_id: int
-    score: float
-    reason: Optional[str]
-    scored_at: datetime
-
-
-class UserPreferenceResponse(BaseModel):
-    pattern_summary: str
-    sample_count: int
-    avg_delta: Optional[float]
+    original_score: int
+    user_score: int
+    reason: str
+    created_at: datetime

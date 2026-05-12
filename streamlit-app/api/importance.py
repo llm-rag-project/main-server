@@ -1,13 +1,15 @@
-from api.client import api_get, api_post
+from api.client import api_post
 
 
-def set_user_score(article_id: int, score: float, reason: str | None = None):
-    return api_post("/importance/my-score", {
+def submit_scoring_feedback(
+    article_id: int,
+    original_score: int,
+    user_score: int,
+    reason: str,
+):
+    return api_post("/importance/feedback", {
         "article_id": article_id,
-        "score": score,
+        "original_score": original_score,
+        "user_score": user_score,
         "reason": reason,
     })
-
-
-def get_user_preference():
-    return api_get("/importance/my-preference")
