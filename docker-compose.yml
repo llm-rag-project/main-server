@@ -21,6 +21,7 @@ services:
         --server.headless=true
         --server.enableCORS=false
         --server.enableXsrfProtection=false
+        --logger.level=debug
       ports:
         - "8501:8501"
       volumes:
