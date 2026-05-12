@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.models.keyword import Keyword
@@ -36,7 +37,7 @@ class FeedbackRepository:
         accessible_ids = {row[0] for row in result.all()}
 
         if len(accessible_ids) != len(set(article_ids)):
-            raise ValueError("NOT_FOUND")
+            raise build_error(ErrorCode.NOT_FOUND, "article not found or not accessible")
 
     async def save_ranking_feedback(
         self,

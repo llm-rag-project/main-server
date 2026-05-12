@@ -1,29 +1,28 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_db, get_current_user_or_dev_user
+from app.core.deps import get_current_user_or_dev_user, get_db
 from app.schemas.ai import (
     AIChatRequest,
     AIChatResponse,
-    SummaryRequest,
-    SummaryResponse,
     ImportanceBatchRequest,
     ImportanceBatchResponse,
     ImportanceItemResponse,
+    SummaryRequest,
+    SummaryResponse,
 )
 from app.services.article_service import ArticleService
 from app.services.dify_service import DifyService
 from app.services.importance_service import ImportanceService
 from app.services.summary_service import SummaryService
 
-
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 
 def get_dify_service() -> DifyService:
     return DifyService.from_settings()
-
-
 
 
 @router.post("/chat", response_model=AIChatResponse)
@@ -38,10 +37,7 @@ async def chat(
     if request.article_id is not None:
         article = await article_service.get_article_by_id(request.article_id)
         if not article:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="기사를 찾을 수 없습니다.",
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="기사를 찾을 수 없습니다.")
 
     try:
         result = await dify_service.send_chat_message(
@@ -50,19 +46,12 @@ async def chat(
             article_id=request.article_id,
             conversation_id=request.conversation_id or "",
         )
-
-        result_data = result.get("data") or {}
-
         return AIChatResponse(
-            answer=result_data.get("answer", "응답이 없습니다."),
-            conversation_id=result_data.get("conversation_id"),
+            answer=result.get("answer", "응답이 없습니다."),
+            conversation_id=result.get("conversation_id"),
         )
-
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"채팅 호출 실패: {e}",
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"채팅 호출 실패: {e}")
 
 
 @router.post("/summary", response_model=SummaryResponse)
@@ -77,10 +66,7 @@ async def summarize_article(
 
     article = await article_service.get_article_by_id(request.article_id)
     if not article:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="기사를 찾을 수 없습니다.",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="기사를 찾을 수 없습니다.")
 
     try:
         result = await dify_service.run_summary_workflow(
@@ -91,7 +77,6 @@ async def summarize_article(
         )
 
         summary_text = result.get("summary")
-
         if not summary_text:
             raise ValueError("요약 결과를 찾을 수 없습니다.")
 
@@ -101,7 +86,6 @@ async def summarize_article(
             language="ko",
             model_name="dify-summary-workflow",
         )
-
         await db.commit()
         await db.refresh(saved)
 
@@ -111,15 +95,11 @@ async def summarize_article(
             language=saved.language,
             model_name=saved.model_name,
         )
-
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"요약 workflow 호출 실패: {e}",
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"요약 workflow 호출 실패: {e}")
 
 
 @router.post("/scoring", response_model=ImportanceBatchResponse)
@@ -133,32 +113,32 @@ async def score_articles_by_keyword(
     importance_service = ImportanceService(db)
 
     articles = await article_service.get_articles_by_keyword_id(request.keyword_id)
-
     if not articles:
-        return ImportanceBatchResponse(
-            keyword_id=request.keyword_id,
-            processed_count=0,
-            results=[],
-        )
+        return ImportanceBatchResponse(keyword_id=request.keyword_id, processed_count=0, results=[])
 
     try:
+        articles_payload = json.dumps(
+            [
+                {
+                    "article_id": article.id,
+                    "title": article.title or "",
+                    "content": article.content or "",
+                }
+                for article in articles
+            ],
+            ensure_ascii=False,
+        )
+
         result = await dify_service.run_importance_workflow(
             user_id=current_user.id,
             articles=articles_payload,
         )
 
         items = result.get("data", {}).get("items", [])
-
         if not items:
-            return ImportanceBatchResponse(
-                keyword_id=request.keyword_id,
-                processed_count=0,
-                results=[],
-            )
+            return ImportanceBatchResponse(keyword_id=request.keyword_id, processed_count=0, results=[])
 
         response_items: list[ImportanceItemResponse] = []
-
-        # 🔥 여러 개 결과 처리
         for item in items:
             article_id = item.get("article_id")
             score = item.get("score")
@@ -175,13 +155,8 @@ async def score_articles_by_keyword(
                 engine="dify-importance-workflow",
                 version=1,
             )
-
             response_items.append(
-                ImportanceItemResponse(
-                    article_id=saved.article_id,
-                    score=saved.score,
-                    reason=saved.reason,
-                )
+                ImportanceItemResponse(article_id=saved.article_id, score=saved.score, reason=saved.reason)
             )
 
         await db.commit()
@@ -191,10 +166,6 @@ async def score_articles_by_keyword(
             processed_count=len(response_items),
             results=response_items,
         )
-
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"중요도 workflow 호출 실패: {e}",
-        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"중요도 workflow 호출 실패: {e}")

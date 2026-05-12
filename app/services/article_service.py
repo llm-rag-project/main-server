@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.repositories.article_repository import ArticleRepository
@@ -22,7 +22,7 @@ class ArticleService:
     async def get_article_detail(self, user_id: int, article_id: int) -> ArticleDetailResponse:
         article = await self.article_repository.get_article_detail(user_id, article_id)
         if article is None:
-            raise ValueError("NOT_FOUND")
+            raise build_error(ErrorCode.NOT_FOUND, "article not found")
         return ArticleDetailResponse(**article)
 
     async def get_articles_by_keyword_id(self, keyword_id: int) -> list[Article]:
@@ -44,20 +44,18 @@ class ArticleService:
         self, user_id: int, article_id: int
     ) -> FeedbackResponse | None:
         if not await self.article_repository.article_exists(article_id):
-            raise ValueError("NOT_FOUND")
+            raise build_error(ErrorCode.NOT_FOUND, "article not found")
         if not await self.article_repository.has_article_access(user_id, article_id):
-            raise PermissionError("FORBIDDEN")
+            raise build_error(ErrorCode.FORBIDDEN, "access denied")
         row = await self.article_repository.get_my_feedback_by_article(user_id, article_id)
-        if row is None:
-            return None
-        return FeedbackResponse(**row)
+        return FeedbackResponse(**row) if row else None
 
     async def delete_my_feedback_by_article(
         self, user_id: int, article_id: int
     ) -> DeleteFeedbackResponse:
         if not await self.article_repository.article_exists(article_id):
-            raise ValueError("NOT_FOUND")
+            raise build_error(ErrorCode.NOT_FOUND, "article not found")
         if not await self.article_repository.has_article_access(user_id, article_id):
-            raise PermissionError("FORBIDDEN")
+            raise build_error(ErrorCode.FORBIDDEN, "access denied")
         row = await self.article_repository.delete_my_feedback_by_article(user_id, article_id)
         return DeleteFeedbackResponse(**row)

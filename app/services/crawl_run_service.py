@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode, build_error
 from app.core.transnews_client import TransNewsClient
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
@@ -66,7 +67,7 @@ class CrawlRunService:
     ) -> dict[str, Any]:
         keywords = await self._get_user_keywords(user_id=user_id, keyword_ids=keyword_ids)
         if not keywords:
-            raise ValueError("크롤링할 키워드가 없습니다.")
+            raise build_error(ErrorCode.VALIDATION_ERROR, "크롤링할 키워드가 없습니다.")
 
         crawl_run = CrawlRun(
             user_id=user_id,

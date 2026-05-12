@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode, build_error
 from app.models.importance_score import ImportanceScore
-from app.repositories.importance_repository import ImportanceRepository
 from app.repositories.article_repository import ArticleRepository
+from app.repositories.importance_repository import ImportanceRepository
 from app.services.dify_service import DifyService
 
 
@@ -79,7 +80,7 @@ class ImportanceService:
 
         return result
 
-    async def run_importance_scoring(self, user_id: int, article_ids: list[int]):
+    async def run_importance_scoring(self, user_id: int, article_ids: list[int]) -> dict:
         await self.article_repository.validate_articles_exist_and_accessible(
             user_id=user_id,
             article_ids=article_ids,
@@ -90,7 +91,6 @@ class ImportanceService:
             article_ids=article_ids,
         )
 
-        # Dify 명세에 맞게 articles를 JSON 직렬화된 문자열로 전달
         articles_payload = json.dumps(
             [
                 {
@@ -103,67 +103,47 @@ class ImportanceService:
             ensure_ascii=False,
         )
 
-        try:
-            dify_result = await self.dify_service.run_importance_workflow(
+        dify_result = await self.dify_service.run_importance_workflow(
+            user_id=user_id,
+            articles=articles_payload,
+        )
+
+        data = dify_result.get("data") or {}
+        items = data.get("items") or []
+
+        if not items or not isinstance(items, list):
+            raise build_error(ErrorCode.UPSTREAM_ERROR, "Dify returned empty or invalid items")
+
+        saved_items = []
+        for item in items:
+            article_id = item.get("article_id")
+            score = item.get("score")
+            reason = item.get("reason")
+
+            if article_id is None or score is None:
+                raise build_error(
+                    ErrorCode.UPSTREAM_ERROR,
+                    f"Invalid importance item from Dify: {item}",
+                )
+
+            row = await self.save_score(
+                article_id=int(article_id),
                 user_id=user_id,
-                articles=articles_payload,
+                score=float(score),
+                reason=reason,
+            )
+            saved_items.append(
+                {
+                    "article_id": row.article_id,
+                    "score": row.score,
+                    "reason": row.reason,
+                }
             )
 
-            data = dify_result.get("data") or {}
-            items = data.get("items") or []
-            if not items:
-                raise RuntimeError("Dify returned empty items")
+        await self.db.commit()
 
-            if not isinstance(items, list):
-                raise RuntimeError("Dify importance response items is not a list.")
-
-            saved_items = []
-            for item in items:
-                article_id = item.get("article_id")
-                score = item.get("score")
-                reason = item.get("reason")
-
-                if article_id is None or score is None:
-                    raise RuntimeError(
-                        f"Invalid importance item from Dify: {item}"
-                    )
-
-                row = await self.save_score(
-                    article_id=int(article_id),
-                    user_id=user_id,
-                    score=float(score),
-                    reason=reason,
-                )
-
-                saved_items.append(
-                    {
-                        "article_id": row.article_id,
-                        "score": row.score,
-                        "reason": row.reason,
-                    }
-                )
-
-            await self.db.commit()
-
-            return {
-                "success": True,
-                "data": {
-                    "workflow_run_id": data.get("workflow_run_id"),
-                    "task_id": data.get("task_id"),
-                    "items": saved_items,
-                },
-                "error": None,
-                "meta": dify_result.get("meta"),
-            }
-
-        except Exception as e:
-            await self.db.rollback()
-            return {
-                "success": False,
-                "data": None,
-                "error": {
-                    "code": "UPSTREAM_ERROR",
-                    "message": f"Failed to execute importance workflow: {str(e)}",
-                },
-                "meta": None,
-            }
+        return {
+            "workflow_run_id": data.get("workflow_run_id"),
+            "task_id": data.get("task_id"),
+            "items": saved_items,
+        }

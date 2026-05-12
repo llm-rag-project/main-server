@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
@@ -18,21 +18,8 @@ async def get_credit_balance(
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
     service = CreditService(CreditRepository(db))
-
-    try:
-        result = await service.get_credit_balance(user_id=current_user.id)
-        return success_response(request, data=result.model_dump())
-
-    except ValueError as e:
-        if str(e) == "NOT_FOUND":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="user not found",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    result = await service.get_credit_balance(user_id=current_user.id)
+    return success_response(request, data=result.model_dump())
 
 
 @router.get("/transactions")
@@ -45,26 +32,6 @@ async def get_credit_transactions(
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
     service = CreditService(CreditRepository(db))
-
-    try:
-        query = CreditTransactionListQuery(
-            page=page,
-            size=size,
-            type=type,
-        )
-        result = await service.get_credit_transactions(
-            user_id=current_user.id,
-            query=query,
-        )
-        return success_response(request, data=result.model_dump())
-
-    except ValueError as e:
-        if str(e) == "NOT_FOUND":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="user not found",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    query = CreditTransactionListQuery(page=page, size=size, type=type)
+    result = await service.get_credit_transactions(user_id=current_user.id, query=query)
+    return success_response(request, data=result.model_dump())

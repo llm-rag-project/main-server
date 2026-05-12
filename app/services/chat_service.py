@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+
 from app.core.errors import ErrorCode, build_error
 from app.repositories.chat_repository import ChatRepository
 from app.services.dify_service import DifyService
@@ -133,7 +134,7 @@ class ChatService:
         title = (payload.title or "").strip()
 
         if not title:
-            raise ValueError("채팅방 제목은 비어 있을 수 없습니다.")
+            raise build_error(ErrorCode.VALIDATION_ERROR, "채팅방 제목은 비어 있을 수 없습니다.")
 
         chat = await self.repository.create_chat(
             user_id=user_id,

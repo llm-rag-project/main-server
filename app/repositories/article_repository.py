@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import and_, case, delete, exists, func, literal, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.models.feedback import Feedback
@@ -454,7 +455,7 @@ class ArticleRepository:
         keyword_id: int | None = None,
     ) -> None:
         if not article_ids:
-            raise ValueError("VALIDATION_ERROR")
+            raise build_error(ErrorCode.VALIDATION_ERROR, "article_ids is required")
 
         stmt = (
             select(func.count(func.distinct(Article.id)))
@@ -472,7 +473,7 @@ class ArticleRepository:
         count = count or 0
 
         if count != len(set(article_ids)):
-            raise ValueError("ARTICLE_NOT_FOUND_OR_FORBIDDEN")
+            raise build_error(ErrorCode.NOT_FOUND, "article not found or not accessible")
     async def get_my_feedback_entity_by_article(
         self,
         user_id: int,
@@ -498,7 +499,7 @@ class ArticleRepository:
         )
 
         if feedback is None:
-            raise ValueError("FEEDBACK_NOT_FOUND")
+            raise build_error(ErrorCode.NOT_FOUND, "feedback not found")
 
         await self.db.delete(feedback)
         await self.db.flush()
