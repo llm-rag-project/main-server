@@ -3,6 +3,7 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ErrorCode, build_error
@@ -108,7 +109,6 @@ class CrawlRunService:
                 # 뒤 로직에서도 같은 실제 기사 URL 기준을 쓰도록 통일
                 item["url"] = url
                 item["original_url"] = url
-
                 try:
                     crawl_data = await self.transnews_client.crawl_article(url)
                     crawled = crawl_data.get("data") or {}
@@ -166,8 +166,6 @@ class CrawlRunService:
         }
 
     async def _get_user_keywords(self, *, user_id: int, keyword_ids: list[int] | None):
-        from sqlalchemy import select
-
         stmt = select(Keyword).where(
             Keyword.user_id == user_id,
             Keyword.is_active.is_(True),
@@ -185,8 +183,6 @@ class CrawlRunService:
         return keywords
 
     async def _upsert_article(self, item: dict[str, Any]) -> tuple[Article | None, bool]:
-        from sqlalchemy import select
-
         url = self._extract_article_url(item)
         published_raw = item.get("published_at") or item.get("published")
 
@@ -198,7 +194,6 @@ class CrawlRunService:
                 pass
 
         if not url:
-            print("[DEBUG] UPSERT SKIP: original_url is missing or invalid")
             return None, False
 
         title = item.get("title") or "제목 없음"
@@ -245,8 +240,6 @@ class CrawlRunService:
         keyword_id: int,
         crawl_run_id: int,
     ) -> bool:
-        from sqlalchemy import select
-
         result = await self.db.execute(
             select(ArticleMatch).where(
                 ArticleMatch.article_id == article_id,
@@ -272,10 +265,8 @@ class CrawlRunService:
         return False
 
     async def crawl_all_active_keywords(self) -> dict[str, Any]:
-        from sqlalchemy import select as sa_select
-
         result = await self.db.execute(
-            sa_select(Keyword.user_id).where(Keyword.is_active.is_(True)).distinct()
+            select(Keyword.user_id).where(Keyword.is_active.is_(True)).distinct()
         )
         user_ids = [row[0] for row in result.all()]
 
@@ -285,10 +276,7 @@ class CrawlRunService:
                 run_result = await self.create_crawl_run(user_id=user_id, force=False)
                 total_articles += run_result.get("crawl_count", 0)
             except Exception as exc:
-                import logging
-                logging.getLogger(__name__).warning(
-                    "user_id=%s 크롤링 실패: %s", user_id, exc
-                )
+                logger.warning("user_id=%s 크롤링 실패: %s", user_id, exc)
 
         return {"crawled_user_count": len(user_ids), "total_article_count": total_articles}
 
