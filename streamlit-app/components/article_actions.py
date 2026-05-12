@@ -70,19 +70,30 @@ def render_scoring_result():
 
     st.markdown("### 중요도 결과")
 
-    if isinstance(scoring_result, list):
-        sorted_items = sorted(
-            scoring_result,
-            key=lambda x: x.get("score", 0),
-            reverse=True,
-        )
-
-        for item in sorted_items:
-            article_id = item.get("article_id")
-            score = item.get("score")
-            reason = item.get("reason", "사유 없음")
-
-            st.write(f"- 기사 ID: {article_id}, 점수: {score}")
-            st.caption(f"사유: {reason}")
-    else:
+    if not isinstance(scoring_result, list):
         st.write(scoring_result)
+        return
+
+    sorted_items = sorted(scoring_result, key=lambda x: x.get("score", 0), reverse=True)
+
+    for item in sorted_items:
+        article_id = item.get("article_id", "-")
+        score = item.get("score")
+        reason = item.get("reason", "사유 없음")
+
+        score_display = f"{float(score):.2f}" if score is not None else "-"
+        progress_value = 0.0
+        if score is not None:
+            try:
+                v = float(score)
+                progress_value = max(0.0, min(v if v <= 1 else v / 100.0, 1.0))
+            except Exception:
+                pass
+
+        with st.container(border=True):
+            col_id, col_score = st.columns([3, 1])
+            col_id.markdown(f"**기사 ID:** {article_id}")
+            col_score.metric("점수", score_display)
+            if score is not None:
+                st.progress(progress_value)
+            st.caption(f"사유: {reason}")

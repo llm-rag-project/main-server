@@ -6,35 +6,8 @@ from api.articles import (
     get_article_importance,
     get_articles,
 )
-
-
-def extract_summary_text(result):
-    if not isinstance(result, dict):
-        return "요약 결과를 해석하지 못했습니다."
-
-    # 1. 메인서버 공통 응답 형식
-    data = result.get("data")
-    if isinstance(data, dict):
-        summary = data.get("summary")
-        if isinstance(summary, str) and summary.strip():
-            return summary
-
-        # 혹시 Dify 결과를 data 안에 summary_text로 넣은 경우
-        summary_text = data.get("summary_text")
-        if isinstance(summary_text, str) and summary_text.strip():
-            return summary_text
-
-    # 2. 예전 방식: 최상위 summary
-    summary = result.get("summary")
-    if isinstance(summary, str) and summary.strip():
-        return summary
-
-    # 3. 예전 방식: 최상위 summary_text
-    summary_text = result.get("summary_text")
-    if isinstance(summary_text, str) and summary_text.strip():
-        return summary_text
-
-    return "요약 결과가 비어 있습니다."
+from api.importance import set_user_score
+from utils.ai_response_parser import extract_summary_text
 
 
 def render_article_list():
@@ -73,7 +46,8 @@ def render_article_list():
             st.caption(f"{source} | {published_at}")
 
             if importance is not None:
-                st.write(f"중요도: {importance}")
+                col_imp, _ = st.columns([1, 3])
+                col_imp.metric("AI 중요도", f"{importance:.0f}점" if isinstance(importance, (int, float)) else importance)
 
             if summary:
                 st.write(summary)
@@ -86,14 +60,14 @@ def render_article_list():
                 except Exception as e:
                     st.error(f"상세 조회 실패: {e}")
 
-            if col2.button("요약", key=f"summary_{article_id}"):
+            if col2.button("AI 요약", key=f"summary_{article_id}"):
                 try:
                     result = request_article_summary(article_id)
                     st.session_state[f"article_summary_{article_id}"] = extract_summary_text(result)
                 except Exception as e:
                     st.error(f"요약 요청 실패: {e}")
 
-            if col3.button("중요도", key=f"importance_{article_id}"):
+            if col3.button("AI 중요도 조회", key=f"importance_{article_id}"):
                 try:
                     st.session_state[f"article_importance_{article_id}"] = get_article_importance(article_id)
                 except Exception as e:
@@ -102,6 +76,7 @@ def render_article_list():
             if url:
                 st.link_button("원문 링크", url)
 
+            # ── 결과 표시 ─────────────────────────────────────────────
             detail_data = st.session_state.get(f"article_detail_{article_id}")
             if detail_data:
                 st.markdown("##### 기사 상세")
@@ -114,5 +89,34 @@ def render_article_list():
 
             importance_data = st.session_state.get(f"article_importance_{article_id}")
             if importance_data:
-                st.markdown("##### 중요도 상세")
+                st.markdown("##### AI 중요도 상세")
                 st.json(importance_data)
+
+            # ── 사용자 개인 중요도 설정 ───────────────────────────────
+            with st.expander("✏️ 내 중요도 직접 설정"):
+                score_key = f"my_score_input_{article_id}"
+                reason_key = f"my_reason_input_{article_id}"
+
+                user_score = st.slider(
+                    "중요도 점수 (1~100)",
+                    min_value=1,
+                    max_value=100,
+                    value=st.session_state.get(score_key, 50),
+                    key=score_key,
+                )
+                user_reason = st.text_input(
+                    "사유 (선택)",
+                    key=reason_key,
+                    placeholder="예: 업계에 직접 영향을 미치는 정책 기사",
+                )
+
+                if st.button("저장", key=f"save_my_score_{article_id}"):
+                    try:
+                        set_user_score(
+                            article_id=article_id,
+                            score=float(user_score),
+                            reason=user_reason.strip() or None,
+                        )
+                        st.success(f"중요도 {user_score}점으로 저장되었습니다.")
+                    except Exception as e:
+                        st.error(f"저장 실패: {e}")

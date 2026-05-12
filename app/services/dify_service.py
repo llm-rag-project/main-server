@@ -191,12 +191,17 @@ class DifyService:
         *,
         user_id: int,
         articles: str,
+        user_preference: str | None = None,
     ) -> dict:
+        inputs: dict = {
+            "user_id": user_id,
+            "articles": articles,
+        }
+        if user_preference:
+            inputs["user_preference"] = user_preference
+
         payload = {
-            "inputs": {
-                "user_id": user_id,
-                "articles": articles,
-            },
+            "inputs": inputs,
             "response_mode": "blocking",
             "user": f"user-{user_id}",
         }

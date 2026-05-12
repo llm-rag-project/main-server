@@ -34,15 +34,14 @@ def start_scheduler() -> None:
 
     interval_minutes = getattr(settings, "crawl_scheduler_interval_minutes", 30)
 
-    # ✅ 핵심 수정: lambda 제거하고 async 함수를 직접 등록
     scheduler.add_job(
-        run_periodic_crawling,          # async def를 그대로 전달
+        run_periodic_crawling,
         trigger="interval",
         minutes=interval_minutes,
         id="periodic-crawl-job",
         replace_existing=True,
-        misfire_grace_time=60,          # 서버 부하로 실행이 늦어져도 60초 이내면 실행
-        max_instances=1,                # 이전 크롤링이 끝나기 전에 중복 실행 방지
+        misfire_grace_time=60,
+        max_instances=1,
     )
     scheduler.start()
     logger.info("크롤링 스케줄러 시작: %s분 간격", interval_minutes)

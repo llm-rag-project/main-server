@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user_or_dev_user, get_db
 from app.core.response import success_response
 from app.models.user import User
-from app.schemas.importance import ImportanceListQuery, ImportanceRunRequest
+from app.schemas.importance import ImportanceListQuery, ImportanceRunRequest, UserScoreRequest
 from app.services.importance_service import ImportanceService
 
 router = APIRouter(prefix="/importance", tags=["importance"])
@@ -56,3 +56,36 @@ async def run_importance(
         article_ids=payload.article_ids,
     )
     return success_response(request=request, data=result)
+
+
+@router.post("/my-score")
+async def set_user_score(
+    request: Request,
+    payload: UserScoreRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ImportanceService(db)
+    row = await service.save_user_score(
+        user_id=current_user.id,
+        article_id=payload.article_id,
+        score=payload.score,
+        reason=payload.reason,
+    )
+    return success_response(request, data={
+        "article_id": row.article_id,
+        "score": row.score,
+        "reason": row.reason,
+        "scored_at": row.scored_at.isoformat(),
+    })
+
+
+@router.get("/my-preference")
+async def get_user_preference(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ImportanceService(db)
+    result = await service.get_user_preference_summary(user_id=current_user.id)
+    return success_response(request, data=result)

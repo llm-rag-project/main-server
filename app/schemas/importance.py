@@ -83,3 +83,22 @@ class ImportanceRunResponse(BaseModel):
     workflow_run_id: Optional[str]
     task_id: Optional[str]
     items: List[ImportanceRunItem]
+
+
+class UserScoreRequest(BaseModel):
+    article_id: int
+    score: float = Field(ge=1, le=100)
+    reason: Optional[str] = None
+
+
+class UserScoreResponse(BaseModel):
+    article_id: int
+    score: float
+    reason: Optional[str]
+    scored_at: datetime
+
+
+class UserPreferenceResponse(BaseModel):
+    pattern_summary: str
+    sample_count: int
+    avg_delta: Optional[float]

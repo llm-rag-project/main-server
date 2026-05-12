@@ -63,23 +63,8 @@ def extract_chat_result(result):
     if not isinstance(result, dict):
         return "채팅 결과를 해석하지 못했습니다.", ""
 
-    if "success" in result:
-        success = result.get("success", False)
-        if not success:
-            error = result.get("error", {})
-            if isinstance(error, dict):
-                return error.get("message", "채팅 요청에 실패했습니다."), ""
-            return "채팅 요청에 실패했습니다.", ""
-
-        data = result.get("data", {})
-    else:
-        data = result
-
-    if not isinstance(data, dict):
-        return "채팅 응답 데이터가 없습니다.", ""
-
-    answer = data.get("answer", "")
-    conversation_id = data.get("conversation_id", "")
+    answer = result.get("answer", "")
+    conversation_id = result.get("conversation_id", "")
 
     if not isinstance(answer, str) or not answer.strip():
         answer = "응답 내용이 비어 있습니다."
