@@ -1,8 +1,10 @@
 import os
+import sys
 import streamlit as st
 from dotenv import load_dotenv
 from pathlib import Path
 
+print("[DEBUG] app.py: 임포트 시작", flush=True, file=sys.stderr)
 load_dotenv(Path(__file__).parent / ".env", override=False)
 
 from components.article_actions import render_article_action_buttons
@@ -13,6 +15,8 @@ from components.summary_cards import render_summary_cards
 from components.stats_chart import render_stats_charts
 from utils.session import init_state
 
+print("[DEBUG] app.py: 임포트 완료", flush=True, file=sys.stderr)
+
 APP_TITLE = os.getenv("APP_TITLE", "AI Agent 기반 기사 모니터링")
 
 st.set_page_config(
@@ -20,8 +24,10 @@ st.set_page_config(
     page_icon="📰",
     layout="wide",
 )
+print("[DEBUG] app.py: set_page_config 완료", flush=True, file=sys.stderr)
 
 init_state()
+print("[DEBUG] app.py: init_state 완료", flush=True, file=sys.stderr)
 
 
 def render_header():
@@ -30,8 +36,11 @@ def render_header():
 
 
 def main():
+    print("[DEBUG] main(): render_sidebar 호출 전", flush=True, file=sys.stderr)
     render_sidebar()  # ✅ 채팅 세션도 사이드바 안에 포함됨
+    print("[DEBUG] main(): render_sidebar 완료", flush=True, file=sys.stderr)
     render_header()
+    print("[DEBUG] main(): render_header 완료", flush=True, file=sys.stderr)
 
     if not LOGIN_DISABLED and not st.session_state.get("is_logged_in"):
         st.warning("왼쪽 사이드바에서 로그인하세요.")
