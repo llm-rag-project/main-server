@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -32,7 +33,7 @@ def start_scheduler() -> None:
     if scheduler.running:
         return
 
-    interval_minutes = getattr(settings, "crawl_scheduler_interval_minutes", 30)
+    interval_minutes = settings.crawl_scheduler_interval_minutes
 
     scheduler.add_job(
         run_periodic_crawling,
@@ -42,6 +43,7 @@ def start_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=60,
         max_instances=1,
+        next_run_time=datetime.now(timezone.utc),  # 서버 시작 즉시 첫 실행
     )
     scheduler.start()
     logger.info("크롤링 스케줄러 시작: %s분 간격", interval_minutes)

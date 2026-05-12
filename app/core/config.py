@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     transnews_base_url: str = Field(..., alias="TRANSNEWS_BASE_URL")
     transnews_request_timeout: int = 20
 
+    crawl_scheduler_interval_minutes: int = Field(default=30, alias="CRAWL_SCHEDULER_INTERVAL_MINUTES")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

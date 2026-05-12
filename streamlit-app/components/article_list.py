@@ -15,13 +15,23 @@ def render_article_list():
 
     keyword_id = st.session_state.get("selected_keyword_id")
 
+    col_size, col_page = st.columns([2, 1])
+    with col_size:
+        size = st.selectbox("페이지당 기사 수", [10, 20, 50], index=1, key="article_list_size")
+    with col_page:
+        page = st.number_input("페이지", min_value=1, value=1, step=1, key="article_list_page")
+
     try:
-        articles, page_info = get_articles(keyword_id=keyword_id, page=1, size=10)
+        articles, page_info = get_articles(keyword_id=keyword_id, page=page, size=size)
         st.session_state["articles"] = articles
         st.session_state["article_page_info"] = page_info
     except Exception as e:
         st.error(f"기사 목록 조회 실패: {e}")
         return
+
+    if page_info and isinstance(page_info, dict):
+        total = page_info.get("total", 0)
+        st.caption(f"전체 {total}건 중 {len(articles)}건 표시")
 
     if not articles:
         st.info("표시할 기사가 없습니다.")
