@@ -111,7 +111,7 @@ def render_article_list():
                     "중요도 점수 (1~100)",
                     min_value=1,
                     max_value=100,
-                    value=st.session_state.get(score_key, 50),
+                    value=50,
                     key=score_key,
                 )
                 user_reason = st.text_input(

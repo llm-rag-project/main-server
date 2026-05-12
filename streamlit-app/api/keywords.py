@@ -44,7 +44,6 @@ def create_keyword_and_crawl(keyword: str, language: str = DEFAULT_LANGUAGE):
         raise ValueError(f"키워드 생성 응답에 id가 없습니다: {created}")
 
     crawl_result = created.get("crawl_result")
-    print("crawl_result =", crawl_result)
 
     return {
         "keyword": keyword_data,
