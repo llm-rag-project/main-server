@@ -57,7 +57,13 @@ def render_article_action_buttons():
                 msg_placeholder.success("중요도 계산이 완료되었습니다.")
 
         except Exception as e:
-            msg_placeholder.error(f"중요도 계산 실패: {e}")
+            err_str = str(e)
+            if any(k in err_str for k in ("503", "UNAVAILABLE", "high demand", "DIFY_TIMEOUT")):
+                msg_placeholder.warning(
+                    "AI 모델 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해 주세요."
+                )
+            else:
+                msg_placeholder.error(f"중요도 계산 실패: {e}")
 
     render_scoring_result()
 
