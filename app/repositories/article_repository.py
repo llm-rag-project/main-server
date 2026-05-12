@@ -1,15 +1,9 @@
 from datetime import datetime, time
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import and_, case, exists, func, literal, or_, select
+from sqlalchemy import and_, case, delete, exists, func, literal, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import delete
-from app.models.feedback import Feedback
 
-from app.models.feedback import Feedback
-from app.models.importance_score import ImportanceScore
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.models.feedback import Feedback

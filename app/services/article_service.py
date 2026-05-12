@@ -1,12 +1,11 @@
-from fastapi import HTTPException
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.repositories.article_repository import ArticleRepository
-from app.schemas.articles import ArticleDetailResponse
+from app.schemas.articles import ArticleDetailResponse, DeleteFeedbackResponse, FeedbackResponse
 
 
 class ArticleService:
@@ -22,10 +21,8 @@ class ArticleService:
 
     async def get_article_detail(self, user_id: int, article_id: int) -> ArticleDetailResponse:
         article = await self.article_repository.get_article_detail(user_id, article_id)
-
         if article is None:
-            raise HTTPException(status_code=404, detail="기사를 찾을 수 없습니다.")
-
+            raise ValueError("NOT_FOUND")
         return ArticleDetailResponse(**article)
 
     async def get_articles_by_keyword_id(self, keyword_id: int) -> list[Article]:
@@ -42,3 +39,25 @@ class ArticleService:
             user_id=user_id,
             query=query,
         )
+
+    async def get_my_feedback_by_article(
+        self, user_id: int, article_id: int
+    ) -> FeedbackResponse | None:
+        if not await self.article_repository.article_exists(article_id):
+            raise ValueError("NOT_FOUND")
+        if not await self.article_repository.has_article_access(user_id, article_id):
+            raise PermissionError("FORBIDDEN")
+        row = await self.article_repository.get_my_feedback_by_article(user_id, article_id)
+        if row is None:
+            return None
+        return FeedbackResponse(**row)
+
+    async def delete_my_feedback_by_article(
+        self, user_id: int, article_id: int
+    ) -> DeleteFeedbackResponse:
+        if not await self.article_repository.article_exists(article_id):
+            raise ValueError("NOT_FOUND")
+        if not await self.article_repository.has_article_access(user_id, article_id):
+            raise PermissionError("FORBIDDEN")
+        row = await self.article_repository.delete_my_feedback_by_article(user_id, article_id)
+        return DeleteFeedbackResponse(**row)

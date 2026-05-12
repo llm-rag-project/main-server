@@ -38,6 +38,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-print("BACKEND CHATFLOW_API_KEY =", settings.chatflow_api_key)
-print("BACKEND DIFY_BASE_URL =", settings.dify_base_url)

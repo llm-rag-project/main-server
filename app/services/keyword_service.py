@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import build_error, ErrorCode
-from app.core.transnews_client import TransNewsClient
+from app.core.errors import ErrorCode, build_error
 from app.models.user import User
 from app.repositories.keyword_repository import (
     create_keyword,
@@ -22,7 +21,6 @@ from app.schemas.keyword import (
     PageInfo,
     UpdateKeywordStatusResponse,
 )
-from app.services.crawl_run_service import CrawlRunService
 
 
 async def create_user_keyword(
@@ -60,20 +58,6 @@ async def create_user_keyword(
     )
 
     await db.commit()
-
-    # 최초 1회 크롤링
-    try:
-        crawl_service = CrawlRunService(
-            db=db,
-            transnews_client=TransNewsClient(),
-        )
-        await crawl_service.create_crawl_run(
-            user_id=current_user.id,
-            keyword_ids=[created_keyword.id],
-            force=False,
-        )
-    except Exception as e:
-        print("INITIAL CRAWL FAILED =", e)
 
     return KeywordResponse(
         id=created_keyword.id,

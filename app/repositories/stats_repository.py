@@ -12,6 +12,15 @@ class StatsRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def get_active_keywords(self, user_id: int) -> list[Keyword]:
+        rows = await self.db.execute(
+            select(Keyword).where(
+                Keyword.user_id == user_id,
+                Keyword.is_active.is_(True),
+            )
+        )
+        return list(rows.scalars().all())
+
     async def get_article_count_by_keyword(
         self, user_id: int, days: int = 7
     ) -> list[dict]:
@@ -52,7 +61,7 @@ class StatsRepository:
         rows = await self.db.execute(
             select(
                 func.date(Article.published_at).label("date"),
-                func.count(Article.id).label("article_count"),
+                func.count(func.distinct(Article.id)).label("article_count"),
             )
             .join(ArticleMatch, ArticleMatch.article_id == Article.id)
             .join(Keyword, Keyword.id == ArticleMatch.keyword_id)

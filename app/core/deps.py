@@ -61,7 +61,7 @@ async def get_current_user_or_dev_user(
     db: AsyncSession = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> User:
-    if is_login_disabled:
+    if is_login_disabled():
         user = User()
         user.id = 1
         user.email = "dev@example.com"

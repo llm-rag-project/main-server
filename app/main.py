@@ -1,3 +1,7 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 
@@ -8,36 +12,29 @@ from app.core.middleware import RequestIDMiddleware
 from app.core.response import error_response
 from app.db.base import Base
 from app.db.session import engine
-from app.models.user import User
-from app.models.credit import CreditWallet, CreditTransaction
-from app.models.auth_refresh_token import AuthRefreshToken
-from app.services.crawl_scheduler_service import start_scheduler, shutdown_scheduler
-from pathlib import Path
-from dotenv import load_dotenv
+from app.services.crawl_scheduler_service import shutdown_scheduler, start_scheduler
 
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(ENV_PATH, override=True)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    start_scheduler()
+    yield
+    shutdown_scheduler()
+
+
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 app.add_middleware(RequestIDMiddleware)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-
-
-@app.on_event("startup")
-async def on_startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    start_scheduler()
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    shutdown_scheduler()
 
 
 @app.exception_handler(AppError)

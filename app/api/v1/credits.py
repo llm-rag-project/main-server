@@ -37,6 +37,7 @@ async def get_credit_balance(
 
 @router.get("/transactions")
 async def get_credit_transactions(
+    request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     type: CreditTransactionType | None = Query(None),
@@ -55,7 +56,7 @@ async def get_credit_transactions(
             user_id=current_user.id,
             query=query,
         )
-        return success_response(data=result.model_dump())
+        return success_response(request, data=result.model_dump())
 
     except ValueError as e:
         if str(e) == "NOT_FOUND":

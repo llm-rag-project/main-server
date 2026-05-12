@@ -1,15 +1,18 @@
+import logging
 from datetime import datetime
-from typing import Any
 from email.utils import parsedate_to_datetime
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.transnews_client import TransNewsClient
-from app.models.crawl_run import CrawlRun
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
+from app.models.crawl_run import CrawlRun
 from app.models.keyword import Keyword
 from app.services.dify_service import DifyArticleUploadService
+
+logger = logging.getLogger(__name__)
 
 
 class CrawlRunService:
@@ -82,31 +85,19 @@ class CrawlRunService:
             news_response = await self.transnews_client.search_news(keyword.keyword_text)
 
             if news_response.get("status") != "SUCCESS":
-                print("[DEBUG] NEWS RESPONSE NOT SUCCESS =", news_response)
+                logger.debug("NEWS RESPONSE NOT SUCCESS: %s", news_response)
                 continue
 
             news_items = news_response.get("data") or []
             seen_urls: set[str] = set()
 
             for item in news_items:
-                google_news_url = item.get("google_news_url") or item.get("link")
                 url = self._extract_article_url(item)
 
-                print("[DEBUG] ITEM URL CANDIDATES =", {
-                    "original_url": item.get("original_url"),
-                    "source_url": item.get("source_url"),
-                    "article_url": item.get("article_url"),
-                    "resolved_url": item.get("resolved_url"),
-                    "url": item.get("url"),
-                    "google_news_url": google_news_url,
-                    "selected_url": url,
-                })
-
                 if not url:
-                    print("[DEBUG] SKIP ITEM: original_url not resolved", {
-                        "title": item.get("title"),
-                        "google_news_url": google_news_url,
-                    })
+                    logger.debug(
+                        "SKIP ITEM: url not resolved title=%s", item.get("title")
+                    )
                     continue
 
                 if url in seen_urls:
@@ -133,13 +124,8 @@ class CrawlRunService:
                     if content:
                         item["content"] = content
 
-                    print(
-                        f"[DEBUG] CRAWL ARTICLE url={url}, "
-                        f"content_length={len(item.get('content') or '')}"
-                    )
-
                 except Exception as e:
-                    print(f"[DEBUG] crawl_article failed url={url}: {e}")
+                    logger.debug("crawl_article failed url=%s: %s", url, e)
 
                 article, is_new_article = await self._upsert_article(item)
                 if article is None:
@@ -191,8 +177,10 @@ class CrawlRunService:
         result = await self.db.execute(stmt)
         keywords = list(result.scalars().all())
 
-        print("[DEBUG] _get_user_keywords result =", [(k.id, k.keyword_text) for k in keywords])
-
+        logger.debug(
+            "_get_user_keywords result: %s",
+            [(k.id, k.keyword_text) for k in keywords],
+        )
         return keywords
 
     async def _upsert_article(self, item: dict[str, Any]) -> tuple[Article | None, bool]:
@@ -220,8 +208,6 @@ class CrawlRunService:
         result = await self.db.execute(select(Article).where(Article.url == url))
         article = result.scalar_one_or_none()
 
-        print("[DEBUG] UPSERT CHECK =", {"url": url, "exists": article is not None})
-
         if article:
             article.title = title
             article.publisher = publisher
@@ -233,7 +219,6 @@ class CrawlRunService:
 
             if content and not (article.content or "").strip():
                 article.content = content
-                print(f"[DEBUG] FILLED EMPTY CONTENT article_id={article.id}")
 
             return article, False
 
@@ -249,8 +234,6 @@ class CrawlRunService:
         )
         self.db.add(article)
         await self.db.flush()
-
-        print(f"[DEBUG] NEW ARTICLE CREATED article_id={article.id}, url={url}")
 
         return article, True
 
@@ -271,15 +254,6 @@ class CrawlRunService:
         )
         match = result.scalar_one_or_none()
 
-        print(
-            "[DEBUG] ENSURE_MATCH CHECK =",
-            {
-                "article_id": article_id,
-                "keyword_id": keyword_id,
-                "exists": match is not None,
-            },
-        )
-
         if match is None:
             self.db.add(
                 ArticleMatch(
@@ -289,32 +263,41 @@ class CrawlRunService:
                 )
             )
             await self.db.flush()
-
-            print(
-                f"[DEBUG] NEW MATCH CREATED article_id={article_id}, "
-                f"keyword_id={keyword_id}"
-            )
             return True
 
         if getattr(match, "crawl_run_id", None) is None:
             match.crawl_run_id = crawl_run_id
-            print(
-                f"[DEBUG] EXISTING MATCH UPDATED crawl_run_id "
-                f"article_id={article_id}, keyword_id={keyword_id}"
-            )
 
         return False
 
+    async def crawl_all_active_keywords(self) -> dict[str, Any]:
+        from sqlalchemy import select as sa_select
+
+        result = await self.db.execute(
+            sa_select(Keyword.user_id).where(Keyword.is_active.is_(True)).distinct()
+        )
+        user_ids = [row[0] for row in result.all()]
+
+        total_articles = 0
+        for user_id in user_ids:
+            try:
+                run_result = await self.create_crawl_run(user_id=user_id, force=False)
+                total_articles += run_result.get("crawl_count", 0)
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "user_id=%s 크롤링 실패: %s", user_id, exc
+                )
+
+        return {"crawled_user_count": len(user_ids), "total_article_count": total_articles}
+
     async def _upload_articles_to_dify(self, articles: list[Article]) -> dict[str, Any]:
         if not articles:
-            print("[DEBUG] NO ARTICLES TO UPLOAD TO DIFY")
             return {
                 "uploaded_count": 0,
                 "failed_count": 0,
                 "uploaded": [],
                 "failed": [],
             }
-
-        print("[DEBUG] DIFY UPLOAD ARTICLE IDS =", [article.id for article in articles])
 
         return await self.dify_upload_service.upload_articles_to_knowledge(articles)

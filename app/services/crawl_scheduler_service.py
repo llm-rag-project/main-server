@@ -22,7 +22,7 @@ async def run_periodic_crawling() -> None:
                 db=db,
                 transnews_client=TransNewsClient(),
             )
-            result = await service.crawl_active_keywords()
+            result = await service.crawl_all_active_keywords()
             logger.info("정기 크롤링 종료: %s", result)
     except Exception:
         logger.exception("정기 크롤링 중 오류 발생")

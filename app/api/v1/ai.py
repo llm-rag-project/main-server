@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -85,31 +83,14 @@ async def summarize_article(
         )
 
     try:
-        articles_payload = json.dumps(
-            [
-                {
-                    "article_id": article.id,
-                    "title": article.title or "",
-                    "content": article.content or "",
-                }
-            ],
-            ensure_ascii=False,
-        )
-        print("====== BEFORE RUN SUMMARY WORKFLOW ======", flush=True)
         result = await dify_service.run_summary_workflow(
             user_id=current_user.id,
             article_id=article.id,
             title=article.title or "",
             content=article.content or "",
         )
-        print("====== SUMMARY WORKFLOW RESULT ======")
-        print(result)
-
 
         summary_text = result.get("summary")
-
-        if not summary_text:
-            raise ValueError("요약 결과를 찾을 수 없습니다.")
 
         if not summary_text:
             raise ValueError("요약 결과를 찾을 수 없습니다.")
@@ -161,20 +142,6 @@ async def score_articles_by_keyword(
         )
 
     try:
-        # ✅ 모든 기사 한 번에 payload 생성
-        articles_payload = json.dumps(
-            [
-                {
-                    "article_id": article.id,
-                    "title": article.title or "",
-                    "content": article.content or "",
-                }
-                for article in articles
-            ],
-            ensure_ascii=False,
-        )
-
-        # ✅ Dify 한 번만 호출
         result = await dify_service.run_importance_workflow(
             user_id=current_user.id,
             articles=articles_payload,

@@ -129,6 +129,19 @@ class ArticleFeedbackResponse(BaseModel):
     created: bool
     updated_at: datetime
     
+class FeedbackResponse(BaseModel):
+    feedback_id: int
+    article_id: int
+    action: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class DeleteFeedbackResponse(BaseModel):
+    deleted: bool
+    article_id: int
+
+
 class NewsStatsResponse(BaseModel):
     keyword: str
     total_count: int
