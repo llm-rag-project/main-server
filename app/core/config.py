@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     dify_dataset_id: str = Field(..., alias="DIFY_DATASET_ID")
     dify_article_id_metadata_field_id: str = Field(..., alias="DIFY_ARTICLE_ID_METADATA_FIELD_ID")
 
-    dify_request_timeout: int = 30
+    dify_request_timeout: int = 180
     transnews_base_url: str = Field(..., alias="TRANSNEWS_BASE_URL")
     transnews_request_timeout: int = 20
 
