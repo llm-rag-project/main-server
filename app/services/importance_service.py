@@ -105,6 +105,8 @@ class ImportanceService:
 
         return result
 
+    _DIFY_BATCH_SIZE = 9
+
     async def run_importance_scoring(self, user_id: int, article_ids: list[int]) -> dict:
         await self.article_repository.validate_articles_exist_and_accessible(
             user_id=user_id,
@@ -119,59 +121,65 @@ class ImportanceService:
         saved_items = []
 
         if articles:
-            articles_payload = json.dumps(
-                [
-                    {
-                        "article_id": article["article_id"],
-                        "title": article["title"],
-                        "content": article["content"],
-                    }
-                    for article in articles
-                ],
-                ensure_ascii=False,
-            )
-
             feedback_rows = await self.importance_repository.get_feedback_history(user_id)
             feedback_history = (
                 json.dumps(feedback_rows, ensure_ascii=False) if feedback_rows else ""
             )
 
-            dify_result = await self.dify_service.run_importance_workflow(
-                user_id=user_id,
-                articles=articles_payload,
-                feedback_history=feedback_history,
-            )
+            batches = [
+                articles[i: i + self._DIFY_BATCH_SIZE]
+                for i in range(0, len(articles), self._DIFY_BATCH_SIZE)
+            ]
 
-            data = dify_result.get("data") or {}
-            items = data.get("items") or []
+            for batch in batches:
+                articles_payload = json.dumps(
+                    [
+                        {
+                            "article_id": a["article_id"],
+                            "title": a["title"],
+                            "content": a["content"],
+                        }
+                        for a in batch
+                    ],
+                    ensure_ascii=False,
+                )
 
-            if not items or not isinstance(items, list):
-                raise build_error(ErrorCode.UPSTREAM_ERROR, "Dify returned empty or invalid items")
-
-            for item in items:
-                article_id = item.get("article_id")
-                score = item.get("score")
-                reason = item.get("reason")
-
-                if article_id is None or score is None:
-                    raise build_error(
-                        ErrorCode.UPSTREAM_ERROR,
-                        f"Invalid importance item from Dify: {item}",
-                    )
-
-                row = await self.save_score(
-                    article_id=int(article_id),
+                dify_result = await self.dify_service.run_importance_workflow(
                     user_id=user_id,
-                    score=float(score),
-                    reason=reason,
+                    articles=articles_payload,
+                    feedback_history=feedback_history,
                 )
-                saved_items.append(
-                    {
-                        "article_id": row.article_id,
-                        "score": row.score,
-                        "reason": row.reason,
-                    }
-                )
+
+                data = dify_result.get("data") or {}
+                items = data.get("items") or []
+
+                if not items or not isinstance(items, list):
+                    raise build_error(ErrorCode.UPSTREAM_ERROR, "Dify returned empty or invalid items")
+
+                for item in items:
+                    article_id = item.get("article_id")
+                    score = item.get("score")
+                    reason = item.get("reason")
+
+                    if article_id is None or score is None:
+                        raise build_error(
+                            ErrorCode.UPSTREAM_ERROR,
+                            f"Invalid importance item from Dify: {item}",
+                        )
+
+                    row = await self.save_score(
+                        article_id=int(article_id),
+                        user_id=user_id,
+                        score=float(score),
+                        reason=reason,
+                    )
+                    saved_items.append(
+                        {
+                            "article_id": row.article_id,
+                            "score": row.score,
+                            "reason": row.reason,
+                        }
+                    )
 
         await self.db.commit()
 
