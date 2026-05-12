@@ -37,7 +37,7 @@ def render_article_action_buttons():
 
     if st.button(
         "선택 키워드 기사 중요도 계산",
-        use_container_width=True,
+        width="stretch",
         disabled=scoring_disabled,
     ):
         st.session_state["article_scoring_result"] = None

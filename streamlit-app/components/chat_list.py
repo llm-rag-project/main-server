@@ -35,7 +35,7 @@ def render_chat_list():
     with st.expander("새 채팅 세션 만들기", expanded=False):
         with st.form("create_chat_form", clear_on_submit=True):
             new_title = st.text_input("채팅세션 제목", key="new_chat_title_input")
-            submitted = st.form_submit_button("채팅세션 생성", use_container_width=True)
+            submitted = st.form_submit_button("채팅세션 생성", width="stretch")
 
         if submitted:
             try:
@@ -90,7 +90,7 @@ def render_chat_list():
             label = f"✅ {title}" if is_selected else title
 
             # ✅ columns 제거 — 버튼을 위아래로 배치
-            if st.button(label, key=f"chat_room_{chat_id}", use_container_width=True):
+            if st.button(label, key=f"chat_room_{chat_id}", width="stretch"):
                 try:
                     detail_result = get_chat_detail(chat_id)
                     detail_data = _unwrap_response(detail_result)
@@ -112,7 +112,7 @@ def render_chat_list():
                 except Exception as e:
                     st.error(f"세션 선택 실패: {e}")
 
-            if st.button("🗑️ 삭제", key=f"delete_chat_{chat_id}", use_container_width=True):
+            if st.button("🗑️ 삭제", key=f"delete_chat_{chat_id}", width="stretch"):
                 try:
                     delete_result = delete_chat(chat_id)
                     _unwrap_response(delete_result)

@@ -20,7 +20,7 @@ def render_stats_charts():
     with col1:
         days = st.slider("조회 기간 (일)", min_value=1, max_value=90, value=7, step=1)
     with col2:
-        if st.button("🔄 새로고침", use_container_width=True):
+        if st.button("🔄 새로고침", width="stretch"):
             st.cache_data.clear()
             st.rerun()
 
@@ -38,14 +38,14 @@ def render_stats_charts():
                 df = pd.DataFrame(by_keyword)
                 st.bar_chart(
                     df.set_index("keyword_text")["article_count"],
-                    use_container_width=True,
+                    width="stretch",
                 )
                 st.dataframe(
                     df.rename(columns={
                         "keyword_text": "키워드",
                         "article_count": "기사 수",
                     })[["키워드", "기사 수"]],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
         except Exception as e:
@@ -69,7 +69,7 @@ def render_stats_charts():
                     values="article_count",
                     fill_value=0,
                 )
-                st.line_chart(pivot, use_container_width=True)
+                st.line_chart(pivot, width="stretch")
         except Exception as e:
             st.error(f"날짜별 기사 수 조회 실패: {e}")
 
@@ -87,7 +87,7 @@ def render_stats_charts():
 
                 st.bar_chart(
                     df.set_index("keyword_text")["total_count"],
-                    use_container_width=True,
+                    width="stretch",
                 )
                 st.dataframe(
                     df.rename(columns={
@@ -96,7 +96,7 @@ def render_stats_charts():
                         "min_count": "최소",
                         "max_count": "최대",
                     })[["키워드", "총 검색량", "최소", "최대"]],
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 

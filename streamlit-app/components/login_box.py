@@ -20,7 +20,7 @@ def render_login_box():
             else:
                 st.sidebar.caption(email)
 
-        if st.sidebar.button("로그아웃", use_container_width=True):
+        if st.sidebar.button("로그아웃", width="stretch"):
             logout()
             st.rerun()
 
@@ -33,7 +33,7 @@ def render_login_box():
         login_email = st.text_input("이메일", key="login_email")
         login_password = st.text_input("비밀번호", type="password", key="login_password")
 
-        if st.button("로그인", key="login_btn", use_container_width=True):
+        if st.button("로그인", key="login_btn", width="stretch"):
             if not login_email or not login_password:
                 st.warning("이메일과 비밀번호를 입력하세요.")
             else:
@@ -50,7 +50,7 @@ def render_login_box():
         signup_password = st.text_input("비밀번호", type="password", key="signup_password")
         signup_password_check = st.text_input("비밀번호 확인", type="password", key="signup_password_check")
 
-        if st.button("회원가입", key="signup_btn", use_container_width=True):
+        if st.button("회원가입", key="signup_btn", width="stretch"):
             if not signup_email or not signup_password:
                 st.warning("이메일과 비밀번호를 입력하세요.")
             elif signup_password != signup_password_check:

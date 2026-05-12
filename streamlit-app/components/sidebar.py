@@ -33,7 +33,7 @@ def render_chat_session_sidebar():
     with st.sidebar.expander("새 세션 만들기", expanded=False):
         with st.sidebar.form("create_chat_form_sidebar", clear_on_submit=True):
             new_title = st.text_input("세션 제목", key="sidebar_chat_title_input")
-            submitted = st.form_submit_button("생성", use_container_width=True)
+            submitted = st.form_submit_button("생성", width="stretch")
 
         if submitted:
             try:
@@ -71,7 +71,7 @@ def render_chat_session_sidebar():
                 is_selected = st.session_state.get("selected_chat_id") == chat_id
                 label = f"✅ {title}" if is_selected else title
 
-                if st.sidebar.button(label, key=f"sb_chat_{chat_id}", use_container_width=True):
+                if st.sidebar.button(label, key=f"sb_chat_{chat_id}", width="stretch"):
                     try:
                         detail = _unwrap(get_chat_detail(chat_id))
                         st.session_state["selected_chat_id"] = detail.get("id")
@@ -84,7 +84,7 @@ def render_chat_session_sidebar():
                     except Exception as e:
                         st.sidebar.error(f"선택 실패: {e}")
 
-                if st.sidebar.button("🗑️", key=f"sb_del_{chat_id}", use_container_width=True):
+                if st.sidebar.button("🗑️", key=f"sb_del_{chat_id}", width="stretch"):
                     try:
                         _unwrap(delete_chat(chat_id))
                         if st.session_state.get("selected_chat_id") == chat_id:
@@ -135,12 +135,12 @@ def render_sidebar():
         row1, row2 = st.sidebar.columns([4, 1])
         label = keyword_name if is_active else f"{keyword_name} (비활성)"
 
-        if row1.button(label, key=f"kw_{keyword_id}", use_container_width=True):
+        if row1.button(label, key=f"kw_{keyword_id}", width="stretch"):
             set_selected_keyword(keyword_id, keyword_name)
             reset_chat()
             st.rerun()
 
-        if row2.button("X", key=f"del_{keyword_id}", use_container_width=True):
+        if row2.button("X", key=f"del_{keyword_id}", width="stretch"):
             try:
                 api.keywords.delete_keyword(keyword_id)
                 if st.session_state.get("selected_keyword_id") == keyword_id:
@@ -168,7 +168,7 @@ def render_sidebar():
 
     new_keyword = st.sidebar.text_input("새 키워드", placeholder="예: 하이닉스")
 
-    if st.sidebar.button("키워드 추가", use_container_width=True):
+    if st.sidebar.button("키워드 추가", width="stretch"):
         if not new_keyword.strip():
             st.sidebar.warning("키워드를 입력해주세요.")
         else:
