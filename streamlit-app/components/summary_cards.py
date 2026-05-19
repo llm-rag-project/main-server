@@ -23,10 +23,9 @@ def render_summary_cards():
             params["keyword_id"] = keyword_id
 
         result = api_get("/importance", params=params)
-
-        data = result.get("data") if isinstance(result, dict) and isinstance(result.get("data"), dict) else result
-        importance_items = data.get("items", []) if isinstance(data, dict) else []
-        page_info_imp = data.get("page_info") if isinstance(data, dict) else None
+        # api_get이 data를 unwrap → result = {"items": [...], "page_info": {...}}
+        importance_items = result.get("items", []) if isinstance(result, dict) else []
+        page_info_imp = result.get("page_info") if isinstance(result, dict) else None
         importance_count = page_info_imp.get("total", len(importance_items)) if page_info_imp else len(importance_items)
 
         st.session_state["importance_items"] = importance_items

@@ -39,8 +39,16 @@ async def list_importance(
         },
     )
     service = ImportanceService(db)
-    result = await service.get_importance_list(user_id=current_user.id, query=query)
-    return success_response(request, data=result)
+    items, total = await service.get_importance_list(user_id=current_user.id, query=query)
+    return success_response(request, data={
+        "items": items,
+        "page_info": {
+            "page": query.page,
+            "size": query.size,
+            "total": total,
+            "has_next": (query.page * query.size) < total,
+        },
+    })
 
 
 @router.post("/run")
