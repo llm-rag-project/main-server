@@ -1,7 +1,10 @@
-import streamlit as st
 import os
-from dotenv import load_dotenv
+import threading
+import time
 from pathlib import Path
+
+import streamlit as st
+from dotenv import load_dotenv
 
 import api.keywords
 from api.chat_rooms import create_chat, delete_chat, get_chat_detail, get_chat_list
@@ -29,7 +32,6 @@ def render_chat_session_sidebar():
     st.sidebar.divider()
     st.sidebar.subheader("💬 채팅 세션")
 
-    # 새 세션 만들기
     with st.sidebar.expander("새 세션 만들기", expanded=False):
         with st.sidebar.form("create_chat_form_sidebar", clear_on_submit=True):
             new_title = st.text_input("세션 제목", key="sidebar_chat_title_input")
@@ -54,7 +56,6 @@ def render_chat_session_sidebar():
             except Exception as e:
                 st.sidebar.error(f"생성 실패: {e}")
 
-    # 세션 목록
     try:
         result = get_chat_list(page=1, size=50)
         data = _unwrap(result)
@@ -110,6 +111,53 @@ def render_sidebar():
     else:
         st.sidebar.caption("개발 모드: 로그인 비활성화")
 
+    # ── 키워드 등록 백그라운드 상태 확인 ──────────────────────
+    is_keyword_crawling = st.session_state.get("is_keyword_crawling", False)
+
+    if is_keyword_crawling:
+        holder = st.session_state.get("_keyword_crawl_holder", {})
+        if holder.get("done"):
+            st.session_state["is_keyword_crawling"] = False
+            is_keyword_crawling = False
+            error = holder.get("error")
+            result = holder.get("result")
+            if error:
+                st.session_state["keyword_crawl_msg"] = ("error", f"추가 실패: {error}")
+            elif result:
+                keyword_data = result.get("keyword", {})
+                created_id = keyword_data.get("id")
+                created_name = keyword_data.get("keyword", "")
+                if created_id:
+                    set_selected_keyword(created_id, created_name)
+                    reset_chat()
+                st.session_state["keyword_crawl_msg"] = (
+                    "success", f"'{created_name}' 등록 및 크롤링 완료!"
+                )
+            st.rerun()
+
+    # 크롤링 중 진행 상황
+    if is_keyword_crawling:
+        elapsed = int(time.time() - st.session_state.get("keyword_crawl_start_time", time.time()))
+        mins, secs = divmod(elapsed, 60)
+        time_str = f"{mins}분 {secs}초" if mins > 0 else f"{secs}초"
+        st.sidebar.info(f"🔄 등록 및 크롤링 중... **{time_str}**")
+        if elapsed < 8:
+            st.sidebar.caption("📝 키워드 등록 중...")
+        else:
+            st.sidebar.caption("🌐 기사 크롤링 중...")
+        time.sleep(1)
+        st.rerun()
+
+    # 결과 메시지
+    msg = st.session_state.get("keyword_crawl_msg")
+    if msg:
+        kind, text = msg
+        if kind == "success":
+            st.sidebar.success(text)
+        else:
+            st.sidebar.error(text)
+
+    # ── 키워드 목록 ────────────────────────────────────────────
     try:
         keywords, page_info = api.keywords.get_keywords(page=1, size=100)
         st.session_state["keyword_page_info"] = page_info
@@ -166,34 +214,38 @@ def render_sidebar():
 
     st.sidebar.divider()
 
-    new_keyword = st.sidebar.text_input("새 키워드", placeholder="예: 하이닉스")
+    # ── 키워드 추가 ────────────────────────────────────────────
+    new_keyword = st.sidebar.text_input(
+        "새 키워드",
+        placeholder="예: 하이닉스",
+        disabled=is_keyword_crawling,
+    )
 
-    if st.sidebar.button("키워드 추가", width="stretch"):
-        if not new_keyword.strip():
+    if st.sidebar.button("키워드 추가", width="stretch", disabled=is_keyword_crawling):
+        keyword_text = new_keyword.strip()
+        if not keyword_text:
             st.sidebar.warning("키워드를 입력해주세요.")
         else:
-            try:
-                with st.sidebar:
-                    with st.spinner("키워드 등록, 기사 크롤링 요청 중..."):
-                        result = api.keywords.create_keyword_and_crawl(new_keyword.strip())
+            holder = {"done": False, "result": None, "error": None}
+            st.session_state["_keyword_crawl_holder"] = holder
+            st.session_state["is_keyword_crawling"] = True
+            st.session_state["keyword_crawl_start_time"] = time.time()
+            st.session_state["keyword_crawl_msg"] = None
 
-                created_keyword = result.get("keyword", {})
-                created_keyword_id = created_keyword.get("id")
-                created_keyword_name = created_keyword.get("keyword", new_keyword.strip())
+            def _create_and_crawl():
+                try:
+                    r = api.keywords.create_keyword_and_crawl(keyword_text)
+                    holder["result"] = r
+                except Exception as e:
+                    holder["error"] = str(e)
+                finally:
+                    holder["done"] = True
 
-                if created_keyword_id:
-                    set_selected_keyword(created_keyword_id, created_keyword_name)
-                    reset_chat()
-
-                st.sidebar.success("키워드 등록 및 크롤링 요청 완료!")
-                st.rerun()
-
-            except Exception as e:
-                st.sidebar.error(f"추가 실패: {e}")
+            threading.Thread(target=_create_and_crawl, daemon=True).start()
+            st.rerun()
 
     selected_name = st.session_state.get("selected_keyword_name")
     if selected_name:
         st.sidebar.caption(f"현재 선택: {selected_name}")
 
-    # ✅ 채팅 세션을 사이드바 하단에 배치
     render_chat_session_sidebar()

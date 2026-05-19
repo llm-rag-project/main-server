@@ -16,6 +16,7 @@ class AIChatResponse(BaseModel):
 
 class SummaryRequest(BaseModel):
     article_id: int
+    job_id: Optional[str] = None  # 프론트에서 미리 생성한 UUID (진행률 폴링용)
 
 
 class SummaryResponse(BaseModel):

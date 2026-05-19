@@ -62,13 +62,21 @@ async def summarize_article(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user_or_dev_user),
 ):
+    from app.core.job_store import complete_job, create_job, fail_job, update_job
+
+    job_id = create_job("summary", job_id=payload.job_id)
+    update_job(job_id, progress=5, message="기사 정보 조회 중...")
+
     dify_service = get_dify_service()
     article_service = ArticleService(db)
     summary_service = SummaryService(db)
 
     article = await article_service.get_article_by_id(payload.article_id)
     if not article:
+        fail_job(job_id, "기사를 찾을 수 없습니다.")
         raise build_error(ErrorCode.NOT_FOUND, "기사를 찾을 수 없습니다.")
+
+    update_job(job_id, progress=15, message="🤖 Dify 요약 워크플로우 호출 중...")
 
     try:
         result = await dify_service.run_summary_workflow(
@@ -78,11 +86,15 @@ async def summarize_article(
             content=article.content or "",
         )
     except Exception as e:
+        fail_job(job_id, f"요약 workflow 호출 실패: {e}")
         raise build_error(ErrorCode.UPSTREAM_ERROR, f"요약 workflow 호출 실패: {e}")
 
     summary_text = result.get("summary")
     if not summary_text:
+        fail_job(job_id, "요약 결과를 찾을 수 없습니다.")
         raise build_error(ErrorCode.UPSTREAM_ERROR, "요약 결과를 찾을 수 없습니다.")
+
+    update_job(job_id, progress=85, message="💾 요약 결과 저장 중...")
 
     try:
         saved = await summary_service.save_summary(
@@ -95,13 +107,16 @@ async def summarize_article(
         await db.refresh(saved)
     except Exception as e:
         await db.rollback()
+        fail_job(job_id, f"요약 저장 실패: {e}")
         raise build_error(ErrorCode.UPSTREAM_ERROR, f"요약 저장 실패: {e}")
 
+    complete_job(job_id)
     return success_response(request, data={
         "article_id": saved.article_id,
         "summary_text": saved.summary_text,
         "language": saved.language,
         "model_name": saved.model_name,
+        "job_id": job_id,
     })
 
 

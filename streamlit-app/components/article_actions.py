@@ -1,23 +1,23 @@
 import threading
 import time
+import uuid
 
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
 from api.articles import get_articles
-from api.client import api_get
+from api.client import api_get, get_job_status
 from api.crawl_runs import create_crawl_run
 from utils.ai_response_parser import extract_scoring_result
 
 
-# 예상 소요 시간(초) — 진행률 바 계산용
-_EXPECTED_SECONDS = 360  # 6분
-
-
 def _start_scoring(keyword_id: int) -> None:
-    """백그라운드 스레드로 중요도 계산 시작"""
+    """백그라운드 스레드로 중요도 계산 시작. job_id를 미리 생성해 폴링에 사용."""
+    job_id = str(uuid.uuid4())
     holder = {"done": False, "result": None, "error": None}
+
     st.session_state["_scoring_holder"] = holder
+    st.session_state["scoring_job_id"] = job_id
     st.session_state["is_scoring"] = True
     st.session_state["scoring_start_time"] = time.time()
     st.session_state["article_scoring_result"] = None
@@ -25,7 +25,7 @@ def _start_scoring(keyword_id: int) -> None:
 
     def _run():
         try:
-            r = request_articles_scoring(keyword_id=keyword_id)
+            r = request_articles_scoring(keyword_id=keyword_id, job_id=job_id)
             holder["result"] = r
         except Exception as e:
             holder["error"] = str(e)
@@ -38,6 +38,7 @@ def _start_scoring(keyword_id: int) -> None:
 def _finish_scoring(holder: dict) -> None:
     """계산 완료 후 결과 처리"""
     st.session_state["is_scoring"] = False
+    st.session_state["scoring_job_id"] = None
     error = holder.get("error")
     result = holder.get("result")
 
@@ -71,28 +72,68 @@ def _finish_scoring(holder: dict) -> None:
         st.session_state["scoring_msg"] = ("error", "중요도 계산 결과가 없습니다. Dify 워크플로우 로그를 확인하세요.")
 
 
-def _get_stage_message(elapsed: int) -> str:
-    """경과 시간 기반 단계 메시지"""
-    if elapsed < 20:
-        return "📋 기사 데이터 준비 중..."
-    elif elapsed < 150:
-        return "🤖 AI 분석 중 (영향 범위 · 시급성 · 파급력 판단)..."
-    else:
-        return "📊 점수 산출 중 (피드백 반영 및 최종 점수 계산)..."
-
-
 def render_article_action_buttons():
     # ── 수동 크롤링 ────────────────────────────────────────────
     st.subheader("🔍 크롤링")
     st.caption("활성화된 모든 키워드의 최신 기사를 즉시 수집합니다. (자동: 매일 오전 8시)")
 
-    if st.button("수동 크롤링 실행", width="stretch"):
-        try:
-            with st.spinner("크롤링 중..."):
-                create_crawl_run(force=True)
-            st.success("✅ 크롤링이 시작되었습니다. 잠시 후 기사 목록을 새로고침하세요.")
-        except Exception as e:
-            st.error(f"크롤링 실패: {e}")
+    is_crawling = st.session_state.get("is_manual_crawling", False)
+
+    # 백그라운드 작업 완료 여부 확인
+    if is_crawling:
+        holder = st.session_state.get("_crawl_holder", {})
+        if holder.get("done"):
+            st.session_state["is_manual_crawling"] = False
+            is_crawling = False
+            error = holder.get("error")
+            if error:
+                st.session_state["crawl_msg"] = ("error", f"크롤링 실패: {error}")
+            else:
+                st.session_state["crawl_msg"] = ("success", "✅ 크롤링이 완료되었습니다. 기사 목록을 새로고침하세요.")
+            st.rerun()
+
+    if st.button("수동 크롤링 실행", width="stretch", disabled=is_crawling):
+        holder = {"done": False, "result": None, "error": None}
+        st.session_state["_crawl_holder"] = holder
+        st.session_state["is_manual_crawling"] = True
+        st.session_state["crawl_start_time"] = time.time()
+        st.session_state["crawl_msg"] = None
+
+        def _crawl():
+            try:
+                r = create_crawl_run(force=True)
+                holder["result"] = r
+            except Exception as e:
+                holder["error"] = str(e)
+            finally:
+                holder["done"] = True
+
+        threading.Thread(target=_crawl, daemon=True).start()
+        st.rerun()
+
+    # 크롤링 중 진행 상황 표시
+    if is_crawling:
+        elapsed = int(time.time() - st.session_state.get("crawl_start_time", time.time()))
+        mins, secs = divmod(elapsed, 60)
+        time_str = f"{mins}분 {secs}초" if mins > 0 else f"{secs}초"
+        st.info(f"🌐 크롤링 중... **{time_str}** 경과")
+        if elapsed < 10:
+            st.caption("📋 크롤링 요청 전송 중...")
+        elif elapsed < 60:
+            st.caption("🔍 기사 수집 중...")
+        else:
+            st.caption("💾 기사 저장 중...")
+        time.sleep(1)
+        st.rerun()
+
+    # 결과 메시지
+    crawl_msg = st.session_state.get("crawl_msg")
+    if crawl_msg:
+        kind, text = crawl_msg
+        if kind == "success":
+            st.success(text)
+        else:
+            st.error(text)
 
     st.markdown("---")
 
@@ -132,17 +173,29 @@ def render_article_action_buttons():
         _start_scoring(selected_keyword_id)
         st.rerun()
 
-    # 계산 중 진행 상황 표시
+    # ── 계산 중 진행 상황 (실시간 백엔드 폴링) ──────────────────
     if is_scoring:
         elapsed = int(time.time() - st.session_state.get("scoring_start_time", time.time()))
-        progress_ratio = min(elapsed / _EXPECTED_SECONDS, 0.95)
-
         mins, secs = divmod(elapsed, 60)
         time_str = f"{mins}분 {secs}초" if mins > 0 else f"{secs}초"
 
+        job_id = st.session_state.get("scoring_job_id")
+        progress_ratio = 0.0
+        message = "AI 분석 요청 중..."
+
+        if job_id:
+            try:
+                job = get_job_status(job_id)
+                raw_progress = job.get("progress", 0)
+                progress_ratio = min(raw_progress / 100, 0.99)  # 완료 전엔 99%까지만
+                message = job.get("message", message)
+            except Exception:
+                # 폴링 실패 시 시간 기반 fallback
+                progress_ratio = min(elapsed / 360, 0.95)
+
         st.info(f"⏳ 중요도 계산 중... **{time_str}** 경과")
         st.progress(progress_ratio)
-        st.caption(_get_stage_message(elapsed))
+        st.caption(message)
 
         time.sleep(1)
         st.rerun()

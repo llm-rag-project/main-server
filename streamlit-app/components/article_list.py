@@ -1,3 +1,7 @@
+import threading
+import time
+import uuid
+
 import streamlit as st
 
 from api.ai_actions import request_article_summary
@@ -6,6 +10,7 @@ from api.articles import (
     get_article_importance,
     get_articles,
 )
+from api.client import get_job_status
 from api.importance import submit_scoring_feedback
 from utils.ai_response_parser import extract_summary_text
 
@@ -51,6 +56,20 @@ def render_article_list():
         )
         importance = article.get("importance")
 
+        # ── 요약 백그라운드 완료 여부 확인 ──────────────────────
+        is_summarizing = st.session_state.get(f"is_summarizing_{article_id}", False)
+        if is_summarizing:
+            holder = st.session_state.get(f"_summary_holder_{article_id}", {})
+            if holder.get("done"):
+                st.session_state[f"is_summarizing_{article_id}"] = False
+                st.session_state[f"summary_job_id_{article_id}"] = None
+                if holder.get("error"):
+                    st.session_state[f"summary_error_{article_id}"] = holder["error"]
+                elif holder.get("result"):
+                    st.session_state[f"article_summary_{article_id}"] = extract_summary_text(holder["result"])
+                    st.session_state.pop(f"summary_error_{article_id}", None)
+                st.rerun()
+
         with st.container(border=True):
             st.markdown(f"**{title}**")
             st.caption(f"{source} | {published_at}")
@@ -70,12 +89,30 @@ def render_article_list():
                 except Exception as e:
                     st.error(f"상세 조회 실패: {e}")
 
-            if col2.button("AI 요약", key=f"summary_{article_id}"):
-                try:
-                    result = request_article_summary(article_id)
-                    st.session_state[f"article_summary_{article_id}"] = extract_summary_text(result)
-                except Exception as e:
-                    st.error(f"요약 요청 실패: {e}")
+            # ── AI 요약 버튼 ──────────────────────────────────────
+            if col2.button(
+                "⏳ 요약 중..." if is_summarizing else "AI 요약",
+                key=f"summary_{article_id}",
+                disabled=is_summarizing,
+            ):
+                job_id = str(uuid.uuid4())
+                holder = {"done": False, "result": None, "error": None}
+                st.session_state[f"_summary_holder_{article_id}"] = holder
+                st.session_state[f"summary_job_id_{article_id}"] = job_id
+                st.session_state[f"is_summarizing_{article_id}"] = True
+                st.session_state.pop(f"summary_error_{article_id}", None)
+
+                def _summarize(aid=article_id, jid=job_id, h=holder):
+                    try:
+                        result = request_article_summary(aid, job_id=jid)
+                        h["result"] = result
+                    except Exception as e:
+                        h["error"] = str(e)
+                    finally:
+                        h["done"] = True
+
+                threading.Thread(target=_summarize, daemon=True).start()
+                st.rerun()
 
             if col3.button("AI 중요도 조회", key=f"importance_{article_id}"):
                 try:
@@ -86,11 +123,35 @@ def render_article_list():
             if url:
                 st.link_button("원문 링크", url)
 
+            # ── 요약 진행 중 실시간 표시 ──────────────────────────
+            if is_summarizing:
+                job_id = st.session_state.get(f"summary_job_id_{article_id}")
+                progress_ratio = 0.0
+                message = "🤖 AI 요약 요청 중..."
+
+                if job_id:
+                    try:
+                        job = get_job_status(job_id)
+                        raw_progress = job.get("progress", 0)
+                        progress_ratio = min(raw_progress / 100, 0.99)
+                        message = job.get("message", message)
+                    except Exception:
+                        pass  # 폴링 실패 시 기본 메시지 유지
+
+                st.progress(progress_ratio)
+                st.caption(message)
+                time.sleep(1)
+                st.rerun()
+
             # ── 결과 표시 ─────────────────────────────────────────────
             detail_data = st.session_state.get(f"article_detail_{article_id}")
             if detail_data:
                 st.markdown("##### 기사 상세")
                 st.json(detail_data)
+
+            summary_error = st.session_state.get(f"summary_error_{article_id}")
+            if summary_error:
+                st.error(f"요약 실패: {summary_error}")
 
             summary_data = st.session_state.get(f"article_summary_{article_id}")
             if summary_data:

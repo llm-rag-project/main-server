@@ -58,24 +58,42 @@ async def run_importance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    from app.core.job_store import complete_job, create_job, fail_job, update_job
     from app.repositories.article_repository import ArticleRepository
+
+    # 프론트에서 전달한 job_id 사용 (없으면 자동 생성)
+    job_id = create_job("importance_scoring", job_id=payload.job_id)
+    update_job(job_id, progress=3, message="키워드 기사 목록 조회 중...")
+
     article_repo = ArticleRepository(db)
     article_ids = await article_repo.get_article_ids_by_keyword(
         user_id=current_user.id,
         keyword_id=payload.keyword_id,
     )
     if not article_ids:
+        complete_job(job_id, result={"items": [], "already_scored_count": 0, "remaining_count": 0})
         return success_response(request=request, data={
             "items": [],
             "already_scored_count": 0,
             "remaining_count": 0,
+            "job_id": job_id,
         })
+
+    update_job(job_id, progress=5, message=f"총 {len(article_ids)}건 기사 조회 완료, 채점 시작...")
+
     service = ImportanceService(db)
-    result = await service.run_importance_scoring(
-        user_id=current_user.id,
-        article_ids=article_ids,
-    )
-    return success_response(request=request, data=result)
+    try:
+        result = await service.run_importance_scoring(
+            user_id=current_user.id,
+            article_ids=article_ids,
+            job_id=job_id,
+        )
+    except Exception as e:
+        fail_job(job_id, str(e))
+        raise
+
+    complete_job(job_id, result=result)
+    return success_response(request=request, data={**result, "job_id": job_id})
 
 
 @router.post("/feedback")

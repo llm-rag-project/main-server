@@ -71,6 +71,7 @@ class ImportanceWorkflowArticleInput(BaseModel):
 
 class ImportanceRunRequest(BaseModel):
     keyword_id: int = Field(ge=1)
+    job_id: Optional[str] = None  # 프론트에서 미리 생성한 UUID (진행률 폴링용)
 
 
 class ImportanceRunItem(BaseModel):

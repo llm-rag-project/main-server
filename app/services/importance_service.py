@@ -108,13 +108,27 @@ class ImportanceService:
     _DIFY_BATCH_SIZE = 9
     _SCORING_LIMIT = 10
 
-    async def run_importance_scoring(self, user_id: int, article_ids: list[int]) -> dict:
+    async def run_importance_scoring(
+        self,
+        user_id: int,
+        article_ids: list[int],
+        job_id: str | None = None,
+    ) -> dict:
+        from app.core.job_store import update_job
+
+        def _upd(progress: int, message: str) -> None:
+            """job_id가 있을 때만 진행률 업데이트."""
+            if job_id:
+                update_job(job_id, progress=progress, message=message)
+
+        _upd(5, "기사 접근 권한 확인 중...")
         await self.article_repository.validate_articles_exist_and_accessible(
             user_id=user_id,
             article_ids=article_ids,
         )
 
         # 이미 채점된 기사 제외
+        _upd(10, "이미 채점된 기사 확인 중...")
         already_scored = await self.importance_repository.get_already_scored_article_ids(
             user_id=user_id,
             article_ids=article_ids,
@@ -124,6 +138,12 @@ class ImportanceService:
         # 최대 10건만 처리
         ids_to_score = unscored_ids[: self._SCORING_LIMIT]
         remaining_count = len(unscored_ids) - len(ids_to_score)
+
+        _upd(
+            15,
+            f"채점 대상 {len(ids_to_score)}건 확인 완료"
+            + (f" (이미 채점 {len(already_scored)}건 제외)" if already_scored else ""),
+        )
 
         articles = await self.article_repository.get_articles_for_importance_scoring(
             user_id=user_id,
@@ -142,8 +162,16 @@ class ImportanceService:
                 articles[i: i + self._DIFY_BATCH_SIZE]
                 for i in range(0, len(articles), self._DIFY_BATCH_SIZE)
             ]
+            total_batches = len(batches)
 
-            for batch in batches:
+            for batch_idx, batch in enumerate(batches):
+                # 진행률: 20% ~ 90% 구간을 배치 수로 균등 분배
+                progress_before = 20 + int((batch_idx / total_batches) * 70)
+                _upd(
+                    progress_before,
+                    f"🤖 AI 분석 중... 배치 {batch_idx + 1}/{total_batches} 처리 중",
+                )
+
                 articles_payload = json.dumps(
                     [
                         {
@@ -167,6 +195,13 @@ class ImportanceService:
 
                 if not items or not isinstance(items, list):
                     raise build_error(ErrorCode.UPSTREAM_ERROR, "Dify returned empty or invalid items")
+
+                progress_after = 20 + int(((batch_idx + 1) / total_batches) * 70)
+                completed_count = sum(len(batches[i]) for i in range(batch_idx + 1))
+                _upd(
+                    progress_after,
+                    f"✅ 배치 {batch_idx + 1}/{total_batches} 완료 — {completed_count}건 처리",
+                )
 
                 for item in items:
                     article_id = item.get("article_id")
@@ -193,6 +228,7 @@ class ImportanceService:
                         }
                     )
 
+        _upd(95, "💾 결과 저장 중...")
         await self.db.commit()
 
         return {

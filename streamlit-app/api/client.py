@@ -100,3 +100,8 @@ def api_patch(path: str, data: Optional[Dict[str, Any]] = None, with_auth: bool 
 
 def api_delete(path: str, with_auth: bool = True) -> Any:
     return _request("DELETE", BASE_URL, path, with_auth=with_auth)
+
+
+def get_job_status(job_id: str) -> dict:
+    """백엔드 job 진행상황 폴링. 반환: {status, progress, message, ...}"""
+    return api_get(f"/jobs/{job_id}")
