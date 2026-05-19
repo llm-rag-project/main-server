@@ -121,14 +121,14 @@ class ImportanceService:
             if job_id:
                 update_job(job_id, progress=progress, message=message)
 
-        _upd(5, "기사 접근 권한 확인 중...")
+        _upd(5, "🔐 기사 접근 권한을 확인하고 있어요...")
         await self.article_repository.validate_articles_exist_and_accessible(
             user_id=user_id,
             article_ids=article_ids,
         )
 
         # 이미 채점된 기사 제외
-        _upd(10, "이미 채점된 기사 확인 중...")
+        _upd(10, "🔍 이미 분석된 기사가 있는지 확인하고 있어요...")
         already_scored = await self.importance_repository.get_already_scored_article_ids(
             user_id=user_id,
             article_ids=article_ids,
@@ -139,11 +139,8 @@ class ImportanceService:
         ids_to_score = unscored_ids[: self._SCORING_LIMIT]
         remaining_count = len(unscored_ids) - len(ids_to_score)
 
-        _upd(
-            15,
-            f"채점 대상 {len(ids_to_score)}건 확인 완료"
-            + (f" (이미 채점 {len(already_scored)}건 제외)" if already_scored else ""),
-        )
+        skip_msg = f" (이미 분석된 {len(already_scored)}건은 건너뛸게요)" if already_scored else ""
+        _upd(15, f"✅ 새로 분석할 기사 {len(ids_to_score)}건을 찾았어요!{skip_msg}")
 
         articles = await self.article_repository.get_articles_for_importance_scoring(
             user_id=user_id,
@@ -167,10 +164,7 @@ class ImportanceService:
             for batch_idx, batch in enumerate(batches):
                 # 진행률: 20% ~ 90% 구간을 배치 수로 균등 분배
                 progress_before = 20 + int((batch_idx / total_batches) * 70)
-                _upd(
-                    progress_before,
-                    f"🤖 AI 분석 중... 배치 {batch_idx + 1}/{total_batches} 처리 중",
-                )
+                _upd(progress_before, "🤖 AI가 기사를 꼼꼼하게 읽고 중요도를 판단하고 있어요...")
 
                 articles_payload = json.dumps(
                     [
@@ -198,10 +192,11 @@ class ImportanceService:
 
                 progress_after = 20 + int(((batch_idx + 1) / total_batches) * 70)
                 completed_count = sum(len(batches[i]) for i in range(batch_idx + 1))
-                _upd(
-                    progress_after,
-                    f"✅ 배치 {batch_idx + 1}/{total_batches} 완료 — {completed_count}건 처리",
-                )
+                remaining_batches = total_batches - (batch_idx + 1)
+                if remaining_batches > 0:
+                    _upd(progress_after, f"📊 {completed_count}건 분석 완료! 나머지 기사도 계속 분석할게요...")
+                else:
+                    _upd(progress_after, f"🎉 {completed_count}건 분석이 모두 끝났어요! 결과를 저장하고 있어요...")
 
                 for item in items:
                     article_id = item.get("article_id")
@@ -228,7 +223,7 @@ class ImportanceService:
                         }
                     )
 
-        _upd(95, "💾 결과 저장 중...")
+        _upd(95, "💾 분석 결과를 저장하고 있어요, 거의 다 됐어요!")
         await self.db.commit()
 
         return {

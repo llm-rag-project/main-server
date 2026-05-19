@@ -63,7 +63,7 @@ async def run_importance(
 
     # 프론트에서 전달한 job_id 사용 (없으면 자동 생성)
     job_id = create_job("importance_scoring", job_id=payload.job_id)
-    update_job(job_id, progress=3, message="키워드 기사 목록 조회 중...")
+    update_job(job_id, progress=3, message="📋 분석할 기사 목록을 불러오고 있어요...")
 
     article_repo = ArticleRepository(db)
     article_ids = await article_repo.get_article_ids_by_keyword(
@@ -79,7 +79,7 @@ async def run_importance(
             "job_id": job_id,
         })
 
-    update_job(job_id, progress=5, message=f"총 {len(article_ids)}건 기사 조회 완료, 채점 시작...")
+    update_job(job_id, progress=5, message=f"📰 기사 {len(article_ids)}건 확인! AI 분석을 시작할게요...")
 
     service = ImportanceService(db)
     try:

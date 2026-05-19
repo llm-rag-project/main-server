@@ -91,13 +91,25 @@ def render_article_list():
 
         medal = rank_map.get(article_id, "")
         with st.container(border=True):
-            prefix = f"{medal} " if medal else ""
-            st.markdown(f"**{prefix}{title}**")
+            if medal:
+                # 순위권 기사: 이모지 크게 + 제목 굵고 크게
+                st.markdown(
+                    f"<div style='font-size:1.25rem; font-weight:700; line-height:1.4'>"
+                    f"<span style='font-size:1.6rem'>{medal}</span>&nbsp;{title}"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(f"**{title}**")
             st.caption(f"{source} | {published_at}")
 
             if importance is not None:
-                col_imp, _ = st.columns([1, 3])
-                col_imp.metric("AI 중요도", f"{importance:.0f}점" if isinstance(importance, (int, float)) else importance)
+                imp_label = f"{importance:.0f}점" if isinstance(importance, (int, float)) else str(importance)
+                st.markdown(
+                    f"<span style='font-size:0.8rem; color:#555;'>AI 중요도&nbsp;</span>"
+                    f"<span style='font-size:0.95rem; font-weight:600; color:#1a1a1a;'>{imp_label}</span>",
+                    unsafe_allow_html=True,
+                )
 
             if summary:
                 st.write(summary)

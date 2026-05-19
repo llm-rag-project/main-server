@@ -65,7 +65,7 @@ async def summarize_article(
     from app.core.job_store import complete_job, create_job, fail_job, update_job
 
     job_id = create_job("summary", job_id=payload.job_id)
-    update_job(job_id, progress=5, message="기사 정보 조회 중...")
+    update_job(job_id, progress=5, message="📰 기사 내용을 불러오고 있어요...")
 
     dify_service = get_dify_service()
     article_service = ArticleService(db)
@@ -76,7 +76,7 @@ async def summarize_article(
         fail_job(job_id, "기사를 찾을 수 없습니다.")
         raise build_error(ErrorCode.NOT_FOUND, "기사를 찾을 수 없습니다.")
 
-    update_job(job_id, progress=15, message="🤖 Dify 요약 워크플로우 호출 중...")
+    update_job(job_id, progress=15, message="🤖 AI가 기사를 읽고 핵심 내용을 정리하고 있어요...")
 
     try:
         result = await dify_service.run_summary_workflow(
@@ -94,7 +94,7 @@ async def summarize_article(
         fail_job(job_id, "요약 결과를 찾을 수 없습니다.")
         raise build_error(ErrorCode.UPSTREAM_ERROR, "요약 결과를 찾을 수 없습니다.")
 
-    update_job(job_id, progress=85, message="💾 요약 결과 저장 중...")
+    update_job(job_id, progress=85, message="✍️ 요약이 완성됐어요! 저장하고 있어요...")
 
     try:
         saved = await summary_service.save_summary(

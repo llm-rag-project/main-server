@@ -11,8 +11,18 @@ def render_chat_box():
     if "chat_conversation_id" not in st.session_state:
         st.session_state["chat_conversation_id"] = ""
 
+    chat_id = st.session_state.get("selected_chat_id")
+
+    # 세션 미선택 시 안내
+    if not chat_id:
+        st.warning(
+            "💬 **채팅을 시작하려면 먼저 왼쪽 사이드바에서 채팅 세션을 선택하거나 새로 만들어 주세요.**",
+        )
+        st.chat_input("채팅 세션을 먼저 선택해 주세요", disabled=True)
+        return
+
     if not st.session_state["chat_messages"]:
-        st.info("질문을 입력하면 AI 응답이 표시됩니다.")
+        st.info("💬 질문을 입력하면 AI 응답이 표시됩니다.\n\n📌 채팅 세션별로 대화 내역이 구분되니, 왼쪽 사이드바에서 원하는 세션을 선택해 주세요.")
 
     for msg in st.session_state["chat_messages"]:
         with st.chat_message(msg["role"]):
@@ -23,7 +33,6 @@ def render_chat_box():
     if prompt:
         selected_article_id = st.session_state.get("selected_article_id")
         conversation_id = st.session_state.get("chat_conversation_id", "")
-        chat_id = st.session_state.get("selected_chat_id")
 
         st.session_state["chat_messages"].append({
             "role": "user",
@@ -33,9 +42,6 @@ def render_chat_box():
         with st.chat_message("assistant"):
             with st.spinner("응답 생성 중..."):
                 try:
-                    if not chat_id:
-                        raise ValueError("선택된 채팅방이 없습니다. 먼저 채팅방을 선택하거나 생성하세요.")
-
                     result = send_chat_message(
                         chat_id=chat_id,
                         message=prompt,
