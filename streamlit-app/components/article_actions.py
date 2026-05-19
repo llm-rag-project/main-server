@@ -1,10 +1,7 @@
-from datetime import datetime
-
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
 from api.articles import get_articles
-from api.reports import download_daily_report, send_report_email
 from utils.ai_response_parser import (
     extract_scoring_result,
     extract_error_message,
@@ -88,68 +85,6 @@ def render_article_action_buttons():
             st.warning(text)
         else:
             st.error(text)
-
-    st.markdown("---")
-
-    # ── 데일리 리포트 Excel 다운로드 ──────────────────────────
-    st.subheader("📥 데일리 리포트")
-    st.caption("현재 선택된 키워드의 기사·중요도·요약을 Excel로 다운로드합니다.")
-
-    try:
-        excel_bytes = download_daily_report(keyword_id=selected_keyword_id)
-        today_str = datetime.now().strftime("%Y-%m-%d")
-        st.download_button(
-            label="Excel 다운로드",
-            data=excel_bytes,
-            file_name=f"daily_report_{today_str}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            width="stretch",
-        )
-    except Exception as e:
-        st.error(f"리포트 생성 실패: {e}")
-
-    st.markdown("---")
-
-    # ── 이메일 발송 ────────────────────────────────────────────
-    st.subheader("📧 이메일 발송")
-    st.caption("데일리 리포트를 Excel 첨부 파일로 이메일 전송합니다.")
-
-    email_input = st.text_area(
-        "수신자 이메일 (여러 명이면 줄바꿈 또는 쉼표로 구분)",
-        placeholder="example@gmail.com\nanother@example.com",
-        height=100,
-        key="email_recipients_input",
-    )
-
-    if st.button("이메일 발송", width="stretch"):
-        raw = email_input.strip()
-        if not raw:
-            st.error("수신자 이메일을 입력해 주세요.")
-        else:
-            # 줄바꿈 또는 쉼표로 분리, 공백 제거, 빈 항목 제거
-            to_emails = [e.strip() for e in raw.replace(",", "\n").splitlines() if e.strip()]
-            if not to_emails:
-                st.error("유효한 이메일 주소를 입력해 주세요.")
-            else:
-                selected_keyword = st.session_state.get("selected_keyword_name")
-                try:
-                    with st.spinner("이메일 발송 중..."):
-                        result = send_report_email(
-                            to_emails=to_emails,
-                            keyword_id=selected_keyword_id,
-                            keyword_name=selected_keyword,
-                        )
-                    sent_to = result.get("data", {}).get("sent_to", to_emails)
-                    article_count = result.get("data", {}).get("article_count", 0)
-                    st.success(
-                        f"✅ {len(sent_to)}명에게 데일리 리포트({article_count}건)를 발송했습니다."
-                    )
-                except Exception as e:
-                    err_str = str(e)
-                    if "SMTP" in err_str or "smtp" in err_str:
-                        st.error("SMTP 설정이 올바르지 않습니다. 서버의 .env 파일을 확인해 주세요.")
-                    else:
-                        st.error(f"이메일 발송 실패: {e}")
 
     render_scoring_result()
 
