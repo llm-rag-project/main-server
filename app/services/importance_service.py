@@ -106,6 +106,7 @@ class ImportanceService:
         return result
 
     _DIFY_BATCH_SIZE = 9
+    _SCORING_LIMIT = 10
 
     async def run_importance_scoring(self, user_id: int, article_ids: list[int]) -> dict:
         await self.article_repository.validate_articles_exist_and_accessible(
@@ -113,10 +114,21 @@ class ImportanceService:
             article_ids=article_ids,
         )
 
-        articles = await self.article_repository.get_articles_for_importance_scoring(
+        # 이미 채점된 기사 제외
+        already_scored = await self.importance_repository.get_already_scored_article_ids(
             user_id=user_id,
             article_ids=article_ids,
         )
+        unscored_ids = [aid for aid in article_ids if aid not in already_scored]
+
+        # 최대 10건만 처리
+        ids_to_score = unscored_ids[: self._SCORING_LIMIT]
+        remaining_count = len(unscored_ids) - len(ids_to_score)
+
+        articles = await self.article_repository.get_articles_for_importance_scoring(
+            user_id=user_id,
+            article_ids=ids_to_score,
+        ) if ids_to_score else []
 
         saved_items = []
 
@@ -183,4 +195,8 @@ class ImportanceService:
 
         await self.db.commit()
 
-        return {"items": saved_items}
+        return {
+            "items": saved_items,
+            "already_scored_count": len(already_scored),
+            "remaining_count": remaining_count,
+        }

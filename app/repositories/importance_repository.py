@@ -166,6 +166,23 @@ class ImportanceRepository:
         row = result.mappings().first()
         return dict(row) if row else None
 
+    async def get_already_scored_article_ids(
+        self,
+        user_id: int,
+        article_ids: list[int],
+    ) -> set[int]:
+        """이미 current 점수가 존재하는 article_id 집합 반환"""
+        if not article_ids:
+            return set()
+        stmt = (
+            select(ImportanceScore.article_id)
+            .where(ImportanceScore.user_id == user_id)
+            .where(ImportanceScore.article_id.in_(article_ids))
+            .where(ImportanceScore.is_current.is_(True))
+        )
+        result = await self.db.execute(stmt)
+        return {row[0] for row in result.all()}
+
     async def save_scoring_feedback(
         self,
         user_id: int,

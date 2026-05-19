@@ -54,8 +54,18 @@ def render_article_action_buttons():
             scoring_items = extract_scoring_result(result)
             st.session_state["article_scoring_result"] = scoring_items
 
+            remaining = result.get("remaining_count", 0) if isinstance(result, dict) else 0
+            already = result.get("already_scored_count", 0) if isinstance(result, dict) else 0
+
             if scoring_items:
-                st.session_state["scoring_msg"] = ("success", f"중요도 계산이 완료되었습니다. ({len(scoring_items)}건)")
+                msg = f"중요도 계산이 완료되었습니다. ({len(scoring_items)}건 계산)"
+                if already:
+                    msg += f" | 기계산 {already}건 건너뜀"
+                if remaining:
+                    msg += f" | 미계산 {remaining}건 남음 (버튼을 다시 눌러 계속 계산)"
+                st.session_state["scoring_msg"] = ("success", msg)
+            elif already and not scoring_items:
+                st.session_state["scoring_msg"] = ("success", f"모든 기사({already}건)가 이미 계산되어 있습니다.")
             else:
                 st.session_state["scoring_msg"] = ("error", "중요도 계산 결과가 없습니다. Dify 워크플로우 로그를 확인하세요.")
 
