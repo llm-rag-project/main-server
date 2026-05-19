@@ -4,6 +4,7 @@ from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 
 from app.core.config import settings
 
@@ -47,7 +48,7 @@ AI 기사 모니터링 시스템
 """.strip()
 
         msg = MIMEMultipart()
-        msg["From"] = self.from_addr
+        msg["From"] = formataddr(("뉴스 모니터링 서비스", self.from_addr))
         msg["To"] = ", ".join(to_emails)
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain", "utf-8"))

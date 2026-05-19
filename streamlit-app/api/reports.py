@@ -41,4 +41,6 @@ def send_report_email(
         timeout=60,
     )
     response.raise_for_status()
-    return response.json()
+    body = response.json()
+    # 다른 API 함수들과 동일하게 {"success": true, "data": {...}} 에서 data를 꺼냄
+    return body.get("data", body) if isinstance(body, dict) else body
