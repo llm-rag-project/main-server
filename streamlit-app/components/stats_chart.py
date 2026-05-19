@@ -1,9 +1,12 @@
+import threading
+import time
 from datetime import datetime
 
-import streamlit as st
 import pandas as pd
-from api.stats import get_article_stats, get_search_volume
+import streamlit as st
+
 from api.reports import download_daily_report, send_report_email
+from api.stats import get_article_stats, get_search_volume
 
 
 @st.cache_data(ttl=300)  # 5분 캐시
@@ -139,37 +142,92 @@ def render_stats_charts():
     st.subheader("📧 이메일 발송")
     st.caption("데일리 리포트를 Excel 첨부 파일로 이메일 전송합니다.")
 
+    is_sending = st.session_state.get("is_sending_email", False)
+
+    # 백그라운드 작업 완료 여부 확인
+    if is_sending:
+        holder = st.session_state.get("_email_holder", {})
+        if holder.get("done"):
+            st.session_state["is_sending_email"] = False
+            is_sending = False
+            error = holder.get("error")
+            result = holder.get("result")
+            if error:
+                err_str = error
+                if "SMTP" in err_str or "smtp" in err_str:
+                    st.session_state["email_msg"] = ("error", "SMTP 설정이 올바르지 않습니다. 서버의 .env 파일을 확인해 주세요.")
+                else:
+                    st.session_state["email_msg"] = ("error", f"이메일 발송 실패: {err_str}")
+            elif result:
+                sent_to = result.get("sent_to", [])
+                article_count = result.get("article_count", 0)
+                st.session_state["email_msg"] = (
+                    "success",
+                    f"✅ {len(sent_to)}명에게 데일리 리포트({article_count}건)를 발송했습니다.",
+                )
+            st.rerun()
+
     email_input = st.text_area(
         "수신자 이메일 (여러 명이면 줄바꿈 또는 쉼표로 구분)",
         placeholder="example@gmail.com\nanother@example.com",
         height=100,
         key="email_recipients_input",
+        disabled=is_sending,
     )
 
-    if st.button("이메일 발송", width="stretch"):
+    if st.button("이메일 발송", width="stretch", disabled=is_sending):
         raw = email_input.strip()
         if not raw:
-            st.error("수신자 이메일을 입력해 주세요.")
+            st.session_state["email_msg"] = ("error", "수신자 이메일을 입력해 주세요.")
+            st.rerun()
         else:
             to_emails = [e.strip() for e in raw.replace(",", "\n").splitlines() if e.strip()]
             if not to_emails:
-                st.error("유효한 이메일 주소를 입력해 주세요.")
+                st.session_state["email_msg"] = ("error", "유효한 이메일 주소를 입력해 주세요.")
+                st.rerun()
             else:
-                try:
-                    with st.spinner("이메일 발송 중..."):
-                        result = send_report_email(
+                holder = {"done": False, "result": None, "error": None}
+                st.session_state["_email_holder"] = holder
+                st.session_state["is_sending_email"] = True
+                st.session_state["email_start_time"] = time.time()
+                st.session_state["email_msg"] = None
+
+                def _send():
+                    try:
+                        r = send_report_email(
                             to_emails=to_emails,
                             keyword_id=selected_keyword_id,
                             keyword_name=selected_keyword_name,
                         )
-                    sent_to = result.get("data", {}).get("sent_to", to_emails)
-                    article_count = result.get("data", {}).get("article_count", 0)
-                    st.success(
-                        f"✅ {len(sent_to)}명에게 데일리 리포트({article_count}건)를 발송했습니다."
-                    )
-                except Exception as e:
-                    err_str = str(e)
-                    if "SMTP" in err_str or "smtp" in err_str:
-                        st.error("SMTP 설정이 올바르지 않습니다. 서버의 .env 파일을 확인해 주세요.")
-                    else:
-                        st.error(f"이메일 발송 실패: {e}")
+                        holder["result"] = r
+                    except Exception as e:
+                        holder["error"] = str(e)
+                    finally:
+                        holder["done"] = True
+
+                threading.Thread(target=_send, daemon=True).start()
+                st.rerun()
+
+    # 발송 중 진행 상황 표시
+    if is_sending:
+        elapsed = int(time.time() - st.session_state.get("email_start_time", time.time()))
+        mins, secs = divmod(elapsed, 60)
+        time_str = f"{mins}분 {secs}초" if mins > 0 else f"{secs}초"
+        st.info(f"📨 이메일 발송 중... **{time_str}** 경과")
+        if elapsed < 10:
+            st.caption("📋 리포트 데이터 조회 중...")
+        elif elapsed < 25:
+            st.caption("📊 Excel 파일 생성 중...")
+        else:
+            st.caption("📤 이메일 전송 중...")
+        time.sleep(1)
+        st.rerun()
+
+    # 결과 메시지
+    email_msg = st.session_state.get("email_msg")
+    if email_msg:
+        kind, text = email_msg
+        if kind == "success":
+            st.success(text)
+        else:
+            st.error(text)

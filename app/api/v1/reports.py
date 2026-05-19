@@ -2,7 +2,7 @@ import io
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -215,6 +215,7 @@ async def download_daily_report(
 
 @router.post("/email")
 async def send_daily_report_email(
+    request: Request,
     body: EmailReportRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
