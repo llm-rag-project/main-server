@@ -1,6 +1,8 @@
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
+from api.articles import get_articles
+from api.client import api_get
 from api.crawl_runs import create_crawl_run
 from utils.ai_response_parser import (
     extract_scoring_result,
@@ -26,6 +28,20 @@ def render_article_action_buttons():
     st.subheader("AI 작업")
 
     selected_keyword_id = st.session_state.get("selected_keyword_id")
+
+    # 미채점 기사 수 표시
+    if selected_keyword_id:
+        try:
+            _, page_info = get_articles(keyword_id=selected_keyword_id, page=1, size=1)
+            total_articles = page_info.get("total", 0) if page_info else 0
+
+            imp_result = api_get("/importance", params={"keyword_id": selected_keyword_id, "page": 1, "size": 1})
+            total_scored = imp_result.get("page_info", {}).get("total", 0) if isinstance(imp_result, dict) else 0
+
+            unscored = max(total_articles - total_scored, 0)
+            st.caption(f"전체 기사 {total_articles}건 중 미채점 **{unscored}건**")
+        except Exception:
+            pass
 
     scoring_disabled = selected_keyword_id is None
 
