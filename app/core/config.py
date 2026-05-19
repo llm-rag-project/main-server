@@ -32,6 +32,13 @@ class Settings(BaseSettings):
 
     crawl_scheduler_interval_minutes: int = Field(default=30, alias="CRAWL_SCHEDULER_INTERVAL_MINUTES")
 
+    # SMTP 이메일
+    smtp_host: str = Field(default="smtp.gmail.com", alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_user: str = Field(default="", alias="SMTP_USER")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    smtp_from: str = Field(default="", alias="SMTP_FROM")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
