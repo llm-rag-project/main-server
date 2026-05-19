@@ -391,6 +391,10 @@ async def send_daily_report_email(
     )
 
     return success_response(
-        data={"sent_to": body.to_emails, "article_count": len(rows)},
-        message=f"{len(body.to_emails)}명에게 데일리 리포트를 발송했습니다.",
+        request=request,
+        data={
+            "sent_to": body.to_emails,
+            "article_count": len(rows),
+            "message": f"{len(body.to_emails)}명에게 데일리 리포트를 발송했습니다.",
+        },
     )
