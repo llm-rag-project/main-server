@@ -70,7 +70,7 @@ class ImportanceWorkflowArticleInput(BaseModel):
 
 
 class ImportanceRunRequest(BaseModel):
-    article_ids: List[int] = Field(min_length=1)
+    keyword_id: int = Field(ge=1)
 
 
 class ImportanceRunItem(BaseModel):

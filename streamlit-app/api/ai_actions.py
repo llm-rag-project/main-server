@@ -8,8 +8,7 @@ def request_article_summary(article_id: int):
     })
 
 
-def request_articles_scoring(keyword_id: int, article_ids: list[int]):
-    return api_post("/ai/scoring", {
+def request_articles_scoring(keyword_id: int):
+    return api_post("/importance/run", {
         "keyword_id": keyword_id,
-        "article_ids": article_ids,
     })

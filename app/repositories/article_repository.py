@@ -509,6 +509,24 @@ class ArticleRepository:
             "article_id": article_id,
         }
     
+    async def get_article_ids_by_keyword(
+        self,
+        user_id: int,
+        keyword_id: int,
+    ) -> list[int]:
+        """키워드에 속한 모든 기사 ID를 반환 (최신순)"""
+        stmt = (
+            select(Article.id)
+            .select_from(Article)
+            .join(ArticleMatch, ArticleMatch.article_id == Article.id)
+            .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+            .where(ArticleMatch.keyword_id == keyword_id)
+            .where(Keyword.user_id == user_id)
+            .order_by(Article.id.desc())
+        )
+        result = await self.db.execute(stmt)
+        return [row[0] for row in result.all()]
+
     async def get_articles_for_importance_scoring(
         self,
         user_id: int,

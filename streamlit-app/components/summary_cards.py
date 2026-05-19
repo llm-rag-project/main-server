@@ -12,13 +12,13 @@ def render_summary_cards():
     importance_count = 0
 
     try:
-        articles, _ = get_articles(keyword_id=keyword_id, page=1, size=100)
-        article_count = len(articles)
+        _, page_info = get_articles(keyword_id=keyword_id, page=1, size=1)
+        article_count = page_info.get("total", 0) if page_info else 0
     except Exception:
-        articles = []
+        pass
 
     try:
-        params = {"page": 1, "size": 100}
+        params = {"page": 1, "size": 5}
         if keyword_id:
             params["keyword_id"] = keyword_id
 
@@ -26,9 +26,10 @@ def render_summary_cards():
 
         data = result.get("data") if isinstance(result, dict) and isinstance(result.get("data"), dict) else result
         importance_items = data.get("items", []) if isinstance(data, dict) else []
+        page_info_imp = data.get("page_info") if isinstance(data, dict) else None
+        importance_count = page_info_imp.get("total", len(importance_items)) if page_info_imp else len(importance_items)
 
         st.session_state["importance_items"] = importance_items
-        importance_count = len(importance_items)
     except Exception:
         st.session_state["importance_items"] = []
 

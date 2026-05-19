@@ -50,10 +50,22 @@ async def run_importance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    from app.repositories.article_repository import ArticleRepository
+    article_repo = ArticleRepository(db)
+    article_ids = await article_repo.get_article_ids_by_keyword(
+        user_id=current_user.id,
+        keyword_id=payload.keyword_id,
+    )
+    if not article_ids:
+        return success_response(request=request, data={
+            "items": [],
+            "already_scored_count": 0,
+            "remaining_count": 0,
+        })
     service = ImportanceService(db)
     result = await service.run_importance_scoring(
         user_id=current_user.id,
-        article_ids=payload.article_ids,
+        article_ids=article_ids,
     )
     return success_response(request=request, data=result)
 

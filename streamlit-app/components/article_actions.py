@@ -1,7 +1,6 @@
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
-from api.articles import get_articles
 from utils.ai_response_parser import (
     extract_scoring_result,
     extract_error_message,
@@ -13,25 +12,7 @@ def render_article_action_buttons():
 
     selected_keyword_id = st.session_state.get("selected_keyword_id")
 
-    article_ids = []
-    try:
-        articles, _ = get_articles(
-            keyword_id=selected_keyword_id,
-            page=1,
-            size=100,
-        )
-        article_ids = [
-            article["id"]
-            for article in articles
-            if isinstance(article, dict) and article.get("id") is not None
-        ]
-    except Exception as e:
-        st.error(f"중요도 계산 대상 기사 조회 실패: {e}")
-        articles = []
-
-    st.caption(f"중요도 계산 대상 기사 수: {len(article_ids)}건")
-
-    scoring_disabled = (selected_keyword_id is None) or (len(article_ids) == 0)
+    scoring_disabled = selected_keyword_id is None
 
     if st.button(
         "선택 키워드 기사 중요도 계산",
@@ -45,7 +26,6 @@ def render_article_action_buttons():
             with st.spinner("중요도 계산 중..."):
                 result = request_articles_scoring(
                     keyword_id=selected_keyword_id,
-                    article_ids=article_ids,
                 )
 
             scoring_items = extract_scoring_result(result)
