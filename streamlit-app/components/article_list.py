@@ -15,8 +15,25 @@ from api.importance import submit_scoring_feedback
 from utils.ai_response_parser import extract_summary_text
 
 
+RANK_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+
+
+def _build_rank_map() -> dict[int, str]:
+    """중요도 상위 항목(session_state)에서 article_id → 순위 이모지 매핑 반환."""
+    items = st.session_state.get("importance_items", [])
+    return {
+        item["article_id"]: RANK_MEDALS[i]
+        for i, item in enumerate(items[:5])
+        if item.get("article_id") is not None
+    }
+
+
 def render_article_list():
-    st.subheader("기사 목록")
+    # ── 헤더 + 새로고침 버튼 ──────────────────────────────────
+    col_title, col_refresh = st.columns([5, 1])
+    col_title.subheader("기사 목록")
+    if col_refresh.button("🔄 새로고침", key="article_list_refresh", width="stretch"):
+        st.rerun()
 
     keyword_id = st.session_state.get("selected_keyword_id")
 
@@ -41,6 +58,8 @@ def render_article_list():
     if not articles:
         st.info("표시할 기사가 없습니다.")
         return
+
+    rank_map = _build_rank_map()  # { article_id: "🥇" | "🥈" | ... }
 
     for article in articles:
         article_id = article.get("id")
@@ -70,8 +89,10 @@ def render_article_list():
                     st.session_state.pop(f"summary_error_{article_id}", None)
                 st.rerun()
 
+        medal = rank_map.get(article_id, "")
         with st.container(border=True):
-            st.markdown(f"**{title}**")
+            prefix = f"{medal} " if medal else ""
+            st.markdown(f"**{prefix}{title}**")
             st.caption(f"{source} | {published_at}")
 
             if importance is not None:
