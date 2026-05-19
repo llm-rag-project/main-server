@@ -19,3 +19,4 @@ asyncpg
 argon2-cffi
 psycopg[binary]
 apscheduler
+openpyxl

@@ -1,7 +1,10 @@
+from datetime import datetime
+
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
 from api.articles import get_articles
+from api.reports import download_daily_report
 from utils.ai_response_parser import (
     extract_scoring_result,
     extract_error_message,
@@ -75,6 +78,25 @@ def render_article_action_buttons():
             st.warning(text)
         else:
             st.error(text)
+
+    st.markdown("---")
+
+    # ── 데일리 리포트 Excel 다운로드 ──────────────────────────
+    st.subheader("📥 데일리 리포트")
+    st.caption("현재 선택된 키워드의 기사·중요도·요약을 Excel로 다운로드합니다.")
+
+    try:
+        excel_bytes = download_daily_report(keyword_id=selected_keyword_id)
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        st.download_button(
+            label="Excel 다운로드",
+            data=excel_bytes,
+            file_name=f"daily_report_{today_str}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            width="stretch",
+        )
+    except Exception as e:
+        st.error(f"리포트 생성 실패: {e}")
 
     render_scoring_result()
 
