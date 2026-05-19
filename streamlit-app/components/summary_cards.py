@@ -3,6 +3,8 @@ import streamlit as st
 from api.articles import get_articles
 from api.client import api_get
 
+RANK_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+
 
 def render_summary_cards():
     selected_keyword = st.session_state.get("selected_keyword_name")
@@ -18,12 +20,11 @@ def render_summary_cards():
         pass
 
     try:
-        params = {"page": 1, "size": 5}
+        params = {"page": 1, "size": 5, "sort": "score_desc"}
         if keyword_id:
             params["keyword_id"] = keyword_id
 
         result = api_get("/importance", params=params)
-        # api_get이 data를 unwrap → result = {"items": [...], "page_info": {...}}
         importance_items = result.get("items", []) if isinstance(result, dict) else []
         page_info_imp = result.get("page_info") if isinstance(result, dict) else None
         importance_count = page_info_imp.get("total", len(importance_items)) if page_info_imp else len(importance_items)
@@ -39,12 +40,41 @@ def render_summary_cards():
 
     st.markdown("### 중요도 상위 항목")
     items = st.session_state.get("importance_items", [])
-    if items:
-        for item in items[:5]:
-            st.write(
-                f"- {item.get('title', '제목 없음')} | "
-                f"score={item.get('score', '-')} | "
-                f"status={item.get('status', '-')}"
-            )
-    else:
+
+    if not items:
         st.caption("중요도 데이터가 없습니다.")
+        return
+
+    for rank, item in enumerate(items[:5]):
+        medal = RANK_MEDALS[rank]
+        title = item.get("title") or "제목 없음"
+        score = item.get("score")
+        url = item.get("url", "")
+
+        score_val = float(score) if score is not None else 0.0
+        score_display = f"{score_val:.1f}"
+
+        # 점수 색상 (100점 기준)
+        if score_val >= 80:
+            score_color = "#e74c3c"   # 빨강
+        elif score_val >= 50:
+            score_color = "#e67e22"   # 주황
+        else:
+            score_color = "#7f8c8d"   # 회색
+
+        with st.container(border=True):
+            col_rank, col_content, col_score = st.columns([1, 10, 2])
+
+            col_rank.markdown(f"## {medal}")
+
+            with col_content:
+                if url:
+                    st.markdown(f"**[{title}]({url})**")
+                else:
+                    st.markdown(f"**{title}**")
+
+            col_score.markdown(
+                f"<div style='text-align:center; font-size:1.4rem; font-weight:bold; color:{score_color}'>"
+                f"{score_display}</div>",
+                unsafe_allow_html=True,
+            )
