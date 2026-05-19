@@ -1,6 +1,7 @@
 import streamlit as st
 
 from api.ai_actions import request_articles_scoring
+from api.crawl_runs import create_crawl_run
 from utils.ai_response_parser import (
     extract_scoring_result,
     extract_error_message,
@@ -8,6 +9,20 @@ from utils.ai_response_parser import (
 
 
 def render_article_action_buttons():
+    # ── 수동 크롤링 ────────────────────────────────────────────
+    st.subheader("🔍 크롤링")
+    st.caption("활성화된 모든 키워드의 최신 기사를 즉시 수집합니다. (자동: 매일 오전 8시)")
+
+    if st.button("수동 크롤링 실행", width="stretch"):
+        try:
+            with st.spinner("크롤링 중..."):
+                result = create_crawl_run(force=True)
+            st.success("✅ 크롤링이 시작되었습니다. 잠시 후 기사 목록을 새로고침하세요.")
+        except Exception as e:
+            st.error(f"크롤링 실패: {e}")
+
+    st.markdown("---")
+
     st.subheader("AI 작업")
 
     selected_keyword_id = st.session_state.get("selected_keyword_id")

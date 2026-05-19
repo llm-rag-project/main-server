@@ -33,20 +33,20 @@ def start_scheduler() -> None:
     if scheduler.running:
         return
 
-    interval_minutes = settings.crawl_scheduler_interval_minutes
-
+    # 매일 오전 8시 (KST) 실행
     scheduler.add_job(
         run_periodic_crawling,
-        trigger="interval",
-        minutes=interval_minutes,
+        trigger="cron",
+        hour=8,
+        minute=0,
+        timezone="Asia/Seoul",
         id="periodic-crawl-job",
         replace_existing=True,
-        misfire_grace_time=60,
+        misfire_grace_time=600,
         max_instances=1,
-        next_run_time=datetime.now(timezone.utc),  # 서버 시작 즉시 첫 실행
     )
     scheduler.start()
-    logger.info("크롤링 스케줄러 시작: %s분 간격", interval_minutes)
+    logger.info("크롤링 스케줄러 시작: 매일 오전 8시 (KST)")
 
 
 def shutdown_scheduler() -> None:
