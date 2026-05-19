@@ -48,7 +48,7 @@ AI 기사 모니터링 시스템
 """.strip()
 
         msg = MIMEMultipart()
-        msg["From"] = formataddr(("뉴스 모니터링 서비스", self.from_addr))
+        msg["From"] = formataddr(("AI기사 모니터링 시스템", self.from_addr))
         msg["To"] = ", ".join(to_emails)
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain", "utf-8"))
