@@ -90,9 +90,11 @@ def render_article_list():
                 st.rerun()
 
         medal = rank_map.get(article_id, "")
+        sentiment = article.get("sentiment")
+        is_promotion = article.get("is_promotion")
+
         with st.container(border=True):
             if medal:
-                # 순위권 기사: 이모지 크게 + 제목 굵고 크게
                 st.markdown(
                     f"<div style='font-size:1.25rem; font-weight:700; line-height:1.4'>"
                     f"<span style='font-size:1.6rem'>{medal}</span>&nbsp;{title}"
@@ -101,6 +103,26 @@ def render_article_list():
                 )
             else:
                 st.markdown(f"**{title}**")
+
+            # ── 배지 행 ───────────────────────────────────────────
+            badges = []
+            if sentiment and sentiment != "분석실패":
+                color_map = {"긍정": "#27ae60", "부정": "#e74c3c", "중립": "#7f8c8d"}
+                color = color_map.get(sentiment, "#7f8c8d")
+                badges.append(
+                    f"<span style='background:{color};color:#fff;"
+                    f"padding:2px 10px;border-radius:12px;font-size:0.75rem;font-weight:600'>"
+                    f"{sentiment}</span>"
+                )
+            if is_promotion is True:
+                badges.append(
+                    "<span style='background:#e67e22;color:#fff;"
+                    "padding:2px 10px;border-radius:12px;font-size:0.75rem;font-weight:600'>"
+                    "📢 홍보성</span>"
+                )
+            if badges:
+                st.markdown("&nbsp;".join(badges), unsafe_allow_html=True)
+
             st.caption(f"{source} | {published_at}")
 
             if importance is not None:

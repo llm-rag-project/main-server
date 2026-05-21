@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Workflow
     summary_workflow_api_key: str = Field(..., alias="SUMMARY_WORKFLOW_API_KEY")
     scoring_workflow_api_key: str = Field(..., alias="SCORING_WORKFLOW_API_KEY")
+    analysis_workflow_api_key: str = Field(..., alias="ANALYSIS_WORKFLOW_API_KEY")
 
     # Knowledge
     knowledge_api_key: str = Field(..., alias="KNOWLEDGE_API_KEY")

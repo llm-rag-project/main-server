@@ -20,12 +20,14 @@ class DifyService:
         chatflow_api_key: str,
         summary_workflow_api_key: str,
         scoring_workflow_api_key: str,
+        analysis_workflow_api_key: str = "",
         timeout: float = 30.0,
     ):
         self.base_url = base_url.rstrip("/")
         self.chatflow_api_key = chatflow_api_key
         self.summary_workflow_api_key = summary_workflow_api_key
         self.scoring_workflow_api_key = scoring_workflow_api_key
+        self.analysis_workflow_api_key = analysis_workflow_api_key
         self.timeout = timeout
 
     async def _post(self, path: str, api_key: str, payload: dict) -> dict:
@@ -223,6 +225,24 @@ class DifyService:
             "raw": data,
         }
 
+    async def run_analysis_workflow(self, *, articles: str) -> dict:
+        """감성 분석 + 홍보성 판단 워크플로우 호출 (배치, user='batch')."""
+        payload = {
+            "inputs": {"articles": articles},
+            "response_mode": "blocking",
+            "user": "batch",
+        }
+        data = await self._post("/workflows/run", self.analysis_workflow_api_key, payload)
+        result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
+        return {
+            "data": {
+                "workflow_run_id": result_data.get("workflow_run_id"),
+                "task_id": result_data.get("task_id"),
+                "items": outputs.get("items", []),
+            }
+        }
+
     @classmethod
     def from_settings(cls) -> "DifyService":
         return cls(
@@ -230,6 +250,7 @@ class DifyService:
             chatflow_api_key=settings.chatflow_api_key,
             summary_workflow_api_key=settings.summary_workflow_api_key,
             scoring_workflow_api_key=settings.scoring_workflow_api_key,
+            analysis_workflow_api_key=settings.analysis_workflow_api_key,
             timeout=settings.dify_request_timeout,
         )
 

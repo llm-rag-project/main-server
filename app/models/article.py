@@ -26,6 +26,7 @@ class Article(Base, TimestampMixin):
     translations = relationship("Translation", back_populates="article", cascade="all, delete-orphan")
     feedbacks = relationship("Feedback", back_populates="article", cascade="all, delete-orphan")
     importance_scores = relationship("ImportanceScore", back_populates="article", cascade="all, delete-orphan")
+    analysis = relationship("ArticleAnalysis", back_populates="article", uselist=False, cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ux_articles_url", "url", unique=True),

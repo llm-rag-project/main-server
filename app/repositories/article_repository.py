@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
+from app.models.article_analysis import ArticleAnalysis
 from app.models.article_match import ArticleMatch
 from app.models.feedback import Feedback
 from app.models.importance_score import ImportanceScore
@@ -110,6 +111,8 @@ class ArticleRepository:
                 latest_importance_subq.c.score.label("importance"),
                 case((is_liked_expr, True), else_=False).label("is_liked"),
                 case((has_feedback_expr, True), else_=False).label("has_feedback"),
+                ArticleAnalysis.sentiment,
+                ArticleAnalysis.is_promotion,
             )
             .select_from(Article)
             .outerjoin(
@@ -130,6 +133,10 @@ class ArticleRepository:
             .outerjoin(
                 matched_keyword_subq,
                 matched_keyword_subq.c.article_id == Article.id,
+            )
+            .outerjoin(
+                ArticleAnalysis,
+                ArticleAnalysis.article_id == Article.id,
             )
             .where(accessible_articles_expr)
         )

@@ -75,6 +75,8 @@ class ArticleListItem(BaseModel):
     importance: Optional[float]
     is_liked: bool
     has_feedback: bool
+    sentiment: Optional[str] = None       # 긍정 / 부정 / 중립 / 분석실패
+    is_promotion: Optional[bool] = None   # True=홍보성, False=일반, None=미분석
 
 
 class ArticleDetailResponse(BaseModel):

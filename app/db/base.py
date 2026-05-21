@@ -17,3 +17,4 @@ class TimestampMixin:
 
 # Alembic autogenerate용
 import app.models  # noqa
+import app.models.article_analysis  # noqa  ← create_all 시 테이블 자동 생성
