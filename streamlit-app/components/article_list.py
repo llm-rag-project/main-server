@@ -28,6 +28,14 @@ def _build_rank_map() -> dict[int, str]:
     }
 
 
+SORT_OPTIONS = {
+    "최신순": "published_at_desc",
+    "오래된순": "published_at_asc",
+    "중요도 높은순": "importance_desc",
+    "중요도 낮은순": "importance_asc",
+}
+
+
 def render_article_list():
     # ── 헤더 + 새로고침 버튼 ──────────────────────────────────
     col_title, col_refresh = st.columns([5, 1])
@@ -37,6 +45,31 @@ def render_article_list():
 
     keyword_id = st.session_state.get("selected_keyword_id")
 
+    # ── 검색 + 정렬 ──────────────────────────────────────────
+    col_search, col_sort = st.columns([3, 1])
+    with col_search:
+        q = st.text_input(
+            "🔍 기사 검색",
+            placeholder="제목·내용 키워드 입력 후 Enter",
+            key="article_search_q",
+            label_visibility="collapsed",
+        )
+    with col_sort:
+        sort_label = st.selectbox(
+            "정렬",
+            list(SORT_OPTIONS.keys()),
+            index=0,
+            key="article_sort",
+            label_visibility="collapsed",
+        )
+    sort = SORT_OPTIONS[sort_label]
+
+    # 검색어가 바뀌면 페이지를 1로 리셋
+    prev_q = st.session_state.get("_prev_search_q", "")
+    if q != prev_q:
+        st.session_state["_prev_search_q"] = q
+        st.session_state["article_list_page"] = 1
+
     col_size, col_page = st.columns([2, 1])
     with col_size:
         size = st.selectbox("페이지당 기사 수", [10, 20, 50], index=1, key="article_list_size")
@@ -44,7 +77,13 @@ def render_article_list():
         page = st.number_input("페이지", min_value=1, value=1, step=1, key="article_list_page")
 
     try:
-        articles, page_info = get_articles(keyword_id=keyword_id, page=page, size=size)
+        articles, page_info = get_articles(
+            keyword_id=keyword_id,
+            page=page,
+            size=size,
+            q=q.strip() if q else None,
+            sort=sort,
+        )
         st.session_state["articles"] = articles
         st.session_state["article_page_info"] = page_info
     except Exception as e:
@@ -53,10 +92,16 @@ def render_article_list():
 
     if page_info and isinstance(page_info, dict):
         total = page_info.get("total", 0)
-        st.caption(f"전체 {total}건 중 {len(articles)}건 표시")
+        if q and q.strip():
+            st.caption(f"🔍 '{q.strip()}' 검색 결과 {total}건 중 {len(articles)}건 표시")
+        else:
+            st.caption(f"전체 {total}건 중 {len(articles)}건 표시")
 
     if not articles:
-        st.info("표시할 기사가 없습니다.")
+        if q and q.strip():
+            st.info(f"🔍 **'{q.strip()}'** 에 해당하는 기사가 없습니다.")
+        else:
+            st.info("표시할 기사가 없습니다.")
         return
 
     rank_map = _build_rank_map()  # { article_id: "🥇" | "🥈" | ... }
