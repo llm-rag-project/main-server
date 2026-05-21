@@ -23,6 +23,18 @@ async def get_article_stats(
     return success_response(request, data=result)
 
 
+@router.get("/analysis")
+async def get_analysis_stats(
+    request: Request,
+    days: int = Query(7, ge=1, le=90, description="최근 며칠 기준 (1~90)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = StatsService(StatsRepository(db))
+    result = await service.get_analysis_stats(user_id=current_user.id, days=days)
+    return success_response(request, data=result)
+
+
 @router.get("/search-volume")
 async def get_search_volume(
     request: Request,

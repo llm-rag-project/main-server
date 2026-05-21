@@ -27,6 +27,20 @@ class StatsService:
             "by_keyword_date": by_keyword_date,
         }
 
+    async def get_analysis_stats(self, user_id: int, days: int = 7) -> dict:
+        """감성 분포 / 광고성 비율 / 날짜별 감성 추이 3개 병렬 조회"""
+        sentiment_by_kw, promotion_by_kw, sentiment_by_date = await asyncio.gather(
+            self.repo.get_sentiment_by_keyword(user_id=user_id, days=days),
+            self.repo.get_promotion_by_keyword(user_id=user_id, days=days),
+            self.repo.get_sentiment_by_date(user_id=user_id, days=days),
+        )
+        return {
+            "days": days,
+            "sentiment_by_keyword": sentiment_by_kw,
+            "promotion_by_keyword": promotion_by_kw,
+            "sentiment_by_date": sentiment_by_date,
+        }
+
     async def get_keyword_search_volume(self, user_id: int) -> list[dict]:
         if not self.transnews_client:
             return []
