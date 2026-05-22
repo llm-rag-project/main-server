@@ -149,7 +149,7 @@ class AnalysisService:
 
         def _upd(progress: int, message: str):
             if job_id:
-                update_job(job_id, progress, message)
+                update_job(job_id, progress=progress, message=message)
 
         _upd(5, "📋 미분석 기사 목록을 불러오고 있어요...")
         articles = await self._get_unanalyzed_articles()
