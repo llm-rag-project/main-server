@@ -195,28 +195,31 @@ class StatsRepository:
     async def get_sentiment_by_date(
         self, user_id: int, days: int = 7
     ) -> list[dict]:
-        """날짜별 감성 추이 (긍정/부정/중립)"""
+        """키워드 × 날짜별 감성 추이 (긍정/부정/중립)"""
         since = date.today() - timedelta(days=days)
 
         rows = await self.db.execute(
             select(
+                Keyword.keyword_text,
                 func.date(Article.published_at).label("date"),
                 ArticleAnalysis.sentiment,
-                func.count(Article.id).label("count"),
+                func.count(func.distinct(Article.id)).label("count"),
             )
             .join(ArticleMatch, ArticleMatch.article_id == Article.id)
             .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
             .join(ArticleAnalysis, ArticleAnalysis.article_id == Article.id)
             .where(
                 Keyword.user_id == user_id,
+                Keyword.is_active.is_(True),
                 Article.published_at >= since,
                 ArticleAnalysis.sentiment.in_(["긍정", "부정", "중립"]),
             )
-            .group_by(func.date(Article.published_at), ArticleAnalysis.sentiment)
-            .order_by(func.date(Article.published_at))
+            .group_by(Keyword.keyword_text, func.date(Article.published_at), ArticleAnalysis.sentiment)
+            .order_by(Keyword.keyword_text, func.date(Article.published_at))
         )
         return [
             {
+                "keyword_text": r.keyword_text,
                 "date": str(r.date),
                 "sentiment": r.sentiment,
                 "count": r.count,

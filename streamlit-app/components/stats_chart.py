@@ -81,17 +81,29 @@ def render_stats_charts():
                 df = pd.DataFrame(by_keyword_date)
                 df["date"] = pd.to_datetime(df["date"])
 
-                pivot = df.pivot_table(
-                    index="date",
-                    columns="keyword_text",
-                    values="article_count",
-                    fill_value=0,
+                all_keywords = sorted(df["keyword_text"].unique().tolist())
+                selected_keywords = st.multiselect(
+                    "표시할 키워드 선택",
+                    options=all_keywords,
+                    default=all_keywords,
+                    key="date_chart_keywords",
                 )
-                st.line_chart(pivot, width="stretch")
+
+                if not selected_keywords:
+                    st.info("표시할 키워드를 하나 이상 선택해 주세요.")
+                else:
+                    filtered_df = df[df["keyword_text"].isin(selected_keywords)]
+                    pivot = filtered_df.pivot_table(
+                        index="date",
+                        columns="keyword_text",
+                        values="article_count",
+                        fill_value=0,
+                    )
+                    st.line_chart(pivot, width="stretch")
         except Exception as e:
             st.error(f"날짜별 기사 수 조회 실패: {e}")
 
-    # ── 탭 3: 감성 분포 ───────────────────────────────────────────
+    # ── 탭 3: 감성 분포 (키워드별 개별 차트) ─────────────────────
     with tab3:
         try:
             result = fetch_analysis_stats(days=days)
@@ -101,28 +113,36 @@ def render_stats_charts():
                 st.info("분석된 기사가 없습니다. AI 분석이 완료된 후 확인해 주세요.")
             else:
                 df = pd.DataFrame(sentiment_data)
-                pivot = df.pivot_table(
-                    index="keyword_text",
-                    columns="sentiment",
-                    values="count",
-                    aggfunc="sum",
-                    fill_value=0,
-                )
-                # 감성 컬럼 순서 고정 (있는 것만)
-                ordered_cols = [c for c in ["긍정", "중립", "부정", "분석실패", "미분석"] if c in pivot.columns]
-                pivot = pivot[ordered_cols]
+                keywords = sorted(df["keyword_text"].unique())
+                SENTIMENT_ORDER = ["긍정", "중립", "부정", "분석실패", "미분석"]
+                SENTIMENT_COLORS = {"긍정": "#27ae60", "중립": "#7f8c8d", "부정": "#e74c3c",
+                                    "분석실패": "#bdc3c7", "미분석": "#dfe6e9"}
 
-                st.markdown("##### 키워드별 감성 분포")
-                st.bar_chart(pivot, width="stretch", color=["#27ae60", "#7f8c8d", "#e74c3c", "#bdc3c7", "#ecf0f1"][:len(ordered_cols)])
+                cols = st.columns(min(len(keywords), 2))
+                for i, kw in enumerate(keywords):
+                    with cols[i % len(cols)]:
+                        kw_df = df[df["keyword_text"] == kw].copy()
+                        kw_df = kw_df.set_index("sentiment")["count"]
+                        ordered = [c for c in SENTIMENT_ORDER if c in kw_df.index]
+                        kw_df = kw_df.reindex(ordered).fillna(0)
+                        total = int(kw_df.sum())
 
-                # 비율 테이블
-                pivot_pct = pivot.div(pivot.sum(axis=1), axis=0).mul(100).round(1)
-                pivot_pct.columns = [f"{c} (%)" for c in pivot_pct.columns]
-                st.dataframe(pivot_pct, width="stretch")
+                        st.markdown(f"**{kw}** <span style='color:#888;font-size:0.85rem'>({total}건)</span>",
+                                    unsafe_allow_html=True)
+                        colors = [SENTIMENT_COLORS[c] for c in ordered]
+                        st.bar_chart(kw_df, height=220, color=colors)
+
+                        # 비율 표시
+                        pct_rows = [
+                            {"감성": c, "건수": int(kw_df[c]), "비율": f"{kw_df[c]/total*100:.1f}%"}
+                            for c in ordered if total > 0
+                        ]
+                        if pct_rows:
+                            st.dataframe(pd.DataFrame(pct_rows), hide_index=True, use_container_width=True)
         except Exception as e:
             st.error(f"감성 분포 조회 실패: {e}")
 
-    # ── 탭 4: 광고성 기사 비율 ────────────────────────────────────
+    # ── 탭 4: 광고성 기사 비율 (키워드별 개별 차트) ──────────────
     with tab4:
         try:
             result = fetch_analysis_stats(days=days)
@@ -132,33 +152,47 @@ def render_stats_charts():
                 st.info("분석된 기사가 없습니다. AI 분석이 완료된 후 확인해 주세요.")
             else:
                 df = pd.DataFrame(promotion_data)
-                pivot = df.pivot_table(
-                    index="keyword_text",
-                    columns="promotion",
-                    values="count",
-                    aggfunc="sum",
-                    fill_value=0,
+                keywords = sorted(df["keyword_text"].unique())
+                PROMO_ORDER = ["✅ 일반", "📢 광고성", "❓ 미분석"]
+                PROMO_COLORS = {"✅ 일반": "#27ae60", "📢 광고성": "#e67e22", "❓ 미분석": "#bdc3c7"}
+
+                cols = st.columns(min(len(keywords), 2))
+                for i, kw in enumerate(keywords):
+                    with cols[i % len(cols)]:
+                        kw_df = df[df["keyword_text"] == kw].copy()
+                        kw_df = kw_df.set_index("promotion")["count"]
+                        ordered = [c for c in PROMO_ORDER if c in kw_df.index]
+                        kw_df = kw_df.reindex(ordered).fillna(0)
+                        total = int(kw_df.sum())
+
+                        promo_cnt = int(kw_df.get("📢 광고성", 0))
+                        promo_pct = f"{promo_cnt/total*100:.1f}%" if total > 0 else "0%"
+                        st.markdown(
+                            f"**{kw}** <span style='color:#888;font-size:0.85rem'>({total}건 · 광고성 {promo_pct})</span>",
+                            unsafe_allow_html=True,
+                        )
+                        colors = [PROMO_COLORS[c] for c in ordered]
+                        st.bar_chart(kw_df, height=220, color=colors)
+
+                        pct_rows = [
+                            {"구분": c, "건수": int(kw_df[c]), "비율": f"{kw_df[c]/total*100:.1f}%"}
+                            for c in ordered if total > 0
+                        ]
+                        if pct_rows:
+                            st.dataframe(pd.DataFrame(pct_rows), hide_index=True, use_container_width=True)
+
+                # 광고성 TOP 키워드 경고
+                promo_totals = (
+                    df[df["promotion"] == "📢 광고성"]
+                    .groupby("keyword_text")["count"].sum()
                 )
-                ordered_cols = [c for c in ["✅ 일반", "📢 광고성", "❓ 미분석"] if c in pivot.columns]
-                pivot = pivot[ordered_cols]
-
-                st.markdown("##### 키워드별 광고성 기사 비율")
-                st.bar_chart(pivot, width="stretch", color=["#27ae60", "#e67e22", "#bdc3c7"][:len(ordered_cols)])
-
-                pivot_pct = pivot.div(pivot.sum(axis=1), axis=0).mul(100).round(1)
-                pivot_pct.columns = [f"{c} (%)" for c in pivot_pct.columns]
-                st.dataframe(pivot_pct, width="stretch")
-
-                # 광고성 TOP 키워드 강조
-                if "📢 광고성" in pivot.columns:
-                    top_promo = pivot["📢 광고성"].idxmax()
-                    top_val = int(pivot.loc[top_promo, "📢 광고성"])
-                    if top_val > 0:
-                        st.warning(f"📢 광고성 기사가 가장 많은 키워드: **{top_promo}** ({top_val}건)")
+                if not promo_totals.empty and promo_totals.max() > 0:
+                    top_kw = promo_totals.idxmax()
+                    st.warning(f"📢 광고성 기사가 가장 많은 키워드: **{top_kw}** ({int(promo_totals[top_kw])}건)")
         except Exception as e:
             st.error(f"광고성 비율 조회 실패: {e}")
 
-    # ── 탭 5: 날짜별 감성 추이 ───────────────────────────────────
+    # ── 탭 5: 날짜별 감성 추이 (키워드별 개별 차트) ──────────────
     with tab5:
         try:
             result = fetch_analysis_stats(days=days)
@@ -169,18 +203,31 @@ def render_stats_charts():
             else:
                 df = pd.DataFrame(sentiment_date_data)
                 df["date"] = pd.to_datetime(df["date"])
-                pivot = df.pivot_table(
-                    index="date",
-                    columns="sentiment",
-                    values="count",
-                    aggfunc="sum",
-                    fill_value=0,
-                )
-                ordered_cols = [c for c in ["긍정", "중립", "부정"] if c in pivot.columns]
-                pivot = pivot[ordered_cols]
+                keywords = sorted(df["keyword_text"].unique()) if "keyword_text" in df.columns else ["전체"]
 
-                st.markdown("##### 날짜별 감성 추이")
-                st.line_chart(pivot, width="stretch", color=["#27ae60", "#7f8c8d", "#e74c3c"][:len(ordered_cols)])
+                # 날짜별 감성 추이는 날짜 축이 넓어야 해서 전체 너비로 키워드별 표시
+                SENTIMENT_COLORS_LIST = ["#27ae60", "#7f8c8d", "#e74c3c"]
+                for kw in keywords:
+                    st.markdown(f"**{kw}**")
+                    kw_df = df[df["keyword_text"] == kw] if "keyword_text" in df.columns else df
+                    pivot = kw_df.pivot_table(
+                        index="date",
+                        columns="sentiment",
+                        values="count",
+                        aggfunc="sum",
+                        fill_value=0,
+                    )
+                    ordered_cols = [c for c in ["긍정", "중립", "부정"] if c in pivot.columns]
+                    if ordered_cols:
+                        pivot = pivot[ordered_cols]
+                        st.line_chart(
+                            pivot,
+                            width="stretch",
+                            height=220,
+                            color=SENTIMENT_COLORS_LIST[:len(ordered_cols)],
+                        )
+                    else:
+                        st.info(f"'{kw}' 감성 분석 데이터가 없습니다.")
         except Exception as e:
             st.error(f"날짜별 감성 추이 조회 실패: {e}")
 
