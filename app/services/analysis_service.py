@@ -6,9 +6,10 @@ import asyncio
 import json
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.job_store import complete_job, fail_job, update_job
 from app.models.article import Article
 from app.models.article_analysis import ArticleAnalysis
 from app.services.dify_service import DifyService
@@ -29,12 +30,30 @@ class AnalysisService:
         self.db = db
         self.dify = DifyService.from_settings()
 
+    @staticmethod
+    def _needs_analysis_condition():
+        """분석이 필요한 기사 조건: 레코드 없음 OR 분석실패"""
+        return or_(
+            ArticleAnalysis.id.is_(None),
+            ArticleAnalysis.sentiment == _DEFAULT_SENTIMENT,
+        )
+
+    async def get_unanalyzed_count(self) -> int:
+        """미분석·분석실패 기사 수만 빠르게 반환."""
+        stmt = (
+            select(func.count(Article.id))
+            .outerjoin(ArticleAnalysis, ArticleAnalysis.article_id == Article.id)
+            .where(self._needs_analysis_condition())
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar() or 0
+
     async def _get_unanalyzed_articles(self) -> list[dict]:
-        """article_analysis 레코드가 없는 기사만 조회."""
+        """분석이 필요한 기사 조회 (레코드 없음 OR 분석실패)."""
         stmt = (
             select(Article.id, Article.title, Article.content)
             .outerjoin(ArticleAnalysis, ArticleAnalysis.article_id == Article.id)
-            .where(ArticleAnalysis.id.is_(None))
+            .where(self._needs_analysis_condition())
             .order_by(Article.id.desc())
         )
         result = await self.db.execute(stmt)
@@ -125,22 +144,34 @@ class AnalysisService:
 
         return saved
 
-    async def run_analysis(self) -> dict:
+    async def run_analysis(self, job_id: str | None = None) -> dict:
         """미분석 기사 전체를 배치로 처리."""
+
+        def _upd(progress: int, message: str):
+            if job_id:
+                update_job(job_id, progress, message)
+
+        _upd(5, "📋 미분석 기사 목록을 불러오고 있어요...")
         articles = await self._get_unanalyzed_articles()
+
         if not articles:
             logger.info("분석할 새 기사 없음")
             return {"analyzed_count": 0, "total": 0}
 
-        logger.info("AI 분석 시작: 총 %d건", len(articles))
-        total_saved = 0
+        total = len(articles)
+        logger.info("AI 분석 시작: 총 %d건", total)
+        _upd(10, f"📰 미분석 기사 {total}건 확인! AI 분석을 시작할게요...")
 
+        total_saved = 0
         batches = [
             articles[i: i + _BATCH_SIZE]
             for i in range(0, len(articles), _BATCH_SIZE)
         ]
 
         for idx, batch in enumerate(batches):
+            done_count = idx * _BATCH_SIZE
+            progress = 10 + int((idx / len(batches)) * 82)
+            _upd(progress, f"🤖 AI가 기사를 꼼꼼히 분석하고 있어요... ({done_count}/{total}건 완료)")
             logger.info("배치 %d/%d 처리 중 (%d건)", idx + 1, len(batches), len(batch))
 
             articles_json = json.dumps(
@@ -159,6 +190,7 @@ class AnalysisService:
             saved = await self._save_batch_results(batch, dify_items)
             total_saved += saved
 
+        _upd(95, "💾 분석 결과를 저장하고 있어요...")
         await self.db.commit()
         logger.info("AI 분석 완료: %d건 저장", total_saved)
-        return {"analyzed_count": total_saved, "total": len(articles)}
+        return {"analyzed_count": total_saved, "total": total}

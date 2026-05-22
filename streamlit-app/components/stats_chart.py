@@ -1,13 +1,23 @@
 import threading
 import time
+import uuid
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
-from api.crawl_runs import run_analysis
+from api.client import get_job_status
+from api.crawl_runs import get_pending_analysis_count, run_analysis
 from api.reports import download_daily_report, send_report_email
 from api.stats import get_analysis_stats, get_article_stats, get_search_volume
+
+
+@st.cache_data(ttl=60)
+def fetch_pending_count() -> int:
+    try:
+        return get_pending_analysis_count()
+    except Exception:
+        return 0
 
 
 @st.cache_data(ttl=300)  # 5분 캐시
@@ -28,28 +38,89 @@ def fetch_search_volume() -> list:
 def render_stats_charts():
     st.subheader("📊 키워드 통계")
 
+    # ── AI 분석 백그라운드 완료 확인 ────────────────────────────
+    is_analyzing = st.session_state.get("is_analyzing", False)
+    if is_analyzing:
+        holder = st.session_state.get("_analysis_holder", {})
+        if holder.get("done"):
+            st.session_state["is_analyzing"] = False
+            is_analyzing = False
+            if holder.get("error"):
+                st.session_state["analysis_msg"] = ("error", f"분석 실패: {holder['error']}")
+            else:
+                r = holder.get("result") or {}
+                analyzed = r.get("analyzed_count", 0)
+                total = r.get("total", 0)
+                if total == 0:
+                    st.session_state["analysis_msg"] = ("success", "✅ 모든 기사가 이미 분석되어 있습니다.")
+                else:
+                    st.session_state["analysis_msg"] = ("success", f"✅ {analyzed}건 분석 완료!")
+            st.cache_data.clear()
+            st.rerun()
+
     col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
         days = st.slider("조회 기간 (일)", min_value=1, max_value=90, value=7, step=1)
     with col2:
-        if st.button("🔄 새로고침", width="stretch"):
+        if st.button("🔄 새로고침", width="stretch", disabled=is_analyzing):
             st.cache_data.clear()
             st.rerun()
     with col3:
-        if st.button("🤖 AI 분석 실행", width="stretch", help="미분석 기사에 대해 감성·홍보성 분석을 즉시 실행합니다"):
-            with st.spinner("AI 분석 중..."):
+        pending = fetch_pending_count()
+        btn_label = (
+            "⏳ 분석 중..." if is_analyzing
+            else f"🤖 AI 분석 ({pending}건)" if pending > 0
+            else "🤖 AI 분석 (없음)"
+        )
+        if st.button(btn_label, width="stretch", disabled=is_analyzing or pending == 0,
+                     help="미분석 기사에 대해 감성·홍보성 분석을 즉시 실행합니다"):
+            job_id = str(uuid.uuid4())
+            holder = {"done": False, "result": None, "error": None}
+            st.session_state["_analysis_holder"] = holder
+            st.session_state["analysis_job_id"] = job_id
+            st.session_state["is_analyzing"] = True
+            st.session_state["analysis_msg"] = None
+
+            def _analyze(jid=job_id, h=holder):
                 try:
-                    result = run_analysis()
-                    analyzed = result.get("analyzed_count", 0)
-                    total = result.get("total", 0)
-                    if total == 0:
-                        st.success("✅ 모든 기사가 이미 분석되어 있습니다.")
-                    else:
-                        st.success(f"✅ {analyzed}건 분석 완료!")
-                    st.cache_data.clear()
-                    st.rerun()
+                    result = run_analysis(job_id=jid)
+                    h["result"] = result
                 except Exception as e:
-                    st.error(f"분석 실패: {e}")
+                    h["error"] = str(e)
+                finally:
+                    h["done"] = True
+
+            threading.Thread(target=_analyze, daemon=True).start()
+            st.rerun()
+
+    # ── 분석 진행 중 실시간 표시 ─────────────────────────────────
+    if is_analyzing:
+        job_id = st.session_state.get("analysis_job_id")
+        progress_ratio = 0.0
+        message = "🤖 AI 분석 요청 중..."
+        if job_id:
+            try:
+                job = get_job_status(job_id)
+                raw_progress = job.get("progress", 0)
+                progress_ratio = min(raw_progress / 100, 0.99)
+                message = job.get("message", message)
+            except Exception:
+                pass
+        st.progress(progress_ratio)
+        st.caption(message)
+
+    # ── 분석 결과 메시지 ─────────────────────────────────────────
+    analysis_msg = st.session_state.get("analysis_msg")
+    if analysis_msg:
+        kind, text = analysis_msg
+        if kind == "success":
+            st.success(text)
+        else:
+            st.error(text)
+
+    if is_analyzing:
+        time.sleep(1)
+        st.rerun()
 
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "키워드별 기사 수",
