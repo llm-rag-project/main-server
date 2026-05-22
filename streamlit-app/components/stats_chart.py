@@ -229,8 +229,7 @@ def render_stats_charts():
 
                         st.markdown(f"**{kw}** <span style='color:#888;font-size:0.85rem'>({total}건)</span>",
                                     unsafe_allow_html=True)
-                        colors = [SENTIMENT_COLORS[c] for c in ordered]
-                        st.bar_chart(kw_df, height=220, color=colors)
+                        st.bar_chart(kw_df, height=220)
 
                         # 비율 표시
                         pct_rows = [
@@ -271,8 +270,7 @@ def render_stats_charts():
                             f"**{kw}** <span style='color:#888;font-size:0.85rem'>({total}건 · 광고성 {promo_pct})</span>",
                             unsafe_allow_html=True,
                         )
-                        colors = [PROMO_COLORS[c] for c in ordered]
-                        st.bar_chart(kw_df, height=220, color=colors)
+                        st.bar_chart(kw_df, height=220)
 
                         pct_rows = [
                             {"구분": c, "건수": int(kw_df[c]), "비율": f"{kw_df[c]/total*100:.1f}%"}
@@ -324,7 +322,6 @@ def render_stats_charts():
                             pivot,
                             width="stretch",
                             height=220,
-                            color=SENTIMENT_COLORS_LIST[:len(ordered_cols)],
                         )
                     else:
                         st.info(f"'{kw}' 감성 분석 데이터가 없습니다.")
