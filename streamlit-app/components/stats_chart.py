@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+from api.crawl_runs import run_analysis
 from api.reports import download_daily_report, send_report_email
 from api.stats import get_analysis_stats, get_article_stats, get_search_volume
 
@@ -27,13 +28,28 @@ def fetch_search_volume() -> list:
 def render_stats_charts():
     st.subheader("📊 키워드 통계")
 
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([3, 1, 1])
     with col1:
         days = st.slider("조회 기간 (일)", min_value=1, max_value=90, value=7, step=1)
     with col2:
         if st.button("🔄 새로고침", width="stretch"):
             st.cache_data.clear()
             st.rerun()
+    with col3:
+        if st.button("🤖 AI 분석 실행", width="stretch", help="미분석 기사에 대해 감성·홍보성 분석을 즉시 실행합니다"):
+            with st.spinner("AI 분석 중..."):
+                try:
+                    result = run_analysis()
+                    analyzed = result.get("analyzed_count", 0)
+                    total = result.get("total", 0)
+                    if total == 0:
+                        st.success("✅ 모든 기사가 이미 분석되어 있습니다.")
+                    else:
+                        st.success(f"✅ {analyzed}건 분석 완료!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"분석 실패: {e}")
 
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "키워드별 기사 수",

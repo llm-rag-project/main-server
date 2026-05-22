@@ -83,12 +83,15 @@ class AnalysisService:
         dify_items: list[dict],
     ) -> int:
         """Dify 결과를 article_analysis 테이블에 저장 (upsert)."""
-        # article_id → dify 결과 매핑
-        result_map: dict[int, dict] = {
-            item["article_id"]: item
-            for item in dify_items
-            if isinstance(item.get("article_id"), int)
-        }
+        # article_id → dify 결과 매핑 (int / str 모두 허용)
+        result_map: dict[int, dict] = {}
+        for item in dify_items:
+            aid = item.get("article_id")
+            if aid is not None:
+                try:
+                    result_map[int(aid)] = item
+                except (ValueError, TypeError):
+                    pass
 
         saved = 0
         for article in batch_articles:

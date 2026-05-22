@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +9,7 @@ from app.core.errors import ErrorCode, build_error
 from app.core.response import success_response
 from app.core.transnews_client import TransNewsClient, TransNewsClientError
 from app.models.user import User
+from app.services.analysis_service import AnalysisService
 from app.services.crawl_run_service import CrawlRunService
 
 router = APIRouter(prefix="/crawl-runs", tags=["crawl-runs"])
@@ -36,3 +39,14 @@ async def create_crawl_run(
         raise build_error(ErrorCode.UPSTREAM_ERROR, str(e))
 
     return success_response(request, status_code=202, data=result)
+
+
+@router.post("/analysis")
+async def run_analysis(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    """미분석 기사에 대해 AI 감성/홍보성 분석을 수동으로 실행합니다."""
+    result = await AnalysisService(db).run_analysis()
+    return success_response(request, data=result)

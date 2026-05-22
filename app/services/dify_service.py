@@ -235,11 +235,34 @@ class DifyService:
         data = await self._post("/workflows/run", self.analysis_workflow_api_key, payload)
         result_data = data.get("data") or {}
         outputs = result_data.get("outputs") or {}
+
+        # Dify 출력 변수명이 items / result / output / text 등 다를 수 있으므로
+        # 값을 순서대로 시도해서 리스트를 찾아냄
+        raw_items = None
+        for key in ("items", "result", "output", "text", "results"):
+            val = outputs.get(key)
+            if val is not None:
+                raw_items = val
+                break
+
+        # 값이 없으면 outputs 자체에서 첫 번째 값 사용
+        if raw_items is None and outputs:
+            raw_items = next(iter(outputs.values()), None)
+
+        # 문자열이면 JSON 파싱 시도
+        if isinstance(raw_items, str):
+            try:
+                raw_items = json.loads(raw_items)
+            except (json.JSONDecodeError, ValueError):
+                raw_items = []
+
+        items = raw_items if isinstance(raw_items, list) else []
+
         return {
             "data": {
                 "workflow_run_id": result_data.get("workflow_run_id"),
                 "task_id": result_data.get("task_id"),
-                "items": outputs.get("items", []),
+                "items": items,
             }
         }
 
