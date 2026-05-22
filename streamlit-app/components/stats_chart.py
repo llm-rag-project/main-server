@@ -83,8 +83,21 @@ def render_stats_charts():
 
             def _analyze(jid=job_id, h=holder):
                 try:
-                    result = run_analysis(job_id=jid)
-                    h["result"] = result
+                    # 백엔드가 202 즉시 반환 → 이후 job 상태 폴링으로 완료 감지
+                    run_analysis(job_id=jid)
+                    while True:
+                        time.sleep(3)
+                        try:
+                            job = get_job_status(jid)
+                            status = job.get("status")
+                            if status == "done":
+                                h["result"] = job.get("result") or {}
+                                break
+                            elif status == "error":
+                                h["error"] = job.get("error", "알 수 없는 오류")
+                                break
+                        except Exception:
+                            pass
                 except Exception as e:
                     h["error"] = str(e)
                 finally:
