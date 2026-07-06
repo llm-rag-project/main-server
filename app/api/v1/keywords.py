@@ -1,11 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
 from app.core.response import success_response
 from app.core.transnews_client import TransNewsClient
+from app.db.session import AsyncSessionLocal
 from app.models.user import User
 from app.schemas.keyword import (
     BatchCreateKeywordRequest,
@@ -13,6 +14,7 @@ from app.schemas.keyword import (
     UpdateKeywordStatusRequest,
 )
 from app.services.crawl_run_service import CrawlRunService
+from app.services.auto_ai_service import AutoAiService
 from app.services.keyword_service import (
     batch_create_user_keywords,
     create_user_keyword,
@@ -26,10 +28,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/keywords", tags=["keywords"])
 
 
+async def _run_auto_ai_bg(user_id: int, crawl_run_id: int) -> None:
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await AutoAiService(db).run_for_crawl_run(
+                user_id=user_id,
+                crawl_run_id=crawl_run_id,
+            )
+            logger.info("auto ai completed user_id=%s crawl_run_id=%s result=%s", user_id, crawl_run_id, result)
+    except Exception:
+        logger.exception("auto ai failed user_id=%s crawl_run_id=%s", user_id, crawl_run_id)
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_keyword_api(
     request: Request,
     payload: CreateKeywordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -38,6 +53,20 @@ async def create_keyword_api(
         current_user=current_user,
         keyword=payload.keyword,
         language=payload.language,
+        client_name=payload.client_name,
+        group_name=payload.group_name,
+        monitoring_type=payload.monitoring_type,
+        priority_level=payload.priority_level,
+        crawl_interval_minutes=payload.crawl_interval_minutes,
+        crawl_limit=payload.crawl_limit,
+        email_auto_send=payload.email_auto_send,
+        email_recipients=payload.email_recipients,
+        email_send_time=payload.email_send_time,
+        email_condition_type=payload.email_condition_type,
+        alert_negative_rate_threshold=payload.alert_negative_rate_threshold,
+        alert_importance_threshold=payload.alert_importance_threshold,
+        alert_article_count_threshold=payload.alert_article_count_threshold,
+        importance_criteria=payload.importance_criteria,
     )
 
     crawl_service = CrawlRunService(db=db, transnews_client=TransNewsClient())
@@ -46,6 +75,8 @@ async def create_keyword_api(
         keyword_ids=[data.id],
         force=False,
     )
+    if crawl_result.get("crawl_run_id"):
+        background_tasks.add_task(_run_auto_ai_bg, current_user.id, crawl_result["crawl_run_id"])
     logger.debug("created keyword id = %s", data.id)
     logger.debug("crawl_result = %s", crawl_result)
 
@@ -95,6 +126,21 @@ async def update_keyword_status_api(
         current_user=current_user,
         keyword_id=keyword_id,
         is_active=payload.is_active,
+        keyword_text=payload.keyword,
+        client_name=payload.client_name,
+        group_name=payload.group_name,
+        monitoring_type=payload.monitoring_type,
+        priority_level=payload.priority_level,
+        crawl_interval_minutes=payload.crawl_interval_minutes,
+        crawl_limit=payload.crawl_limit,
+        email_auto_send=payload.email_auto_send,
+        email_recipients=payload.email_recipients,
+        email_send_time=payload.email_send_time,
+        email_condition_type=payload.email_condition_type,
+        alert_negative_rate_threshold=payload.alert_negative_rate_threshold,
+        alert_importance_threshold=payload.alert_importance_threshold,
+        alert_article_count_threshold=payload.alert_article_count_threshold,
+        importance_criteria=payload.importance_criteria,
     )
     return success_response(request, data=data.model_dump())
 
@@ -126,5 +172,19 @@ async def batch_create_keywords_api(
         current_user=current_user,
         keywords=payload.keywords,
         language=payload.language,
+        client_name=payload.client_name,
+        group_name=payload.group_name,
+        monitoring_type=payload.monitoring_type,
+        priority_level=payload.priority_level,
+        crawl_interval_minutes=payload.crawl_interval_minutes,
+        crawl_limit=payload.crawl_limit,
+        email_auto_send=payload.email_auto_send,
+        email_recipients=payload.email_recipients,
+        email_send_time=payload.email_send_time,
+        email_condition_type=payload.email_condition_type,
+        alert_negative_rate_threshold=payload.alert_negative_rate_threshold,
+        alert_importance_threshold=payload.alert_importance_threshold,
+        alert_article_count_threshold=payload.alert_article_count_threshold,
+        importance_criteria=payload.importance_criteria,
     )
     return success_response(request, data=data.model_dump(), status_code=status.HTTP_201_CREATED)

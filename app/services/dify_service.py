@@ -62,6 +62,7 @@ class DifyService:
         message: str,
         conversation_id: str = "",
         article_id: int | None = None,
+        briefing_context: str | None = None,
     ):
         inputs = {
             "user_id": user_id,
@@ -69,6 +70,8 @@ class DifyService:
 
         if article_id is not None:
             inputs["article_id"] = article_id
+        if briefing_context:
+            inputs["briefing_context"] = briefing_context
 
         payload = {
             "inputs": inputs,
@@ -197,12 +200,14 @@ class DifyService:
         user_id: int,
         articles: str,
         feedback_history: str = "",
+        importance_criteria: str = "",
     ) -> dict:
         payload = {
             "inputs": {
                 "user_id": user_id,
                 "articles": articles,
                 "feedback_history": feedback_history,
+                "importance_criteria": importance_criteria,
             },
             "response_mode": "blocking",
             "user": str(user_id),
@@ -282,7 +287,13 @@ class DifyArticleUploadService:
     def __init__(self, knowledge_client: DifyKnowledgeClient | None = None) -> None:
         self.knowledge_client = knowledge_client or DifyKnowledgeClient()
 
-    async def upload_article_to_knowledge(self, article: Article) -> dict[str, Any]:
+    async def upload_article_to_knowledge(
+        self,
+        article: Article,
+        *,
+        keyword_id: int | None = None,
+        keyword_text: str | None = None,
+    ) -> dict[str, Any]:
         # 본문이 없으면 Dify에 업로드할 수 없으므로 예외 발생
         if not article.content or not article.content.strip():
             raise DifyUploadError(f"article_id={article.id} 본문이 비어 있어 업로드할 수 없습니다.")
@@ -290,7 +301,7 @@ class DifyArticleUploadService:
         try:
             # 기사 본문을 기반으로 Dify 문서 생성
             created = await self.knowledge_client.create_document_by_text(
-                title=article.title or f"article-{article.id}",
+                title=f"[{keyword_text}] {article.title}" if keyword_text else article.title or f"article-{article.id}",
                 text=article.content,
             )
 
@@ -298,13 +309,18 @@ class DifyArticleUploadService:
             batch = created.get("batch")
 
             # 나중에 article_id로 추적할 수 있게 메타데이터 연결
-            await self.knowledge_client.attach_article_id_metadata(
+            await self.knowledge_client.attach_article_keyword_metadata(
                 document_id=document_id,
                 article_id=article.id,
+                keyword_id=keyword_id,
+                keyword_text=keyword_text,
             )
 
             return {
                 "article_id": article.id,
+                "keyword_id": keyword_id,
+                "keyword_text": keyword_text,
+                "dataset_id": self.knowledge_client.dataset_id,
                 "document_id": document_id,
                 "batch": batch,
                 "status": "UPLOADED",

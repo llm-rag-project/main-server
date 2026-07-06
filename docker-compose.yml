@@ -10,16 +10,13 @@ services:
     env_file:
       - .env
 
-  streamlit:
-      build: .
-      container_name: streamlit-app
-      working_dir: /code/streamlit-app
-      command: streamlit run app.py --server.address=0.0.0.0
-      ports:
-        - "8501:8501"
-      volumes:
-        - .:/code
-      env_file:
-        - ./streamlit-app/.env
-      depends_on:
-        - fastapi
+  react-app:
+    build:
+      context: ./react-app
+    container_name: react-app
+    ports:
+      - "8501:8501"
+    environment:
+      - VITE_API_BASE_URL=/api/v1
+    depends_on:
+      - fastapi

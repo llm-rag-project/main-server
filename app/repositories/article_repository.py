@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, case, delete, exists, func, literal, or_, select, update
@@ -13,6 +14,9 @@ from app.models.importance_score import ImportanceScore
 from app.models.keyword import Keyword
 from app.models.summary import Summary
 from app.schemas.articles import ArticleListQuery
+
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class ArticleRepository:
@@ -170,12 +174,22 @@ class ArticleRepository:
 
         if query.from_date:
             stmt = stmt.where(
-                Article.published_at >= datetime.combine(query.from_date, time.min)
+                Article.published_at >= datetime.combine(query.from_date, time.min, tzinfo=KST)
             )
 
         if query.to_date:
             stmt = stmt.where(
-                Article.published_at <= datetime.combine(query.to_date, time.max)
+                Article.published_at <= datetime.combine(query.to_date, time.max, tzinfo=KST)
+            )
+
+        if query.collected_from_date:
+            stmt = stmt.where(
+                Article.created_at >= datetime.combine(query.collected_from_date, time.min, tzinfo=KST)
+            )
+
+        if query.collected_to_date:
+            stmt = stmt.where(
+                Article.created_at <= datetime.combine(query.collected_to_date, time.max, tzinfo=KST)
             )
 
         if query.min_importance is not None:
@@ -199,6 +213,28 @@ class ArticleRepository:
             "published_at_asc": Article.published_at.asc().nullsfirst(),
             "importance_desc": latest_importance_subq.c.score.desc().nullslast(),
             "importance_asc": latest_importance_subq.c.score.asc().nullsfirst(),
+            "sentiment_negative_first": case(
+                (or_(ArticleAnalysis.sentiment.ilike("%부정%"), ArticleAnalysis.sentiment.ilike("%negative%")), 0),
+                (or_(ArticleAnalysis.sentiment.ilike("%중립%"), ArticleAnalysis.sentiment.ilike("%neutral%")), 1),
+                (or_(ArticleAnalysis.sentiment.ilike("%긍정%"), ArticleAnalysis.sentiment.ilike("%positive%")), 2),
+                else_=3,
+            ).asc(),
+            "sentiment_positive_first": case(
+                (or_(ArticleAnalysis.sentiment.ilike("%긍정%"), ArticleAnalysis.sentiment.ilike("%positive%")), 0),
+                (or_(ArticleAnalysis.sentiment.ilike("%중립%"), ArticleAnalysis.sentiment.ilike("%neutral%")), 1),
+                (or_(ArticleAnalysis.sentiment.ilike("%부정%"), ArticleAnalysis.sentiment.ilike("%negative%")), 2),
+                else_=3,
+            ).asc(),
+            "promotion_first": case(
+                (ArticleAnalysis.is_promotion.is_(True), 0),
+                (ArticleAnalysis.is_promotion.is_(False), 1),
+                else_=2,
+            ).asc(),
+            "organic_first": case(
+                (ArticleAnalysis.is_promotion.is_(False), 0),
+                (ArticleAnalysis.is_promotion.is_(True), 1),
+                else_=2,
+            ).asc(),
         }
 
         stmt = stmt.order_by(sort_map[query.sort.value], Article.id.desc())
@@ -514,6 +550,36 @@ class ArticleRepository:
         return {
             "deleted": True,
             "article_id": article_id,
+        }
+
+    async def delete_article_for_user(self, user_id: int, article_id: int) -> dict | None:
+        result = await self.db.execute(
+            select(Article)
+            .where(Article.id == article_id)
+            .where(
+                exists(
+                    select(literal(1))
+                    .select_from(ArticleMatch)
+                    .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                    .where(
+                        ArticleMatch.article_id == Article.id,
+                        Keyword.user_id == user_id,
+                    )
+                )
+            )
+            .limit(1)
+        )
+        article = result.scalar_one_or_none()
+        if article is None:
+            return None
+
+        title = article.title
+        await self.db.delete(article)
+        await self.db.flush()
+        return {
+            "deleted": True,
+            "article_id": article_id,
+            "title": title,
         }
     
     async def get_article_ids_by_keyword(

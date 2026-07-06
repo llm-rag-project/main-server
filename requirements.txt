@@ -12,7 +12,6 @@ email-validator
 requests
 beautifulsoup4
 httpx
-streamlit
 requests
 python-dotenv
 asyncpg

@@ -1,6 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.core.dify_knowledge_client import DifyKnowledgeClient
 from app.core.errors import ErrorCode, build_error
+from app.models.dify_knowledge_document import DifyKnowledgeDocument
 from app.models.user import User
 from app.repositories.keyword_repository import (
     create_keyword,
@@ -8,6 +11,7 @@ from app.repositories.keyword_repository import (
     get_keyword_by_id,
     get_keyword_by_text,
     list_user_keywords,
+    update_keyword_settings,
     update_keyword_is_active,
 )
 from app.schemas.keyword import (
@@ -23,11 +27,57 @@ from app.schemas.keyword import (
 )
 
 
+def _pack_recipients(recipients: list[str] | None) -> str | None:
+    if not recipients:
+        return None
+    cleaned = [email.strip() for email in recipients if email and email.strip()]
+    return "\n".join(cleaned) if cleaned else None
+
+
+def _unpack_recipients(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [email.strip() for email in value.replace(",", "\n").splitlines() if email.strip()]
+
+
+def _keyword_settings(item) -> dict:
+    return {
+        "client_name": item.client_name,
+        "group_name": item.group_name,
+        "monitoring_type": item.monitoring_type,
+        "priority_level": item.priority_level,
+        "crawl_interval_minutes": item.crawl_interval_minutes,
+        "crawl_limit": item.crawl_limit,
+        "email_auto_send": item.email_auto_send,
+        "email_recipients": _unpack_recipients(item.email_recipients),
+        "email_send_time": item.email_send_time,
+        "email_condition_type": item.email_condition_type,
+        "alert_negative_rate_threshold": item.alert_negative_rate_threshold,
+        "alert_importance_threshold": item.alert_importance_threshold,
+        "alert_article_count_threshold": item.alert_article_count_threshold,
+        "importance_criteria": item.importance_criteria,
+    }
+
+
 async def create_user_keyword(
     db: AsyncSession,
     current_user: User,
     keyword: str,
     language: str | None = None,
+    client_name: str | None = None,
+    group_name: str | None = None,
+    monitoring_type: str = "brand",
+    priority_level: str = "normal",
+    crawl_interval_minutes: int = 1440,
+    crawl_limit: int = 10,
+    email_auto_send: bool = False,
+    email_recipients: list[str] | None = None,
+    email_send_time: str = "08:30",
+    email_condition_type: str = "daily_summary",
+    alert_negative_rate_threshold: int = 25,
+    alert_importance_threshold: int = 80,
+    alert_article_count_threshold: int = 10,
+    importance_criteria: str | None = None,
 ) -> KeywordResponse:
     normalized_keyword = keyword.strip()
     if not normalized_keyword:
@@ -55,6 +105,20 @@ async def create_user_keyword(
         user_id=current_user.id,
         keyword_text=normalized_keyword,
         language=final_language,
+        client_name=client_name.strip() if client_name else None,
+        group_name=group_name.strip() if group_name else None,
+        monitoring_type=monitoring_type,
+        priority_level=priority_level,
+        crawl_interval_minutes=crawl_interval_minutes,
+        crawl_limit=crawl_limit,
+        email_auto_send=email_auto_send,
+        email_recipients=_pack_recipients(email_recipients),
+        email_send_time=email_send_time,
+        email_condition_type=email_condition_type,
+        alert_negative_rate_threshold=alert_negative_rate_threshold,
+        alert_importance_threshold=alert_importance_threshold,
+        alert_article_count_threshold=alert_article_count_threshold,
+        importance_criteria=importance_criteria.strip() if importance_criteria else None,
     )
 
     await db.commit()
@@ -64,6 +128,7 @@ async def create_user_keyword(
         keyword=created_keyword.keyword_text,
         language=created_keyword.language,
         is_active=created_keyword.is_active,
+        **_keyword_settings(created_keyword),
         created_at=created_keyword.created_at,
     )
 
@@ -95,6 +160,7 @@ async def get_my_keywords(
                 keyword=item.keyword_text,
                 language=item.language,
                 is_active=item.is_active,
+                **_keyword_settings(item),
                 created_at=item.created_at,
             )
             for item in items
@@ -113,7 +179,22 @@ async def patch_keyword_is_active(
     current_user: User,
     *,
     keyword_id: int,
-    is_active: bool,
+    is_active: bool | None = None,
+    keyword_text: str | None = None,
+    client_name: str | None = None,
+    group_name: str | None = None,
+    monitoring_type: str | None = None,
+    priority_level: str | None = None,
+    crawl_interval_minutes: int | None = None,
+    crawl_limit: int | None = None,
+    email_auto_send: bool | None = None,
+    email_recipients: list[str] | None = None,
+    email_send_time: str | None = None,
+    email_condition_type: str | None = None,
+    alert_negative_rate_threshold: int | None = None,
+    alert_importance_threshold: int | None = None,
+    alert_article_count_threshold: int | None = None,
+    importance_criteria: str | None = None,
 ) -> UpdateKeywordStatusResponse:
     keyword = await get_keyword_by_id(db, keyword_id)
 
@@ -129,11 +210,75 @@ async def patch_keyword_is_active(
             "You do not have permission to modify this keyword",
         )
 
-    updated_keyword = await update_keyword_is_active(
-        db=db,
-        keyword=keyword,
-        is_active=is_active,
+    updated_keyword = keyword
+
+    settings_changed = any(
+        value is not None
+        for value in (
+            keyword_text,
+            client_name,
+            group_name,
+            monitoring_type,
+            priority_level,
+            crawl_interval_minutes,
+            crawl_limit,
+            email_auto_send,
+            email_recipients,
+            email_send_time,
+            email_condition_type,
+            alert_negative_rate_threshold,
+            alert_importance_threshold,
+            alert_article_count_threshold,
+            importance_criteria,
+        )
     )
+
+    if settings_changed:
+        normalized_keyword = keyword_text.strip() if keyword_text is not None else keyword.keyword_text
+        if not normalized_keyword:
+            raise build_error(
+                ErrorCode.VALIDATION_ERROR,
+                "keyword is required",
+                details=[{"field": "keyword", "reason": "required"}],
+            )
+
+        existing_keyword = await get_keyword_by_text(
+            db=db,
+            user_id=current_user.id,
+            keyword_text=normalized_keyword,
+        )
+        if existing_keyword is not None and existing_keyword.id != keyword.id:
+            raise build_error(
+                ErrorCode.CONFLICT_DUPLICATE,
+                "keyword already exists",
+            )
+
+        updated_keyword = await update_keyword_settings(
+            db=db,
+            keyword=keyword,
+            keyword_text=normalized_keyword,
+            client_name=client_name.strip() if client_name else None,
+            group_name=group_name.strip() if group_name else None,
+            monitoring_type=monitoring_type or keyword.monitoring_type,
+            priority_level=priority_level or keyword.priority_level,
+            crawl_interval_minutes=crawl_interval_minutes or keyword.crawl_interval_minutes,
+            crawl_limit=crawl_limit or keyword.crawl_limit,
+            email_auto_send=keyword.email_auto_send if email_auto_send is None else email_auto_send,
+            email_recipients=keyword.email_recipients if email_recipients is None else _pack_recipients(email_recipients),
+            email_send_time=email_send_time or keyword.email_send_time,
+            email_condition_type=email_condition_type or keyword.email_condition_type,
+            alert_negative_rate_threshold=alert_negative_rate_threshold if alert_negative_rate_threshold is not None else keyword.alert_negative_rate_threshold,
+            alert_importance_threshold=alert_importance_threshold if alert_importance_threshold is not None else keyword.alert_importance_threshold,
+            alert_article_count_threshold=alert_article_count_threshold if alert_article_count_threshold is not None else keyword.alert_article_count_threshold,
+            importance_criteria=importance_criteria.strip() if importance_criteria is not None and importance_criteria.strip() else None if importance_criteria is not None else keyword.importance_criteria,
+        )
+
+    if is_active is not None:
+        updated_keyword = await update_keyword_is_active(
+            db=db,
+            keyword=updated_keyword,
+            is_active=is_active,
+        )
     await db.commit()
 
     return UpdateKeywordStatusResponse(
@@ -141,6 +286,7 @@ async def patch_keyword_is_active(
         keyword=updated_keyword.keyword_text,
         language=updated_keyword.language,
         is_active=updated_keyword.is_active,
+        **_keyword_settings(updated_keyword),
         updated_at=updated_keyword.updated_at,
     )
 
@@ -165,12 +311,74 @@ async def remove_keyword(
             "You do not have permission to delete this keyword",
         )
 
+    deleted_keyword_text = keyword.keyword_text
+    dify_deleted_count = 0
+    dify_failed_items: list[dict] = []
+
+    refs_result = await db.execute(
+        select(DifyKnowledgeDocument).where(
+            DifyKnowledgeDocument.user_id == current_user.id,
+            DifyKnowledgeDocument.keyword_id == keyword_id,
+            DifyKnowledgeDocument.status == "UPLOADED",
+        )
+    )
+    dify_refs = list(refs_result.scalars().all())
+    if dify_refs:
+        try:
+            dify_client = DifyKnowledgeClient()
+        except Exception as exc:
+            dify_client = None
+            for ref in dify_refs:
+                ref.status = "DELETE_FAILED"
+                ref.delete_error = f"Dify client unavailable: {exc}"
+            dify_failed_items = [
+                {
+                    "document_id": ref.document_id,
+                    "article_id": ref.article_id,
+                    "error": f"Dify client unavailable: {exc}",
+                }
+                for ref in dify_refs
+            ]
+
+        if dify_client:
+            for ref in dify_refs:
+                try:
+                    await dify_client.delete_document(document_id=ref.document_id)
+                    ref.status = "DELETED"
+                    ref.delete_error = None
+                    dify_deleted_count += 1
+                except Exception as exc:
+                    ref.status = "DELETE_FAILED"
+                    ref.delete_error = str(exc)
+                    dify_failed_items.append(
+                        {
+                            "document_id": ref.document_id,
+                            "article_id": ref.article_id,
+                            "error": str(exc),
+                        }
+                    )
+
+    cleanup_summary = [
+        "키워드 목차에서 제거",
+        "자동 수집 및 예약 이메일 대상에서 제외",
+        f"Dify 지식 문서 {dify_deleted_count}건 삭제",
+        "키워드-기사 매칭, 크롤링 실행 연결, SNS 지표 연결 정리",
+        "기사 원문과 기존 AI 분석 결과는 공유 데이터일 수 있어 보존",
+    ]
+    if dify_failed_items:
+        cleanup_summary.append(f"Dify 지식 문서 {len(dify_failed_items)}건은 삭제 실패로 기록")
+
     await delete_keyword(db, keyword)
     await db.commit()
 
     return DeleteKeywordResponse(
         deleted=True,
         keyword_id=keyword_id,
+        keyword=deleted_keyword_text,
+        cleanup_summary=cleanup_summary,
+        dify_deleted_count=dify_deleted_count,
+        dify_failed_count=len(dify_failed_items),
+        dify_failed_items=dify_failed_items,
     )
 
 
@@ -180,6 +388,20 @@ async def batch_create_user_keywords(
     *,
     keywords: list[str],
     language: str | None = None,
+    crawl_interval_minutes: int = 1440,
+    crawl_limit: int = 10,
+    email_auto_send: bool = False,
+    email_recipients: list[str] | None = None,
+    email_send_time: str = "08:30",
+    email_condition_type: str = "daily_summary",
+    alert_negative_rate_threshold: int = 25,
+    alert_importance_threshold: int = 80,
+    alert_article_count_threshold: int = 10,
+    client_name: str | None = None,
+    group_name: str | None = None,
+    monitoring_type: str = "brand",
+    priority_level: str = "normal",
+    importance_criteria: str | None = None,
 ) -> BatchCreateKeywordResponse:
     final_language = language or current_user.default_language
 
@@ -249,6 +471,20 @@ async def batch_create_user_keywords(
             user_id=current_user.id,
             keyword_text=normalized_keyword,
             language=final_language,
+            client_name=client_name.strip() if client_name else None,
+            group_name=group_name.strip() if group_name else None,
+            monitoring_type=monitoring_type,
+            priority_level=priority_level,
+            crawl_interval_minutes=crawl_interval_minutes,
+            crawl_limit=crawl_limit,
+            email_auto_send=email_auto_send,
+            email_recipients=_pack_recipients(email_recipients),
+            email_send_time=email_send_time,
+            email_condition_type=email_condition_type,
+            alert_negative_rate_threshold=alert_negative_rate_threshold,
+            alert_importance_threshold=alert_importance_threshold,
+            alert_article_count_threshold=alert_article_count_threshold,
+            importance_criteria=importance_criteria.strip() if importance_criteria else None,
         )
         created_count += 1
         results.append(

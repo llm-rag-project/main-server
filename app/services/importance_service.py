@@ -1,11 +1,13 @@
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ErrorCode, build_error
+from app.models.article_match import ArticleMatch
 from app.models.importance_score import ImportanceScore
+from app.models.keyword import Keyword
 from app.models.scoring_feedback import ScoringFeedback
 from app.repositories.article_repository import ArticleRepository
 from app.repositories.importance_repository import ImportanceRepository
@@ -106,7 +108,62 @@ class ImportanceService:
         return result
 
     _DIFY_BATCH_SIZE = 9
-    _SCORING_LIMIT = 10
+    _SCORING_LIMIT = 100
+
+    async def _build_importance_criteria_context(
+        self,
+        *,
+        user_id: int,
+        article_ids: list[int],
+    ) -> str:
+        if not article_ids:
+            return ""
+
+        stmt = (
+            select(
+                ArticleMatch.article_id,
+                Keyword.id.label("keyword_id"),
+                Keyword.keyword_text,
+                Keyword.importance_criteria,
+            )
+            .select_from(ArticleMatch)
+            .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+            .where(
+                Keyword.user_id == user_id,
+                ArticleMatch.article_id.in_(article_ids),
+            )
+            .order_by(ArticleMatch.article_id.asc(), Keyword.id.asc())
+        )
+        result = await self.db.execute(stmt)
+        rows = result.mappings().all()
+
+        keyword_map: dict[int, dict] = {}
+        article_keywords: dict[str, list[dict]] = {}
+        for row in rows:
+            criteria = (row["importance_criteria"] or "").strip()
+            if criteria:
+                keyword_map[row["keyword_id"]] = {
+                    "keyword_id": row["keyword_id"],
+                    "keyword": row["keyword_text"],
+                    "importance_criteria": criteria,
+                }
+            article_keywords.setdefault(str(row["article_id"]), []).append(
+                {
+                    "keyword_id": row["keyword_id"],
+                    "keyword": row["keyword_text"],
+                }
+            )
+
+        if not keyword_map:
+            return ""
+
+        return json.dumps(
+            {
+                "keyword_criteria": list(keyword_map.values()),
+                "article_keywords": article_keywords,
+            },
+            ensure_ascii=False,
+        )
 
     async def run_importance_scoring(
         self,
@@ -154,6 +211,10 @@ class ImportanceService:
             feedback_history = (
                 json.dumps(feedback_rows, ensure_ascii=False) if feedback_rows else ""
             )
+            importance_criteria = await self._build_importance_criteria_context(
+                user_id=user_id,
+                article_ids=[article["article_id"] for article in articles],
+            )
 
             batches = [
                 articles[i: i + self._DIFY_BATCH_SIZE]
@@ -182,6 +243,7 @@ class ImportanceService:
                     user_id=user_id,
                     articles=articles_payload,
                     feedback_history=feedback_history,
+                    importance_criteria=importance_criteria,
                 )
 
                 data = dify_result.get("data") or {}

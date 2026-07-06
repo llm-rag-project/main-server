@@ -1,4 +1,5 @@
 from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Tuple
 
 from sqlalchemy import func, select, update
@@ -10,6 +11,8 @@ from app.models.importance_score import ImportanceScore
 from app.models.keyword import Keyword
 from app.models.scoring_feedback import ScoringFeedback
 from app.schemas.importance import ImportanceListQuery
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class ImportanceRepository:
@@ -66,12 +69,12 @@ class ImportanceRepository:
 
         if query.from_date:
             stmt = stmt.where(
-                Article.published_at >= datetime.combine(query.from_date, time.min)
+                Article.published_at >= datetime.combine(query.from_date, time.min, tzinfo=KST)
             )
 
         if query.to_date:
             stmt = stmt.where(
-                Article.published_at <= datetime.combine(query.to_date, time.max)
+                Article.published_at <= datetime.combine(query.to_date, time.max, tzinfo=KST)
             )
 
         if query.min_score is not None:

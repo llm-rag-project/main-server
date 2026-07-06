@@ -21,6 +21,8 @@ async def get_articles(
     language: app.schemas.articles.ArticleLanguage | None = Query(None),
     from_date: str | None = Query(None, alias="from"),
     to_date: str | None = Query(None, alias="to"),
+    collected_from_date: str | None = Query(None, alias="collected_from"),
+    collected_to_date: str | None = Query(None, alias="collected_to"),
     min_importance: float | None = Query(None, ge=0.0, le=1.0),
     max_importance: float | None = Query(None, ge=0.0, le=1.0),
     has_feedback: bool | None = Query(None),
@@ -38,6 +40,8 @@ async def get_articles(
         **{
             "from": from_date,
             "to": to_date,
+            "collected_from": collected_from_date,
+            "collected_to": collected_to_date,
             "min_importance": min_importance,
             "max_importance": max_importance,
             "has_feedback": has_feedback,
@@ -100,6 +104,19 @@ async def delete_my_article_feedback(
         user_id=current_user.id,
         article_id=article_id,
     )
+    await db.commit()
+    return success_response(request, data=result.model_dump())
+
+
+@router.delete("/{article_id}")
+async def delete_article(
+    article_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ArticleService(db)
+    result = await service.delete_article(user_id=current_user.id, article_id=article_id)
     await db.commit()
     return success_response(request, data=result.model_dump())
 

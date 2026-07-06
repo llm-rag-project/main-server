@@ -12,6 +12,7 @@ from app.core.transnews_client import TransNewsClient, TransNewsClientError
 from app.db.session import AsyncSessionLocal
 from app.models.user import User
 from app.services.analysis_service import AnalysisService
+from app.services.auto_ai_service import AutoAiService
 from app.services.crawl_run_service import CrawlRunService
 
 logger = logging.getLogger(__name__)
@@ -22,12 +23,14 @@ router = APIRouter(prefix="/crawl-runs", tags=["crawl-runs"])
 class CreateCrawlRunRequest(BaseModel):
     keyword_ids: list[int] | None = None
     force: bool = False
+    today_only: bool = False
 
 
 @router.post("")
 async def create_crawl_run(
     request: Request,
     body: CreateCrawlRunRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -38,9 +41,13 @@ async def create_crawl_run(
             user_id=current_user.id,
             keyword_ids=body.keyword_ids,
             force=body.force,
+            today_only=body.today_only,
         )
     except TransNewsClientError as e:
         raise build_error(ErrorCode.UPSTREAM_ERROR, str(e))
+
+    if result.get("crawl_run_id"):
+        background_tasks.add_task(_run_auto_ai_for_crawl_bg, current_user.id, result["crawl_run_id"])
 
     return success_response(request, status_code=202, data=result)
 
@@ -58,6 +65,18 @@ async def _run_analysis_bg(job_id: str) -> None:
         except Exception as e:
             logger.exception("백그라운드 분석 실패: %s", e)
             fail_job(job_id, str(e))
+
+
+async def _run_auto_ai_for_crawl_bg(user_id: int, crawl_run_id: int) -> None:
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await AutoAiService(db).run_for_crawl_run(
+                user_id=user_id,
+                crawl_run_id=crawl_run_id,
+            )
+            logger.info("자동 요약/중요도 계산 완료: user_id=%s crawl_run_id=%s result=%s", user_id, crawl_run_id, result)
+        except Exception:
+            logger.exception("자동 요약/중요도 계산 실패: user_id=%s crawl_run_id=%s", user_id, crawl_run_id)
 
 
 @router.get("/analysis/pending")

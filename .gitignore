@@ -32,6 +32,8 @@ htmlcov/
 # Build artifacts
 build/
 dist/
+react-app/node_modules/
+react-app/dist/
 *.egg-info/
 
 # Alembic / sqlite (필요한 경우만)

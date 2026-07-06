@@ -4,6 +4,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -22,6 +24,23 @@ load_dotenv(ENV_PATH, override=True)
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS crawl_interval_minutes INTEGER NOT NULL DEFAULT 1440"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS crawl_limit INTEGER NOT NULL DEFAULT 10"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS email_auto_send BOOLEAN NOT NULL DEFAULT false"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS email_recipients TEXT"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS email_send_time VARCHAR(5) NOT NULL DEFAULT '08:30'"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS email_condition_type VARCHAR(40) NOT NULL DEFAULT 'daily_summary'"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS alert_negative_rate_threshold INTEGER NOT NULL DEFAULT 25"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS alert_importance_threshold INTEGER NOT NULL DEFAULT 80"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS alert_article_count_threshold INTEGER NOT NULL DEFAULT 10"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS importance_criteria TEXT"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS client_name VARCHAR(255)"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS group_name VARCHAR(255)"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS monitoring_type VARCHAR(40) NOT NULL DEFAULT 'brand'"))
+        await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS priority_level VARCHAR(20) NOT NULL DEFAULT 'normal'"))
+        await conn.execute(text("ALTER TABLE chats ADD COLUMN IF NOT EXISTS keyword_id BIGINT REFERENCES keywords(id) ON DELETE CASCADE"))
+        await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_chats_user_keyword_not_null ON chats(user_id, keyword_id) WHERE keyword_id IS NOT NULL"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_chats_user_keyword ON chats(user_id, keyword_id)"))
     start_scheduler()
     yield
     shutdown_scheduler()
@@ -34,6 +53,16 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8501",
+        "http://127.0.0.1:8501",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 

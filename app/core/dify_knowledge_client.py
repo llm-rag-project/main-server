@@ -16,6 +16,8 @@ class DifyKnowledgeClient:
         self.dataset_id = os.getenv("DIFY_DATASET_ID")
         self.api_key = os.getenv("KNOWLEDGE_API_KEY")
         self.article_id_metadata_field_id = os.getenv("DIFY_ARTICLE_ID_METADATA_FIELD_ID")
+        self.keyword_id_metadata_field_id = os.getenv("DIFY_KEYWORD_ID_METADATA_FIELD_ID")
+        self.keyword_text_metadata_field_id = os.getenv("DIFY_KEYWORD_TEXT_METADATA_FIELD_ID")
 
         if not self.dataset_id:
             raise ValueError("DIFY_DATASET_ID is not configured")
@@ -56,6 +58,29 @@ class DifyKnowledgeClient:
 
         return result
 
+    async def _delete(self, path: str) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            try:
+                response = await client.delete(url, headers=self._headers())
+            except httpx.HTTPError as e:
+                raise DifyKnowledgeClientError(f"Dify 삭제 요청 실패: {e}") from e
+
+        if response.status_code in (200, 202, 204):
+            if not response.content:
+                return {"success": True}
+            try:
+                return response.json()
+            except Exception:
+                return {"success": True}
+
+        try:
+            detail = response.json()
+        except Exception:
+            detail = response.text
+        raise DifyKnowledgeClientError(f"Dify 삭제 실패 status={response.status_code}, detail={detail}")
+
     async def create_document_by_text(self, *, title: str, text: str) -> dict[str, Any]:
         payload = {
             "name": title,
@@ -84,17 +109,45 @@ class DifyKnowledgeClient:
         }
 
     async def attach_article_id_metadata(self, *, document_id: str, article_id: int) -> None:
+        await self.attach_article_keyword_metadata(document_id=document_id, article_id=article_id)
+
+    async def attach_article_keyword_metadata(
+        self,
+        *,
+        document_id: str,
+        article_id: int,
+        keyword_id: int | None = None,
+        keyword_text: str | None = None,
+    ) -> None:
+        metadata_list = [
+            {
+                "id": self.article_id_metadata_field_id,
+                "name": "article_id",
+                "value": article_id,
+            }
+        ]
+        if self.keyword_id_metadata_field_id and keyword_id is not None:
+            metadata_list.append(
+                {
+                    "id": self.keyword_id_metadata_field_id,
+                    "name": "keyword_id",
+                    "value": keyword_id,
+                }
+            )
+        if self.keyword_text_metadata_field_id and keyword_text:
+            metadata_list.append(
+                {
+                    "id": self.keyword_text_metadata_field_id,
+                    "name": "keyword_text",
+                    "value": keyword_text,
+                }
+            )
+
         payload = {
             "operation_data": [
                 {
                     "document_id": document_id,
-                    "metadata_list": [
-                        {
-                            "id": self.article_id_metadata_field_id,
-                            "name": "article_id",
-                            "value": article_id,
-                        }
-                    ],
+                    "metadata_list": metadata_list,
                 }
             ]
         }
@@ -103,3 +156,6 @@ class DifyKnowledgeClient:
             f"/datasets/{self.dataset_id}/documents/metadata",
             payload,
         )
+
+    async def delete_document(self, *, document_id: str) -> dict[str, Any]:
+        return await self._delete(f"/datasets/{self.dataset_id}/documents/{document_id}")

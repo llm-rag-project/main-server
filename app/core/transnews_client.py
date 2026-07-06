@@ -61,8 +61,23 @@ class TransNewsClient:
 
         return response.json()
 
-    async def search_news(self, keyword: str) -> dict[str, Any]:
-        result = await self._get("/news", params={"keyword": keyword})
+    async def search_news(
+        self,
+        keyword: str,
+        *,
+        published_after: str | None = None,
+        published_before: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"keyword": keyword}
+        if published_after:
+            params["published_after"] = published_after
+        if published_before:
+            params["published_before"] = published_before
+        if limit:
+            params["limit"] = limit
+
+        result = await self._get("/news", params=params)
         logger.debug("TRANSNEWS RAW RESPONSE = %s", result)
 
         try:
@@ -83,6 +98,22 @@ class TransNewsClient:
                 f"Invalid get_news_stats response schema: {e}"
             ) from e
         return parsed.model_dump()
+
+    async def get_social_stats(
+        self,
+        keyword: str,
+        limit: int = 30,
+        hours: int = 24,
+        window_start: str | None = None,
+        window_end: str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"keyword": keyword, "limit": limit, "hours": hours}
+        if window_start:
+            params["window_start"] = window_start
+        if window_end:
+            params["window_end"] = window_end
+        result = await self._get("/social/stats", params=params)
+        return result.get("data", result)
 
     async def crawl_article(self, url: str) -> dict[str, Any]:
         return await self._get("/crawl", params={"url": url})

@@ -3,3 +3,5 @@ __pycache__
 *.pyc
 .env
 .git
+react-app/node_modules
+react-app/dist

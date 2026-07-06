@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 class ChatCreateRequest(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
+    keyword_id: Optional[int] = Field(default=None, ge=1)
     
 class ChatCreateResponse(BaseModel):
     id: int
@@ -31,6 +32,7 @@ class ChatListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
     q: Optional[str] = None
+    keyword_id: Optional[int] = Field(default=None, ge=1)
     
 class PageInfo(BaseModel):
     page: int
@@ -41,6 +43,7 @@ class PageInfo(BaseModel):
 
 class ChatListItem(BaseModel):
     id: int
+    keyword_id: Optional[int] = None
     title: Optional[str]
     last_message: Optional[str]
     last_message_at: Optional[datetime]
@@ -52,17 +55,26 @@ class ChatListResponse(BaseModel):
     page_info: PageInfo
 
 
+class ChatMessageItem(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: datetime
+
+
 # =========================
 # DETAIL (❗ 메시지 제거됨)
 # =========================
 
 class ChatDetailResponse(BaseModel):
     id: int
+    keyword_id: Optional[int] = None
     title: Optional[str]
     external_conversation_id: Optional[str]
     last_message: Optional[str]
     last_message_at: Optional[datetime]
     created_at: datetime
+    messages: List[ChatMessageItem] = Field(default_factory=list)
 
 
 # =========================

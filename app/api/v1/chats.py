@@ -30,11 +30,12 @@ async def get_chats(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     q: str | None = Query(None),
+    keyword_id: int | None = Query(None, ge=1),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
     service = ChatService(ChatRepository(db))
-    query = ChatListQuery(page=page, size=size, q=q)
+    query = ChatListQuery(page=page, size=size, q=q, keyword_id=keyword_id)
     result = await service.get_chat_list(user_id=current_user.id, query=query)
     return success_response(request, data=result.model_dump())
 
@@ -83,3 +84,16 @@ async def delete_chat(
     result = await service.delete_chat(user_id=current_user.id, chat_id=chat_id)
     await db.commit()
     return success_response(request, data=result)
+
+
+@router.post("/{chat_id}/reset")
+async def reset_chat(
+    request: Request,
+    chat_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    service = ChatService(ChatRepository(db))
+    result = await service.reset_chat(user_id=current_user.id, chat_id=chat_id)
+    await db.commit()
+    return success_response(request, data=result.model_dump())

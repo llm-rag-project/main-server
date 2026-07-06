@@ -19,41 +19,52 @@ class EmailService:
 
     def _check_config(self):
         if not self.user or not self.password:
-            raise ValueError(
-                "SMTP 설정이 되어있지 않습니다. "
-                ".env에 SMTP_USER, SMTP_PASSWORD를 설정해 주세요."
-            )
+            raise ValueError("SMTP 설정이 필요합니다. .env의 SMTP_USER, SMTP_PASSWORD를 확인해 주세요.")
 
     def send_daily_report(
         self,
         to_emails: list[str],
         excel_bytes: bytes,
         keyword_name: str | None = None,
+        html_body: str | None = None,
+        text_body: str | None = None,
+        inline_images: list[tuple[str, bytes, str]] | None = None,
     ) -> None:
         self._check_config()
 
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         subject_keyword = f"[{keyword_name}] " if keyword_name else ""
-        subject = f"{subject_keyword}AI 기사 모니터링 데일리 리포트 ({today_str})"
+        subject = f"{subject_keyword}AI 뉴스 인텔리전스 데일리 리포트 ({today_str})"
 
-        body = f"""안녕하세요,
+        fallback_body = f"""안녕하세요.
 
-{today_str} 기준 AI 기사 모니터링 데일리 리포트를 첨부해 드립니다.
+{today_str} 기준 AI 뉴스 인텔리전스 데일리 리포트를 첨부드립니다.
 {f'키워드: {keyword_name}' if keyword_name else ''}
 
-첨부 파일에서 기사별 AI 중요도 점수, 요약, 원문 링크를 확인하실 수 있습니다.
+첨부 파일에서 기사별 AI 중요도, 요약, 원문 링크를 확인하실 수 있습니다.
 
 감사합니다.
-AI 기사 모니터링 시스템
-""".strip()
+AI 뉴스 인텔리전스 시스템""".strip()
 
-        msg = MIMEMultipart()
-        msg["From"] = formataddr(("AI기사 모니터링 시스템", self.from_addr))
+        msg = MIMEMultipart("related")
+        msg["From"] = formataddr(("AI 뉴스 인텔리전스", self.from_addr))
         msg["To"] = ", ".join(to_emails)
         msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain", "utf-8"))
 
-        # Excel 첨부
+        alternative = MIMEMultipart("alternative")
+        alternative.attach(MIMEText(text_body or fallback_body, "plain", "utf-8"))
+        if html_body:
+            alternative.attach(MIMEText(html_body, "html", "utf-8"))
+        msg.attach(alternative)
+
+        for content_id, image_bytes, mime_subtype in inline_images or []:
+            image = MIMEBase("image", mime_subtype)
+            image.set_payload(image_bytes)
+            encoders.encode_base64(image)
+            image.add_header("Content-ID", f"<{content_id}>")
+            image.add_header("Content-Disposition", "inline", filename=f"{content_id}.{mime_subtype.split('+')[0]}")
+            msg.attach(image)
+
         filename = f"daily_report_{today_str}.xlsx"
         attachment = MIMEBase(
             "application",

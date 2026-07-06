@@ -5,7 +5,7 @@ from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
 from app.models.article_match import ArticleMatch
 from app.repositories.article_repository import ArticleRepository
-from app.schemas.articles import ArticleDetailResponse, DeleteFeedbackResponse, FeedbackResponse
+from app.schemas.articles import ArticleDetailResponse, DeleteArticleResponse, DeleteFeedbackResponse, FeedbackResponse
 
 
 class ArticleService:
@@ -59,3 +59,13 @@ class ArticleService:
             raise build_error(ErrorCode.FORBIDDEN, "access denied")
         row = await self.article_repository.delete_my_feedback_by_article(user_id, article_id)
         return DeleteFeedbackResponse(**row)
+
+    async def delete_article(
+        self,
+        user_id: int,
+        article_id: int,
+    ) -> DeleteArticleResponse:
+        row = await self.article_repository.delete_article_for_user(user_id=user_id, article_id=article_id)
+        if row is None:
+            raise build_error(ErrorCode.NOT_FOUND, "article not found")
+        return DeleteArticleResponse(**row)

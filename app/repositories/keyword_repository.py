@@ -23,12 +23,40 @@ async def create_keyword(
     user_id: int,
     keyword_text: str,
     language: str,
+    client_name: str | None = None,
+    group_name: str | None = None,
+    monitoring_type: str = "brand",
+    priority_level: str = "normal",
+    crawl_interval_minutes: int = 1440,
+    crawl_limit: int = 10,
+    email_auto_send: bool = False,
+    email_recipients: str | None = None,
+    email_send_time: str = "08:30",
+    email_condition_type: str = "daily_summary",
+    alert_negative_rate_threshold: int = 25,
+    alert_importance_threshold: int = 80,
+    alert_article_count_threshold: int = 10,
+    importance_criteria: str | None = None,
 ) -> Keyword:
     keyword = Keyword(
         user_id=user_id,
         keyword_text=keyword_text,
         language=language,
         is_active=True,
+        client_name=client_name,
+        group_name=group_name,
+        monitoring_type=monitoring_type,
+        priority_level=priority_level,
+        crawl_interval_minutes=crawl_interval_minutes,
+        crawl_limit=crawl_limit,
+        email_auto_send=email_auto_send,
+        email_recipients=email_recipients,
+        email_send_time=email_send_time,
+        email_condition_type=email_condition_type,
+        alert_negative_rate_threshold=alert_negative_rate_threshold,
+        alert_importance_threshold=alert_importance_threshold,
+        alert_article_count_threshold=alert_article_count_threshold,
+        importance_criteria=importance_criteria,
     )
     db.add(keyword)
     await db.flush()
@@ -42,6 +70,46 @@ async def update_keyword_is_active(
     is_active: bool,
 ) -> Keyword:
     keyword.is_active = is_active
+    await db.flush()
+    await db.refresh(keyword)
+    return keyword
+
+
+async def update_keyword_settings(
+    db: AsyncSession,
+    keyword: Keyword,
+    *,
+    keyword_text: str,
+    client_name: str | None,
+    group_name: str | None,
+    monitoring_type: str,
+    priority_level: str,
+    crawl_interval_minutes: int,
+    crawl_limit: int,
+    email_auto_send: bool,
+    email_recipients: str | None,
+    email_send_time: str,
+    email_condition_type: str,
+    alert_negative_rate_threshold: int,
+    alert_importance_threshold: int,
+    alert_article_count_threshold: int,
+    importance_criteria: str | None,
+) -> Keyword:
+    keyword.keyword_text = keyword_text
+    keyword.client_name = client_name
+    keyword.group_name = group_name
+    keyword.monitoring_type = monitoring_type
+    keyword.priority_level = priority_level
+    keyword.crawl_interval_minutes = crawl_interval_minutes
+    keyword.crawl_limit = crawl_limit
+    keyword.email_auto_send = email_auto_send
+    keyword.email_recipients = email_recipients
+    keyword.email_send_time = email_send_time
+    keyword.email_condition_type = email_condition_type
+    keyword.alert_negative_rate_threshold = alert_negative_rate_threshold
+    keyword.alert_importance_threshold = alert_importance_threshold
+    keyword.alert_article_count_threshold = alert_article_count_threshold
+    keyword.importance_criteria = importance_criteria
     await db.flush()
     await db.refresh(keyword)
     return keyword

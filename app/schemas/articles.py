@@ -15,6 +15,10 @@ class ArticleSort(str, Enum):
     published_at_asc = "published_at_asc"
     importance_desc = "importance_desc"
     importance_asc = "importance_asc"
+    sentiment_negative_first = "sentiment_negative_first"
+    sentiment_positive_first = "sentiment_positive_first"
+    promotion_first = "promotion_first"
+    organic_first = "organic_first"
 
 
 class ArticleListQuery(BaseModel):
@@ -25,6 +29,8 @@ class ArticleListQuery(BaseModel):
     language: Optional[ArticleLanguage] = None
     from_date: Optional[date] = Field(default=None, alias="from")
     to_date: Optional[date] = Field(default=None, alias="to")
+    collected_from_date: Optional[date] = Field(default=None, alias="collected_from")
+    collected_to_date: Optional[date] = Field(default=None, alias="collected_to")
     min_importance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     max_importance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     has_feedback: Optional[bool] = None
@@ -37,6 +43,12 @@ class ArticleListQuery(BaseModel):
     def validate_ranges(self):
         if self.from_date and self.to_date and self.from_date > self.to_date:
             raise ValueError("'from' must be less than or equal to 'to'")
+        if (
+            self.collected_from_date
+            and self.collected_to_date
+            and self.collected_from_date > self.collected_to_date
+        ):
+            raise ValueError("'collected_from' must be less than or equal to 'collected_to'")
         if (
             self.min_importance is not None
             and self.max_importance is not None
@@ -142,6 +154,12 @@ class FeedbackResponse(BaseModel):
 class DeleteFeedbackResponse(BaseModel):
     deleted: bool
     article_id: int
+
+
+class DeleteArticleResponse(BaseModel):
+    deleted: bool
+    article_id: int
+    title: Optional[str] = None
 
 
 class NewsStatsResponse(BaseModel):
