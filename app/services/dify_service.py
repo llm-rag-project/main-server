@@ -13,6 +13,13 @@ class DifyUploadError(Exception):
     pass
 
 
+class DifyWorkflowError(Exception):
+    def __init__(self, code: str, message: str, *, status_code: int = 502):
+        super().__init__(message)
+        self.code = code
+        self.status_code = status_code
+
+
 class DifyService:
     def __init__(
         self,
@@ -21,6 +28,7 @@ class DifyService:
         summary_workflow_api_key: str,
         scoring_workflow_api_key: str,
         analysis_workflow_api_key: str = "",
+        news_editor_workflow_api_key: str = "",
         timeout: float = 30.0,
     ):
         self.base_url = base_url.rstrip("/")
@@ -28,6 +36,7 @@ class DifyService:
         self.summary_workflow_api_key = summary_workflow_api_key
         self.scoring_workflow_api_key = scoring_workflow_api_key
         self.analysis_workflow_api_key = analysis_workflow_api_key
+        self.news_editor_workflow_api_key = news_editor_workflow_api_key
         self.timeout = timeout
 
     async def _post(self, path: str, api_key: str, payload: dict) -> dict:
@@ -271,6 +280,109 @@ class DifyService:
             }
         }
 
+    async def run_news_editor_workflow(
+        self,
+        *,
+        mail_date: str,
+        subject: str,
+        articles_json: str,
+        priority_criteria: str = "",
+        user: str = "pr-editor-bot",
+    ) -> dict:
+        if not self.news_editor_workflow_api_key:
+            raise RuntimeError("NEWS_EDITOR_WORKFLOW_API_KEY is not configured")
+        if not mail_date or not subject or not priority_criteria:
+            raise DifyWorkflowError("VALIDATION_ERROR", "mail_date, subject, and priority_criteria are required", status_code=400)
+        try:
+            article_payload = json.loads(articles_json)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise DifyWorkflowError("INVALID_INPUT_JSON", "articles_json must be a valid JSON string", status_code=400) from exc
+        if not isinstance(article_payload, list):
+            raise DifyWorkflowError("ARTICLES_NOT_ARRAY", "articles_json must decode to an array", status_code=400)
+        if not article_payload:
+            raise DifyWorkflowError("EMPTY_ARTICLES", "articles_json must contain at least one article", status_code=400)
+
+        payload = {
+            "inputs": {
+                "mail_date": mail_date,
+                "subject": subject,
+                "articles_json": articles_json,
+                "priority_criteria": priority_criteria,
+            },
+            "response_mode": "blocking",
+            "user": user,
+        }
+        data = await self._post("/workflows/run", self.news_editor_workflow_api_key, payload)
+
+        if data.get("success") is False:
+            error = data.get("error") or {}
+            raise DifyWorkflowError(
+                error.get("code") or "UPSTREAM_ERROR",
+                error.get("message") or "Failed to execute news editor workflow",
+                status_code=502,
+            )
+
+        if data.get("success") is True and isinstance(data.get("data"), dict) and "selected_articles" in data["data"]:
+            raw_data = data["data"]
+            selected_articles = raw_data.get("selected_articles")
+            excluded_articles = raw_data.get("excluded_articles")
+            if not isinstance(selected_articles, list) or not isinstance(excluded_articles, list):
+                raise DifyWorkflowError("INVALID_LLM_JSON", "selected_articles and excluded_articles must be arrays", status_code=502)
+            return raw_data
+
+        result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
+        raw_result = outputs.get("result_json") or outputs.get("result") or outputs.get("output") or outputs.get("text")
+
+        if isinstance(raw_result, str):
+            try:
+                raw_result = json.loads(raw_result)
+            except json.JSONDecodeError as exc:
+                raise DifyWorkflowError("INVALID_LLM_JSON", "outputs.result_json is not valid JSON", status_code=502) from exc
+
+        if isinstance(raw_result, dict) and raw_result.get("success") is False:
+            error = raw_result.get("error") or {}
+            raise DifyWorkflowError(
+                error.get("code") or "UPSTREAM_ERROR",
+                error.get("message") or "Failed to execute news editor workflow",
+                status_code=502,
+            )
+
+        if isinstance(raw_result, dict) and isinstance(raw_result.get("data"), dict) and (
+            raw_result.get("success") is True or "selected_articles" in raw_result["data"]
+        ):
+            raw_result = raw_result["data"]
+
+        if isinstance(raw_result, dict):
+            selected_articles = raw_result.get("selected_articles")
+            excluded_articles = raw_result.get("excluded_articles")
+            if not isinstance(selected_articles, list) or not isinstance(excluded_articles, list):
+                raise DifyWorkflowError(
+                    "INVALID_LLM_JSON",
+                    "News editor workflow output must include selected_articles and excluded_articles arrays",
+                    status_code=502,
+                )
+            return {
+                "workflow_run_id": result_data.get("workflow_run_id") or raw_result.get("workflow_run_id"),
+                "task_id": result_data.get("task_id") or raw_result.get("task_id"),
+                "mail_date": raw_result.get("mail_date") or mail_date,
+                "subject": raw_result.get("subject") or subject,
+                "selected_articles": selected_articles,
+                "excluded_articles": excluded_articles,
+            }
+
+        if not isinstance(raw_result, dict):
+            raise ValueError(f"뉴스 편집 workflow 결과를 찾을 수 없습니다. outputs={outputs}")
+
+        return {
+            "workflow_run_id": result_data.get("workflow_run_id") or raw_result.get("workflow_run_id"),
+            "task_id": result_data.get("task_id") or raw_result.get("task_id"),
+            "mail_date": raw_result.get("mail_date") or mail_date,
+            "subject": raw_result.get("subject") or subject,
+            "selected_articles": raw_result.get("selected_articles") or [],
+            "excluded_articles": raw_result.get("excluded_articles") or [],
+        }
+
     @classmethod
     def from_settings(cls) -> "DifyService":
         return cls(
@@ -279,6 +391,7 @@ class DifyService:
             summary_workflow_api_key=settings.summary_workflow_api_key,
             scoring_workflow_api_key=settings.scoring_workflow_api_key,
             analysis_workflow_api_key=settings.analysis_workflow_api_key,
+            news_editor_workflow_api_key=settings.news_editor_workflow_api_key,
             timeout=settings.dify_request_timeout,
         )
 

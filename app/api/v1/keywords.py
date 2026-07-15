@@ -53,6 +53,7 @@ async def create_keyword_api(
         current_user=current_user,
         keyword=payload.keyword,
         language=payload.language,
+        dashboard_mode=payload.dashboard_mode,
         client_name=payload.client_name,
         group_name=payload.group_name,
         monitoring_type=payload.monitoring_type,
@@ -98,6 +99,7 @@ async def get_keyword_list_api(
     is_active: bool | None = Query(None),
     language: str | None = Query(None),
     q: str | None = Query(None),
+    dashboard_mode: str | None = Query(None, pattern=r"^(general|dongguk)$"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -109,6 +111,7 @@ async def get_keyword_list_api(
         is_active=is_active,
         language=language,
         q=q,
+        dashboard_mode=dashboard_mode,
     )
     return success_response(request, data=data.model_dump())
 
@@ -127,6 +130,7 @@ async def update_keyword_status_api(
         keyword_id=keyword_id,
         is_active=payload.is_active,
         keyword_text=payload.keyword,
+        dashboard_mode=payload.dashboard_mode,
         client_name=payload.client_name,
         group_name=payload.group_name,
         monitoring_type=payload.monitoring_type,

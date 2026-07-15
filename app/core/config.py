@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     summary_workflow_api_key: str = Field(..., alias="SUMMARY_WORKFLOW_API_KEY")
     scoring_workflow_api_key: str = Field(..., alias="SCORING_WORKFLOW_API_KEY")
     analysis_workflow_api_key: str = Field(..., alias="ANALYSIS_WORKFLOW_API_KEY")
+    news_editor_workflow_api_key: str = Field(default="", alias="NEWS_EDITOR_WORKFLOW_API_KEY")
 
     # Knowledge
     knowledge_api_key: str = Field(..., alias="KNOWLEDGE_API_KEY")
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
 
     dify_request_timeout: int = 180
     transnews_base_url: str = Field(..., alias="TRANSNEWS_BASE_URL")
-    transnews_request_timeout: int = 20
+    transnews_request_timeout: int = 60
 
     crawl_scheduler_interval_minutes: int = Field(default=30, alias="CRAWL_SCHEDULER_INTERVAL_MINUTES")
 

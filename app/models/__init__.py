@@ -6,6 +6,9 @@ from app.models.chat_message import ChatMessage
 from app.models.crawl_run import CrawlRun
 from app.models.credit import CreditTransaction, CreditWallet
 from app.models.dify_knowledge_document import DifyKnowledgeDocument
+from app.models.dongguk_preview_cache import DonggukPreviewCache
+from app.models.dongguk_mail_draft import DonggukMailDraft
+from app.models.dongguk_article_trash import DonggukArticleTrash
 from app.models.email_delivery import EmailDelivery
 from app.models.feedback import Feedback
 from app.models.importance_score import ImportanceScore
@@ -28,6 +31,9 @@ __all__ = [
     "Keyword",
     "CrawlRun",
     "DifyKnowledgeDocument",
+    "DonggukPreviewCache",
+    "DonggukMailDraft",
+    "DonggukArticleTrash",
     "Article",
     "ArticleMatch",
     "Summary",

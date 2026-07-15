@@ -1,5 +1,7 @@
 import logging
+import re
 from typing import Any
+from html import unescape
 
 import httpx
 from pydantic import ValidationError
@@ -40,6 +42,78 @@ class TransNewsClient:
 
         return response.json()
 
+    def _strip_html(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        text = unescape(str(value))
+        text = re.sub(r"<[^>]+>", "", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text or None
+
+    def _first_value(self, item: dict[str, Any], *keys: str) -> Any:
+        for key in keys:
+            value = item.get(key)
+            if value not in (None, ""):
+                return value
+        return None
+
+    def _extract_response_items(self, result: dict[str, Any]) -> list[dict[str, Any]]:
+        payload = result.get("data", result)
+        if isinstance(payload, list):
+            return [item for item in payload if isinstance(item, dict)]
+        if isinstance(payload, dict):
+            for key in ("items", "articles", "news", "results", "data"):
+                value = payload.get(key)
+                if isinstance(value, list):
+                    return [item for item in value if isinstance(item, dict)]
+        return []
+
+    def _normalize_news_item(self, item: dict[str, Any]) -> dict[str, Any]:
+        title = self._strip_html(self._first_value(item, "title", "headline", "name")) or "제목 없음"
+        description = self._strip_html(
+            self._first_value(item, "content", "description", "summary", "snippet", "body", "text")
+        )
+        original_url = self._first_value(
+            item,
+            "original_url",
+            "originallink",
+            "originalLink",
+            "source_url",
+            "article_link",
+            "article_url",
+            "resolved_url",
+            "url",
+        )
+        link = self._first_value(item, "link", "naver_link", "naverLink")
+        source_name = self._strip_html(
+            self._first_value(item, "source_name", "publisher", "source", "media", "media_name", "press")
+        )
+        normalized = {
+            **item,
+            "title": title,
+            "link": str(link).strip() if link else None,
+            "article_link": str(self._first_value(item, "article_link", "article_url") or original_url or link or "").strip() or None,
+            "original_url": str(original_url or link or "").strip() or None,
+            "source_name": source_name,
+            "source_url": self._first_value(item, "source_url", "publisher_url", "media_url"),
+            "language": item.get("language") or "ko",
+            "published": self._first_value(item, "published", "published_at", "pubDate", "pubdate", "date"),
+            "published_at": self._first_value(item, "published_at", "published", "pubDate", "pubdate", "date"),
+            "content": description or "",
+        }
+        return normalized
+
+    def _normalize_search_response(self, result: dict[str, Any]) -> dict[str, Any]:
+        items = [self._normalize_news_item(item) for item in self._extract_response_items(result)]
+        status = str(result.get("status") or result.get("code") or "SUCCESS").upper()
+        if status in {"OK", "200", "TRUE"}:
+            status = "SUCCESS"
+        return {
+            "status": status,
+            "message": result.get("message") or result.get("msg") or "뉴스 검색 성공",
+            "data": items,
+        }
+
     async def _post(
         self,
         path: str,
@@ -79,9 +153,10 @@ class TransNewsClient:
 
         result = await self._get("/news", params=params)
         logger.debug("TRANSNEWS RAW RESPONSE = %s", result)
+        normalized = self._normalize_search_response(result)
 
         try:
-            parsed = TransNewsSearchResponse.model_validate(result)
+            parsed = TransNewsSearchResponse.model_validate(normalized)
         except ValidationError as e:
             raise TransNewsClientError(
                 f"Invalid search_news response schema: {e}"

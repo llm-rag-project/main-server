@@ -23,6 +23,7 @@ async def create_keyword(
     user_id: int,
     keyword_text: str,
     language: str,
+    dashboard_mode: str = "general",
     client_name: str | None = None,
     group_name: str | None = None,
     monitoring_type: str = "brand",
@@ -42,6 +43,7 @@ async def create_keyword(
         user_id=user_id,
         keyword_text=keyword_text,
         language=language,
+        dashboard_mode=dashboard_mode,
         is_active=True,
         client_name=client_name,
         group_name=group_name,
@@ -80,6 +82,7 @@ async def update_keyword_settings(
     keyword: Keyword,
     *,
     keyword_text: str,
+    dashboard_mode: str,
     client_name: str | None,
     group_name: str | None,
     monitoring_type: str,
@@ -96,6 +99,7 @@ async def update_keyword_settings(
     importance_criteria: str | None,
 ) -> Keyword:
     keyword.keyword_text = keyword_text
+    keyword.dashboard_mode = dashboard_mode
     keyword.client_name = client_name
     keyword.group_name = group_name
     keyword.monitoring_type = monitoring_type
@@ -135,6 +139,7 @@ async def list_user_keywords(
     is_active: bool | None = None,
     language: str | None = None,
     q: str | None = None,
+    dashboard_mode: str | None = None,
 ) -> tuple[list[Keyword], int]:
     query = select(Keyword).where(Keyword.user_id == user_id)
     count_query = select(func.count()).select_from(Keyword).where(Keyword.user_id == user_id)
@@ -146,6 +151,10 @@ async def list_user_keywords(
     if language is not None:
         query = query.where(Keyword.language == language)
         count_query = count_query.where(Keyword.language == language)
+
+    if dashboard_mode is not None:
+        query = query.where(Keyword.dashboard_mode == dashboard_mode)
+        count_query = count_query.where(Keyword.dashboard_mode == dashboard_mode)
 
     if q:
         pattern = f"%{q.strip()}%"

@@ -2,13 +2,21 @@
 import { createRoot } from "react-dom/client";
 import {
   BarChart3,
+  Bell,
   Bot,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
+  Calendar,
+  Clock,
+  Circle,
+  CopyMinus,
   Download,
   ExternalLink,
   Eye,
+  FileText,
+  Hash,
+  HelpCircle,
+  Home,
   Loader2,
   Mail,
   MessageSquare,
@@ -16,9 +24,14 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
+  Send,
+  Settings,
   Sparkles,
+  Star,
   Trash2,
+  UserRound,
   X,
 } from "lucide-react";
 import {
@@ -48,6 +61,256 @@ const sortOptions = [
 
 const medals = ["1", "2", "3", "4", "5"];
 const chatStorageKey = "news_console_default_chat_id";
+const donggukDashboardUrl = "https://2c25-210-94-172-73.ngrok-free.app/";
+const donggukSections = {
+  foundation: "동국대 [법인/건학위]",
+  education: "대학 [교육]",
+  buddhism: "불교 [종단]",
+};
+const donggukPriorityBands = [
+  { label: "P1", name: "최우선", min: 80, tone: "p1" },
+  { label: "P2", name: "주요", min: 64, tone: "p2" },
+  { label: "P3", name: "보통", min: 52, tone: "p3" },
+  { label: "P4", name: "참고", min: 25, tone: "p4" },
+  { label: "P5", name: "낮음", min: 0, tone: "p5" },
+];
+const donggukCategoryRules = [
+  { key: "leader", label: "총장/이사장 메시지", score: 95, priority: "P1", keywords: ["총장", "이사장", "부총장", "밝혀", "말해", "기조연설", "서원"] },
+  { key: "donation", label: "기부/장학/발전기금", score: 86, priority: "P1", keywords: ["기부", "쾌척", "기탁", "장학기금", "발전기금", "성금"] },
+  { key: "buddhist_identity", label: "불교 정체성 상징 행사", score: 78, priority: "P2", keywords: ["봉축", "연등회", "수계", "불교사전", "봉정", "법회"] },
+  { key: "research", label: "연구 성과/AI", score: 75, priority: "P2", keywords: ["연구", "AI", "개발", "특허", "수주", "전지", "배터리", "이온", "소재", "논문"] },
+  { key: "campaign", label: "건학 기념 캠페인", score: 72, priority: "P2", keywords: ["120주년", "건학"] },
+  { key: "partnership", label: "협약/사업 선정", score: 68, priority: "P2", keywords: ["업무협약", "MOU", "컨소시엄", "협약 체결", "맞손", "선정"] },
+  { key: "award", label: "수상/인증", score: 66, priority: "P2", keywords: ["수상", "재인증", "인증 획득", "문학상", "미술상", "대상"] },
+  { key: "event", label: "학교 공식 행사", score: 66, priority: "P2", keywords: ["개최", "봉행", "기념식", "개원", "추모제", "간담회"] },
+  { key: "academic", label: "학술활동", score: 62, priority: "P3", keywords: ["학술원", "연구소", "학술대회", "춘계", "추계", "토론"] },
+  { key: "admission", label: "입시/교육 프로그램", score: 60, priority: "P3", keywords: ["입결", "입시", "수시", "정시", "모집인원"] },
+  { key: "appointment", label: "인사(임용/위촉)", score: 56, priority: "P3", keywords: ["임용", "선임", "취임", "위촉", "영입"] },
+  { key: "education_policy", label: "대학 정책/고등교육 이슈", score: 55, priority: "P3", keywords: ["교육부", "의대", "유학생", "등록금", "대입"] },
+  { key: "alumni", label: "동문/교수 인터뷰·칼럼", score: 49, priority: "P4", keywords: ["동문소식", "교수", "칼럼", "인터뷰", "출연"] },
+  { key: "buddhist_general", label: "불교계/종단 일반", score: 28, priority: "P4", keywords: ["조계종", "사찰", "종정"] },
+  { key: "other", label: "기타 개별 홍보 피처", score: 24, priority: "P5", keywords: [] },
+];
+const defaultDonggukPriorityCriteria = `기본 홍보처 우선순위 기준
+
+최우선으로 올릴 기사:
+- 총장/이사장 메시지
+- 기부/장학/발전기금
+- 건학 120주년 등 진행 중 캠페인
+- 연구 성과/AI
+- 협약/사업 선정
+- 수상/인증
+- 학교 공식 행사
+
+일반 또는 참고로 낮출 기사:
+- 학술활동
+- 입시/교육 프로그램
+- 인사/위촉
+- 대학 정책/고등교육 이슈
+- 동문/교수 인터뷰·칼럼
+- 불교계/종단 일반 소식
+
+대표 기사 선정 기준:
+- 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
+- 대표 기사는 원문 URL이 정상이고 본문 확인이 가능한 기사를 우선한다.
+- 제목이 가장 명확하고 기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 잘 드러난 기사를 우선한다.
+- 기사 내용이 길고 요약에 필요한 사실 정보가 충분한 기사를 우선한다.
+- 출처 신뢰도와 홍보처 배포 활용성을 고려한다.
+- 단순 재전송, 제목만 바꾼 기사, 내용이 짧거나 원문 확인이 어려운 기사는 제외한다.`;
+const defaultRepresentativeCriteria = `대표 기사 선정 기준:
+- 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
+- 대표 기사는 원문 URL이 정상이고 본문 확인이 가능한 기사를 우선한다.
+- 제목이 가장 명확하고 기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 잘 드러난 기사를 우선한다.
+- 기사 내용이 길고 요약에 필요한 사실 정보가 충분한 기사를 우선한다.
+- 출처 신뢰도와 홍보처 배포 활용성을 고려한다.
+- 단순 재전송, 제목만 바꾼 기사, 내용이 짧거나 원문 확인이 어려운 기사는 제외한다.`;
+
+function normalizeDonggukCriteria(criteria) {
+  const text = (criteria || "").trim();
+  if (!text) return defaultDonggukPriorityCriteria;
+  return text;
+}
+
+const priorityRuleSentenceMap = {
+  "총장/이사장 메시지": "총장 또는 이사장의 공식 메시지가 포함된 기사를 가장 먼저 선정합니다.",
+  "기부/장학/발전기금": "기부, 장학금, 발전기금처럼 학교 이미지와 직접 연결되는 기사를 우선 선정합니다.",
+  "건학 120주년 등 진행 중 캠페인": "건학 120주년 등 현재 진행 중인 학교 캠페인 관련 기사를 우선 선정합니다.",
+  "연구 성과/AI": "연구 성과, 기술 개발, 특허, AI 관련 성과 기사를 우선 선정합니다.",
+  "협약/사업 선정": "공식 기관과의 협약, 사업 선정, 컨소시엄 참여 기사를 우선 선정합니다.",
+  "수상/인증": "학교, 교직원, 학생의 수상 및 공식 인증 획득 기사를 우선 선정합니다.",
+  "학교 공식 행사": "학교가 주최하거나 공식적으로 참여한 주요 행사 기사를 우선 선정합니다.",
+  "학술활동": "학술대회, 세미나, 토론회 관련 기사는 주요 성과 기사보다 낮게 선정합니다.",
+  "입시/교육 프로그램": "입시와 교육 프로그램 기사는 홍보 활용도를 확인해 일반 순위로 선정합니다.",
+  "인사/위촉": "임용, 위촉, 취임 등 인사 관련 기사는 일반 순위로 선정합니다.",
+  "대학 정책/고등교육 이슈": "대학 정책과 고등교육 일반 이슈는 동국대학교와의 직접 관련성을 확인해 선정합니다.",
+  "동문/교수 인터뷰·칼럼": "동문과 교수의 인터뷰, 칼럼, 방송 출연 기사는 참고 순위로 선정합니다.",
+  "불교계/종단 일반 소식": "불교계와 종단 일반 소식은 동국대학교와 직접 연결될 때만 참고 기사로 선정합니다.",
+};
+const defaultPriorityRuleItems = Object.values(priorityRuleSentenceMap);
+const defaultRepresentativeRuleItems = [
+  "동일 주제, 동일 보도자료, 같은 사건의 반복 보도는 하나의 그룹으로 묶고 대표 기사 1건만 선정합니다.",
+  "원문 URL이 정상이고 본문 전체를 확인할 수 있는 기사를 우선합니다.",
+  "기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 제목에 명확히 드러난 기사를 우선합니다.",
+  "요약에 필요한 사실 정보가 충분하고 기사 내용이 충실한 기사를 우선합니다.",
+  "언론사 신뢰도와 홍보처 배포 활용도가 높은 기사를 우선합니다.",
+];
+const defaultExclusionRuleItems = [
+  "동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.",
+  "원문 확인이 어렵거나 본문 정보가 부족한 기사는 제외합니다.",
+];
+
+function criteriaSectionRules(criteria, sectionName) {
+  const lines = normalizeDonggukCriteria(criteria).split("\n");
+  const sectionAliases = {
+    priority: ["우선순위 기준", "위에 있을수록 우선적으로 올릴 기사", "최우선으로 올릴 기사", "일반 또는 참고로 낮출 기사"],
+    representative: ["대표 기사 선정 기준"],
+    exclusion: ["제외 기준"],
+  };
+  let active = sectionName === "priority";
+  const rows = [];
+  lines.forEach((rawLine) => {
+    const line = rawLine.trim();
+    const matchedSection = Object.entries(sectionAliases).find(([, aliases]) => aliases.some((alias) => line.startsWith(alias)));
+    if (matchedSection) {
+      active = matchedSection[0] === sectionName;
+      return;
+    }
+    if (active && line.startsWith("- ")) rows.push(line.replace(/^- /, "").trim());
+  });
+  return rows.filter(Boolean);
+}
+
+function priorityRulesFromCriteria(criteria) {
+  const rules = criteriaSectionRules(criteria, "priority");
+  const sentenceRules = rules.map((rule) => priorityRuleSentenceMap[rule] || rule);
+  return sentenceRules.length ? [...new Set(sentenceRules)] : defaultPriorityRuleItems;
+}
+
+function representativeRulesFromCriteria(criteria) {
+  const rules = criteriaSectionRules(criteria, "representative");
+  return rules.length ? rules : defaultRepresentativeRuleItems;
+}
+
+function exclusionRulesFromCriteria(criteria) {
+  const rules = criteriaSectionRules(criteria, "exclusion");
+  return rules.length ? rules : defaultExclusionRuleItems;
+}
+
+function criteriaFromRuleGroups(priorityRules, representativeRules, exclusionRules) {
+  const clean = (rules) => rules.map((item) => item.trim()).filter(Boolean);
+  return `홍보처 AI 기사 선정 기준
+
+우선순위 기준:
+${clean(priorityRules).map((item) => `- ${item}`).join("\n")}
+
+대표 기사 선정 기준:
+${clean(representativeRules).map((item) => `- ${item}`).join("\n")}
+
+제외 기준:
+${clean(exclusionRules).map((item) => `- ${item}`).join("\n")}`;
+}
+
+function defaultDonggukSectionLimits() {
+  return {
+    [donggukSections.foundation]: 4,
+    [donggukSections.education]: 2,
+    [donggukSections.buddhism]: 2,
+  };
+}
+
+function applyDonggukSectionLimits(articles, limits) {
+  const used = {};
+  return articles.filter((article) => {
+    const section = article.sectionLabel || donggukSections.foundation;
+    const limit = Number(limits[section] ?? 0);
+    used[section] = used[section] || 0;
+    if (used[section] >= limit) return false;
+    used[section] += 1;
+    return true;
+  });
+}
+const donggukDemoArticles = [
+  {
+    title: "동국대 이사장 돈관스님, 건학 120주년 기념 법회서 미래 인재 양성 서원",
+    section: "foundation",
+    source: "불교신문",
+    links: [],
+    summary: "이사장 메시지와 건학 120주년 캠페인이 함께 드러난 기사입니다. 기존 메일 패턴상 최상단 고정 후보로 분류됩니다.",
+    matchedType: "leader",
+  },
+  {
+    title: "법보선원, 동국대 장학기금 10억 원 기탁",
+    section: "foundation",
+    source: "법보신문 외",
+    links: [],
+    summary: "기부·기탁 유형은 기존 표본에서 가장 높은 신디케이션 비율을 보였습니다. 학교 이미지와 직접 연결되어 최우선으로 정렬됩니다.",
+    matchedType: "donation",
+  },
+  {
+    title: "동국대 AI융합연구팀, 의료영상 분석 기술 개발",
+    section: "foundation",
+    source: "전자신문 외",
+    links: [],
+    summary: "연구 성과와 AI 키워드가 결합된 기사입니다. 복수매체 보도 가산점으로 주요 기사 묶음 상단에 배치됩니다.",
+    matchedType: "research",
+  },
+  {
+    title: "동국대, 지역 상생 교육 컨소시엄 업무협약 체결",
+    section: "foundation",
+    source: "대학저널",
+    links: [],
+    summary: "공식 기관 협력 기사로 협약·사업 선정 기준에 해당합니다. 데일리 메일에서 주요 배지와 세부 카테고리가 표시됩니다.",
+    matchedType: "partnership",
+  },
+  {
+    title: "[동문소식-박주형] 신세계그룹 전략 발표",
+    section: "foundation",
+    source: "매일경제 외",
+    links: [],
+    summary: "기본 유형은 참고 기사지만 복수매체 동시보도 신호가 있어 주요 기사로 승급되는 예외 케이스입니다.",
+    matchedType: "alumni",
+  },
+  {
+    title: "동국대 학술원, 불교문화유산 디지털 아카이브 학술대회 개최",
+    section: "foundation",
+    source: "한국대학신문",
+    links: [],
+    summary: "학술활동과 불교 정체성 키워드가 함께 있으나 학술활동 기준으로 보통 우선순위 목록에 배치됩니다.",
+    matchedType: "academic",
+  },
+  {
+    title: "교육부, 2027학년도 대입 제도 개편안 발표",
+    section: "education",
+    source: "연합뉴스",
+    links: [],
+    summary: "고등교육 정책 참고 기사입니다. 기존 메일의 대학 [교육] 섹션 성격을 유지해 보통 우선순위로 분류합니다.",
+    matchedType: "education_policy",
+  },
+  {
+    title: "주요 대학, 수시 모집인원 확대와 입결 변화 분석",
+    section: "education",
+    source: "대학저널",
+    links: [],
+    summary: "입시·입결 키워드가 포함된 교육 섹션 기사입니다. 홍보처 참고 가치가 있어 일반 목록에 노출됩니다.",
+    matchedType: "admission",
+  },
+  {
+    title: "조계종, 종정 신년 법어 발표",
+    section: "buddhism",
+    source: "불교닷컴",
+    links: [],
+    summary: "불교 [종단] 섹션의 일반 참고 기사입니다. 동국대 직접 관련성이 낮아 참고 기사로 내려 정렬합니다.",
+    matchedType: "buddhist_general",
+  },
+  {
+    title: "봉축 연등회 문화행사 도심서 봉행",
+    section: "buddhism",
+    source: "BTN불교TV",
+    links: [],
+    summary: "불교 정체성 상징 행사의 참고 기사입니다. 동국대 직접 기사보다 낮지만 종단 일반 기사보다 우선합니다.",
+    matchedType: "buddhist_identity",
+  },
+];
 
 function makeJobId() {
   return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
@@ -95,8 +358,54 @@ function localDateKey(value = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function articlePublishedDateKey(article) {
+  const value = article?.published_at || article?.publishedAt || "";
+  if (!value) return "";
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  return localDateKey(text);
+}
+
+function isArticlePublishedOn(article, dateKey) {
+  const publishedKey = articlePublishedDateKey(article);
+  return Boolean(publishedKey && dateKey && publishedKey === dateKey);
+}
+
+function previousDateKey(dateKey) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return dateKey;
+  date.setDate(date.getDate() - 1);
+  return localDateKey(date);
+}
+
+function reportWindowForDate(dateKey, sendTime = "08:30") {
+  const cleanDate = dateKey || localDateKey();
+  const cleanTime = /^\d{2}:\d{2}$/.test(sendTime || "") ? sendTime : "08:30";
+  const startKey = previousDateKey(cleanDate);
+  return {
+    startKey,
+    endKey: cleanDate,
+    from_at: `${startKey}T${cleanTime}:00+09:00`,
+    to_at: `${cleanDate}T${cleanTime}:00+09:00`,
+    label: `${startKey} ${cleanTime} ~ ${cleanDate} ${cleanTime}`,
+  };
+}
+
+function isArticleInMailWindow(article, mailDateKey, sendTime = "08:30") {
+  const value = article?.published_at || article?.publishedAt || "";
+  if (!value || !mailDateKey) return false;
+  const publishedAt = new Date(value);
+  if (Number.isNaN(publishedAt.getTime())) return false;
+  const window = reportWindowForDate(mailDateKey, sendTime);
+  return publishedAt >= new Date(window.from_at) && publishedAt <= new Date(window.to_at);
+}
+
 function getArticleUrl(article) {
   return article?.original_url || article?.url || article?.link || "";
+}
+
+function getArticleThumbnail(article) {
+  return article?.thumbnail_url || article?.thumbnailUrl || article?.image_url || article?.image || "";
 }
 
 function normalizeScore(score) {
@@ -127,6 +436,408 @@ function sourceLabel(source) {
     community: "Community",
   };
   return labels[source] || source || "Unknown";
+}
+
+function donggukMailSubject(date = new Date()) {
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `오늘의 주요 뉴스 ${year}.${month}.${day}.[${weekdays[date.getDay()]}]`;
+}
+
+function getDonggukRule(key) {
+  return donggukCategoryRules.find((rule) => rule.key === key) || donggukCategoryRules[donggukCategoryRules.length - 1];
+}
+
+function donggukPriorityFromScore(score) {
+  return donggukPriorityBands.find((band) => score >= band.min) || donggukPriorityBands[donggukPriorityBands.length - 1];
+}
+
+function donggukPriorityBandFromValue(value, score = 0) {
+  const text = String(value || "").trim();
+  return donggukPriorityBands.find((band) => band.label === text || band.name === text) || donggukPriorityFromScore(score);
+}
+
+function priorityDisplayName(articleOrBand) {
+  return articleOrBand?.priorityName || articleOrBand?.name || "";
+}
+
+function articlePriorityReason(article = {}) {
+  const directReason = article.selectionReason || article.selection_reason || article.priorityReason || article.priority_reason;
+  if (directReason) return directReason;
+  const category = article.category || "기사 후보";
+  const priorityName = priorityDisplayName(article) || "검토";
+  const score = Number(article.score ?? 0);
+  const details = [];
+  if (/총장|이사장|기관장/.test(category)) details.push("기관장 메시지와 공식 발언 성격이 있어 홍보 가치가 높습니다");
+  else if (/기부|장학|발전기금/.test(category)) details.push("기부·장학·발전기금 성격이라 학교 이미지와 직접 연결됩니다");
+  else if (/연구|AI/.test(category)) details.push("연구 성과와 기술 키워드가 있어 성과 홍보에 적합합니다");
+  else if (/협약|사업/.test(category)) details.push("기관 협력 또는 사업 선정 성격의 공식 기사입니다");
+  else if (/수상|인증/.test(category)) details.push("수상·인증 성과 기사로 대외 신뢰도에 기여합니다");
+  else if (/행사/.test(category)) details.push("학교 공식 행사 기사로 기본 홍보 가치가 있습니다");
+  else if (/학술|입시|교육|인사|동문|교수|종단|기타/.test(category)) details.push("참고성 기사라 직접 홍보 기사보다 우선순위가 낮게 평가됩니다");
+  if (article.isSyndicated) details.push("복수매체 보도 신호가 있습니다");
+  if (article.isCampaign) details.push("진행 중 캠페인 키워드가 포함되어 있습니다");
+  if (!details.length) details.push(score >= 64 ? "홍보처 기준에 맞는 주요 신호가 확인되었습니다" : "직접 홍보성과의 관련성이 상대적으로 낮습니다");
+  return `${priorityName} 평가: ${details.join(", ")}.`;
+}
+
+function articleSimilarityTokens(article = {}) {
+  const text = `${article.title || ""} ${article.summary || ""}`.toLowerCase();
+  const stopwords = new Set(["동국대", "동국대학교", "기사", "보도", "개최", "진행", "관련", "위해", "이번", "통해", "있는", "대한", "한다", "했다", "에서", "으로", "하고"]);
+  return new Set((text.match(/[가-힣A-Za-z0-9]{2,}/g) || []).filter((token) => !stopwords.has(token)));
+}
+
+function isSimilarDonggukArticle(left = {}, right = {}) {
+  const leftLinks = realArticleLinks(left);
+  const rightLinks = realArticleLinks(right);
+  if (leftLinks.some((link) => rightLinks.includes(link))) return true;
+  const leftTokens = articleSimilarityTokens(left);
+  const rightTokens = articleSimilarityTokens(right);
+  if (!leftTokens.size || !rightTokens.size) return false;
+  const shared = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  const overlap = shared / Math.max(1, Math.min(leftTokens.size, rightTokens.size));
+  const sameSource = left.source && right.source && left.source === right.source;
+  const sameMinute = String(left.published_at || "").slice(0, 16) && String(left.published_at || "").slice(0, 16) === String(right.published_at || "").slice(0, 16);
+  return overlap >= 0.42 || (sameSource && sameMinute && overlap >= 0.22);
+}
+
+function isAiDuplicateTopicExclusion(article = {}) {
+  const reason = `${article.selectionReason || article.selection_reason || ""} ${article.reason || ""} ${article.summary || ""}`;
+  return /같은\s*주제|동일\s*주제|중복\s*(?:기사|보도|주제)|동일\s*보도자료|반복\s*보도/.test(reason);
+}
+
+function aiDuplicateExcludedKeys(excludedArticles = [], candidates = []) {
+  const duplicateRows = excludedArticles.filter(isAiDuplicateTopicExclusion);
+  const keys = new Set();
+  duplicateRows.forEach((excluded) => {
+    const excludedLinks = realArticleLinks(excluded);
+    const index = candidates.findIndex((candidate) => {
+      const sameId = excluded.id && candidate.id && String(excluded.id) === String(candidate.id);
+      const sameTitle = excluded.title && candidate.title && excluded.title === candidate.title;
+      const sameLink = excludedLinks.some((link) => realArticleLinks(candidate).includes(link));
+      return sameId || sameTitle || sameLink;
+    });
+    if (index >= 0) keys.add(articleKey(candidates[index], index));
+  });
+  return keys;
+}
+
+function candidateKeysForAiArticles(aiArticles = [], candidates = []) {
+  const keys = new Set();
+  aiArticles.forEach((selected) => {
+    const selectedLinks = realArticleLinks(selected);
+    const index = candidates.findIndex((candidate) => {
+      const sameId = selected.id && candidate.id && String(selected.id) === String(candidate.id);
+      const sameTitle = selected.title && candidate.title && selected.title === candidate.title;
+      const sameLink = selectedLinks.some((link) => realArticleLinks(candidate).includes(link));
+      return sameId || sameTitle || sameLink;
+    });
+    if (index >= 0) keys.add(articleKey(candidates[index], index));
+  });
+  return keys;
+}
+
+async function loadAllArticlePages(params = {}) {
+  const size = 100;
+  const first = await endpoints.articles({ ...params, page: 1, size });
+  const items = [...(first?.items || [])];
+  const total = Number(first?.total || items.length);
+  const pageCount = Math.ceil(total / size);
+
+  // Keep concurrent requests bounded so large archives do not overload the API.
+  for (let start = 2; start <= pageCount; start += 5) {
+    const pages = Array.from(
+      { length: Math.min(5, pageCount - start + 1) },
+      (_, offset) => start + offset
+    );
+    const results = await Promise.all(
+      pages.map((page) => endpoints.articles({ ...params, page, size }))
+    );
+    results.forEach((result) => items.push(...(result?.items || [])));
+  }
+
+  return items;
+}
+
+function scoreDonggukArticle(article) {
+  const rule = getDonggukRule(article.matchedType);
+  const linkCount = article.links?.length || 0;
+  const isSyndicated = linkCount >= 2 || String(article.source || "").includes("외");
+  const isCampaign = /120주년|건학/.test(article.title);
+  const rawScore = rule.score + (isSyndicated ? 10 : 0) + (isCampaign ? 8 : 0);
+  const score = Math.max(0, Math.min(100, rawScore));
+  const band = donggukPriorityFromScore(score);
+  return {
+    ...article,
+    category: rule.label,
+    baseScore: rule.score,
+    score,
+    priority: band.label,
+    priorityName: band.name,
+    priorityTone: band.tone,
+    isSyndicated,
+    isCampaign,
+    sectionLabel: donggukSections[article.section] || article.section,
+  };
+}
+
+function inferDonggukArticle(article) {
+  const text = `${article.title || ""} ${article.summary || ""}`.toLowerCase();
+  const researchContext = /전지|배터리|이온|소재|전극|수계아연|아연이온|논문|연구|개발|특허|ai/i.test(text);
+  const rule = researchContext
+    ? getDonggukRule("research")
+    : donggukCategoryRules.find((item) =>
+        item.key !== "other" && item.keywords.some((keyword) => text.includes(keyword.toLowerCase()))
+      ) || getDonggukRule("other");
+  const section =
+    rule.key === "education_policy" || rule.key === "admission"
+      ? "education"
+      : rule.key === "buddhist_general"
+        ? "buddhism"
+        : "foundation";
+  return scoreDonggukArticle({
+    id: article.id,
+    title: article.title || "제목 없음",
+    section,
+    source: article.source || article.publisher || "언론사 없음",
+    url: getArticleUrl(article),
+    thumbnail_url: getArticleThumbnail(article),
+    links: [getArticleUrl(article)].filter(Boolean),
+    summary: article.summary || "요약문이 아직 없습니다.",
+    published_at: article.published_at,
+    matchedType: rule.key,
+  });
+}
+
+function normalizeDonggukTitle(title) {
+  return String(title || "")
+    .toLowerCase()
+    .replace(/\[[^\]]+\]/g, "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/["'“”‘’]/g, "")
+    .replace(/\b단독\b|\b종합\b|\b속보\b|\b인터뷰\b/g, "")
+    .replace(/동국대|동국대학교/g, "동국대")
+    .replace(/[^가-힣a-z0-9]/g, "");
+}
+
+function titleSimilarity(left, right) {
+  const a = normalizeDonggukTitle(left);
+  const b = normalizeDonggukTitle(right);
+  if (!a || !b) return 0;
+  if (a.includes(b) || b.includes(a)) return 1;
+  const makeBigrams = (value) => Array.from({ length: Math.max(0, value.length - 1) }, (_, index) => value.slice(index, index + 2));
+  const aSet = new Set(makeBigrams(a));
+  const bSet = new Set(makeBigrams(b));
+  const intersection = [...aSet].filter((item) => bSet.has(item)).length;
+  const union = new Set([...aSet, ...bSet]).size || 1;
+  return intersection / union;
+}
+
+function topicTokens(article) {
+  const text = `${article.title || ""} ${article.summary || ""}`.toLowerCase();
+  const stopWords = new Set(["동국대", "동국대학교", "연구", "개발", "교수", "연구팀", "기자", "관련", "통해", "위해", "대한", "지난"]);
+  const words = text.match(/[가-힣a-z0-9]{2,}/g) || [];
+  const compoundTokens = ["수계", "아연", "아연이온", "이온전지", "수계아연", "수계아연이온전지", "전지", "배터리", "전극", "소재", "의료영상", "인공지능", "ai"];
+  const tokens = words
+    .filter((word) => !stopWords.has(word))
+    .filter((word) => word.length >= 2);
+  compoundTokens.forEach((token) => {
+    if (text.includes(token)) tokens.push(token);
+  });
+  return new Set(tokens);
+}
+
+function topicSimilarity(left, right) {
+  const leftTokens = topicTokens(left);
+  const rightTokens = topicTokens(right);
+  const union = new Set([...leftTokens, ...rightTokens]);
+  if (!union.size) return titleSimilarity(left.title, right.title);
+  const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  return Math.max(titleSimilarity(left.title, right.title), intersection / union.size);
+}
+
+function compactDonggukArticles(articles, maxCount = 8) {
+  const groups = [];
+  articles.forEach((article) => {
+    const group = groups.find((item) => {
+      if (item.representative.category !== article.category) return false;
+      return topicSimilarity(item.representative, article) >= 0.34;
+    });
+    if (group) {
+      group.items.push(article);
+      if (article.score > group.representative.score) group.representative = article;
+    } else {
+      groups.push({ representative: article, items: [article] });
+    }
+  });
+
+  return groups
+    .map((group) => {
+      const representative = group.representative;
+      const sources = [...new Set(group.items.map((item) => item.source).filter(Boolean))];
+      const links = [...new Set(group.items.flatMap((item) => item.links || []).filter(Boolean))];
+      return {
+        ...representative,
+        source: sources.length > 1 ? `${sources[0]} 외` : representative.source,
+        links,
+        isSyndicated: sources.length > 1 || links.length > 1 || representative.isSyndicated,
+        relatedCount: group.items.length,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxCount);
+}
+
+function articleKey(article, index = 0) {
+  return String(article?.id ?? article?.url ?? article?.title ?? index);
+}
+
+function realArticleLinks(article) {
+  const links = article?.links?.length ? article.links : [article?.url].filter(Boolean);
+  return [...new Set(links)]
+    .map((link) => String(link || "").trim())
+    .filter((link) => /^https?:\/\//i.test(link))
+    .filter((link) => !/\/\/(?:www\.)?example\.com(?:\/|$)/i.test(link));
+}
+
+function canonicalArticleUrl(value = "") {
+  try {
+    const url = new URL(String(value).trim());
+    url.hash = "";
+    url.protocol = "https:";
+    url.hostname = url.hostname.toLowerCase().replace(/^(?:www\.|m\.)/, "");
+    url.pathname = url.pathname
+      .replace(/\/+/g, "/")
+      .replace(/\/(?:amp|mobile)\//gi, "/")
+      .replace(/view_amp(?=\.)/gi, "view")
+      .replace(/\/$/, "") || "/";
+    const stableKeys = ["arcid", "idxno", "no", "article_id", "articleid", "aid", "id"];
+    const stableKey = stableKeys.find((key) => url.searchParams.get(key));
+    if (stableKey) {
+      const stableValue = url.searchParams.get(stableKey);
+      url.search = "";
+      url.searchParams.set(stableKey, stableValue);
+    } else {
+      [...url.searchParams.keys()].forEach((key) => {
+        if (/^utm_/i.test(key) || ["cp", "from", "gclid", "fbclid", "medium", "ncid", "ocid", "ref", "source"].includes(key.toLowerCase())) {
+          url.searchParams.delete(key);
+        }
+      });
+      url.searchParams.sort();
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return String(value || "").split("#", 1)[0].replace(/\/$/, "").toLowerCase();
+  }
+}
+
+function normalizedArticleTitle(article = {}) {
+  const source = String(article.source || "").trim();
+  let title = String(article.title || "").replace(/<[^>]+>/g, " ");
+  if (source) title = title.replace(new RegExp(`\\s*[-|]\\s*${source.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "i"), "");
+  title = title.replace(/\s*[-|]\s*(?:네이버\s*뉴스|구글\s*뉴스|뉴스)\s*$/i, "");
+  return title.toLowerCase().replace(/[^0-9a-z가-힣]+/g, "");
+}
+
+function exactArticleIdentity(article = {}) {
+  const firstLink = realArticleLinks(article)[0];
+  if (firstLink) return `url:${canonicalArticleUrl(firstLink)}`;
+  const title = normalizedArticleTitle(article);
+  const source = String(article.source || "").replace(/\s+/g, " ").trim().toLowerCase();
+  if (title && source) return `title-source:${title}|${source}`;
+  if (article.id != null) return `id:${article.id}`;
+  return `title:${String(article.title || "").trim().toLowerCase()}|${String(article.source || "").trim().toLowerCase()}`;
+}
+
+function dedupeExactArticles(articles = []) {
+  const seenUrls = new Set();
+  const seenTitles = new Set();
+  return articles.filter((article) => {
+    const firstLink = realArticleLinks(article)[0];
+    const urlKey = firstLink ? canonicalArticleUrl(firstLink) : "";
+    const titleKey = `${normalizedArticleTitle(article)}|${String(article.source || "").replace(/\s+/g, " ").trim().toLowerCase()}`;
+    if ((urlKey && seenUrls.has(urlKey)) || (normalizedArticleTitle(article) && seenTitles.has(titleKey))) return false;
+    if (urlKey) seenUrls.add(urlKey);
+    if (normalizedArticleTitle(article)) seenTitles.add(titleKey);
+    return true;
+  });
+}
+
+function buildDonggukMailText(subject, articles) {
+  const rows = articles.length ? articles : scoredFallbackDonggukArticles();
+  return [
+    subject,
+    `대시보드: ${donggukDashboardUrl}`,
+    "",
+    ...Object.values(donggukSections).flatMap((section) => {
+      const sectionRows = rows.filter((article) => article.sectionLabel === section);
+      if (!sectionRows.length) return [];
+      return [
+        `[${section}]`,
+        "",
+        ...sectionRows.flatMap((article, index) => {
+          const links = realArticleLinks(article);
+          return [
+            `${index + 1}. ${article.title} [${article.source || "언론사 없음"}]${article.isSyndicated ? " 외" : ""}`,
+            article.summary || "요약문이 아직 없습니다.",
+            ...links,
+            "",
+          ];
+        }),
+      ];
+    }),
+  ].join("\n").trim();
+}
+
+function scoredFallbackDonggukArticles() {
+  return donggukDemoArticles.map(scoreDonggukArticle).sort((a, b) => b.score - a.score);
+}
+
+function donggukArticlePayload(article) {
+  return {
+    id: article.id,
+    title: article.title,
+    source: article.source,
+    section: article.sectionLabel || article.section,
+    category: article.category,
+    summary: article.summary,
+    url: article.url,
+    thumbnail_url: getArticleThumbnail(article),
+    published_at: article.published_at,
+    links: realArticleLinks(article),
+    priority: article.priority,
+    priority_name: article.priorityName || article.priority_name,
+    score: article.score,
+    is_syndicated: article.isSyndicated ?? article.is_syndicated ?? false,
+    selection_reason: article.selectionReason || article.selection_reason || article.priorityReason || article.priority_reason || null,
+  };
+}
+
+function normalizeDonggukPreviewArticle(article) {
+  const score = Math.max(0, Math.min(100, Number(article.score ?? 0)));
+  const band = donggukPriorityBandFromValue(article.priority || article.priority_name || article.priorityName, score);
+  return {
+    ...article,
+    sectionLabel: article.section || article.sectionLabel || donggukSections.foundation,
+    priority: band.label,
+    priorityName: article.priority_name || article.priorityName || band.name,
+    priorityTone: band.tone,
+    score,
+    isSyndicated: article.is_syndicated ?? article.isSyndicated ?? realArticleLinks(article).length > 1,
+    thumbnail_url: getArticleThumbnail(article),
+    links: realArticleLinks(article),
+    selectionReason: article.selection_reason || article.selectionReason || article.priority_reason || article.priorityReason || "",
+  };
+}
+
+function countBy(items, keyFn) {
+  return items.reduce((acc, item) => {
+    const key = keyFn(item);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
 }
 
 function normalizeChatMessages(messages = []) {
@@ -161,12 +872,21 @@ function Sidebar({
   keywords,
   selectedKeywordId,
   setSelectedKeywordId,
+  activeTab,
+  setActiveTab,
+  dashboardMode,
+  setDashboardMode,
+  donggukViewMode,
+  setDonggukViewMode,
+  chatSidebarOpen,
+  onOpenChat,
   onCreateKeyword,
   onUpdateKeyword,
   onDeleteKeyword,
   loading,
   collapsed,
   setCollapsed,
+  keywordArticleCountOverrides = {},
 }) {
   const defaultForm = {
     keyword: "",
@@ -189,8 +909,17 @@ function Sidebar({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingKeyword, setEditingKeyword] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [keywordInput, setKeywordInput] = useState(defaultForm);
   const activeCount = keywords.filter((item) => item.is_active).length;
+  const [keywordPage, setKeywordPage] = useState(1);
+  const keywordPageSize = 4;
+  const keywordPageCount = Math.max(1, Math.ceil(keywords.length / keywordPageSize));
+  const shownKeywords = keywords.slice((keywordPage - 1) * keywordPageSize, keywordPage * keywordPageSize);
+
+  useEffect(() => {
+    setKeywordPage(1);
+  }, [dashboardMode, keywords.length]);
 
   function closeModal() {
     setModalOpen(false);
@@ -260,6 +989,7 @@ function Sidebar({
       alert_article_count_threshold: Number(keywordInput.alert_article_count_threshold),
       importance_criteria: keywordInput.importance_criteria.trim(),
       competitor_keywords: competitorKeywords,
+      dashboard_mode: dashboardMode,
     };
 
     if (editingKeyword) onUpdateKeyword(editingKeyword.id, payload);
@@ -284,67 +1014,191 @@ function Sidebar({
               <span>AI 기사 모니터링</span>
             </div>
           )}
+          <button
+            className="sidebar-collapse-button"
+            onClick={() => setCollapsed((value) => !value)}
+            title={collapsed ? "왼쪽 사이드바 열기" : "왼쪽 사이드바 닫기"}
+            type="button"
+          >
+            {collapsed ? <ChevronRight size={16} /> : <X size={16} />}
+          </button>
         </div>
 
-        <section className="side-section">
-          <button className="section-toggle" title={collapsed ? "키워드 목차 펼치기" : "키워드 목차 접기"} onClick={() => setCollapsed((value) => !value)}>
-            {collapsed ? (
-              <ChevronRight size={17} />
-            ) : (
-              <>
-                <span>키워드 목차</span>
-                {loading ? <Loader2 className="spin" size={15} /> : <em>{keywords.length}</em>}
-                <ChevronDown size={17} />
-              </>
-            )}
+        <div className="mode-switch" role="tablist" aria-label="대시보드 모드">
+          <button
+            className={dashboardMode === "general" ? "active" : ""}
+            onClick={() => {
+              setDashboardMode("general");
+              setActiveTab("stats");
+            }}
+            type="button"
+          >
+            일반
           </button>
+          <button
+            className={dashboardMode === "dongguk" ? "active" : ""}
+            onClick={() => {
+              setDashboardMode("dongguk");
+              setActiveTab("dongguk");
+              setDonggukViewMode("home");
+            }}
+            type="button"
+          >
+            홍보처
+          </button>
+        </div>
 
+        <nav className="dashboard-nav" aria-label="대시보드">
+          <button
+            className={
+              (dashboardMode === "general" && activeTab === "stats")
+              || (dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "home")
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+              if (dashboardMode === "dongguk") {
+                setActiveTab("dongguk");
+                setDonggukViewMode("home");
+              } else {
+                setActiveTab("stats");
+              }
+            }}
+            type="button"
+          >
+            <Home size={18} />
+            {!collapsed && <span>{dashboardMode === "dongguk" ? "설정" : "홈"}</span>}
+          </button>
+          <button
+            className={
+              (dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "priority")
+              || (dashboardMode === "general" && activeTab === "articles")
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+              if (dashboardMode === "dongguk") {
+                setActiveTab("dongguk");
+                setDonggukViewMode("priority");
+              } else {
+                setActiveTab("articles");
+              }
+            }}
+            type="button"
+          >
+            <FileText size={18} />
+            {!collapsed && <span>{dashboardMode === "dongguk" ? "오늘 수집된 기사" : "기사 모니터링"}</span>}
+          </button>
+          <button onClick={() => setActiveTab(dashboardMode === "dongguk" ? "dongguk" : "stats")} type="button">
+            <Hash size={18} />
+            {!collapsed && <span>키워드 관리</span>}
+          </button>
+          {dashboardMode === "dongguk" && (
+            <button
+              className={activeTab === "dongguk" && donggukViewMode === "edit" ? "active" : ""}
+              onClick={() => {
+                setActiveTab("dongguk");
+                setDonggukViewMode("edit");
+              }}
+              type="button"
+            >
+              <Pencil size={18} />
+              {!collapsed && <span>편집</span>}
+            </button>
+          )}
+          <button
+            className={dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "mail" ? "active" : ""}
+            onClick={() => {
+              if (dashboardMode === "dongguk") {
+                setActiveTab("dongguk");
+                setDonggukViewMode("mail");
+              } else {
+                setActiveTab("stats");
+              }
+            }}
+            type="button"
+          >
+            <Mail size={18} />
+            {!collapsed && <span>{dashboardMode === "dongguk" ? "메일 미리보기" : "발송 관리"}</span>}
+          </button>
+          {dashboardMode === "dongguk" && (
+            <button
+              className={activeTab === "dongguk" && donggukViewMode === "history" ? "active" : ""}
+              onClick={() => {
+                setActiveTab("dongguk");
+                setDonggukViewMode("history");
+              }}
+              type="button"
+            >
+              <Send size={18} />
+              {!collapsed && <span>발송 기록</span>}
+            </button>
+          )}
+          {dashboardMode === "dongguk" && (
+            <button
+              className={activeTab === "dongguk" && donggukViewMode === "trash" ? "active" : ""}
+              onClick={() => {
+                setActiveTab("dongguk");
+                setDonggukViewMode("trash");
+              }}
+              type="button"
+            >
+              <Trash2 size={18} />
+              {!collapsed && <span>휴지통</span>}
+            </button>
+          )}
+          <button
+            className={
+              (dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "stats")
+              || (dashboardMode === "general" && activeTab === "stats")
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+              if (dashboardMode === "dongguk") {
+                setActiveTab("dongguk");
+                setDonggukViewMode("stats");
+              } else {
+                setActiveTab("stats");
+              }
+            }}
+            type="button"
+          >
+            <BarChart3 size={18} />
+            {!collapsed && <span>{dashboardMode === "dongguk" ? "통계" : "통계/분석"}</span>}
+          </button>
+          <button className={chatSidebarOpen ? "active" : ""} onClick={onOpenChat} type="button">
+            <MessageSquare size={18} />
+            {!collapsed && <span>AI 채팅</span>}
+          </button>
+        </nav>
+
+        <section className="side-section keyword-admin">
           {!collapsed && (
             <>
-              <div className="keyword-toolbar">
-                <div>
-                  <strong>{activeCount}개 활성</strong>
-                  <span>등록 키워드 {keywords.length}개</span>
-                </div>
-                <button className="primary compact" onClick={openCreateModal} type="button">
-                  <Plus size={16} /> 키워드 추가
+              <div className="keyword-group-head">
+                <span>키워드 목록</span>
+                <button className="secondary compact" onClick={openCreateModal} type="button">
+                  <Plus size={14} /> 추가
                 </button>
               </div>
 
               <div className="keyword-checklist">
-                {keywords.map((keyword) => {
+                {shownKeywords.length === 0 && (
+                  <div className="toc-empty">
+                    <strong>저장된 키워드가 없습니다</strong>
+                    <span>키워드를 추가하면 기사 목록과 함께 이곳에 표시됩니다.</span>
+                  </div>
+                )}
+                {shownKeywords.map((keyword) => {
                   const selected = keyword.id === selectedKeywordId;
-                  const monitoringLabels = {
-                    brand: "브랜드",
-                    competitor: "경쟁사",
-                    campaign: "캠페인",
-                    issue: "이슈",
-                  };
-                  const priorityLabels = {
-                    low: "낮음",
-                    normal: "일반",
-                    high: "중요",
-                    critical: "긴급",
-                  };
+                  const todayArticleCount = Number(keywordArticleCountOverrides[keyword.id] ?? keyword.article_count ?? 0);
                   return (
                     <div className={`toc-row ${selected ? "selected" : ""}`} key={keyword.id}>
                       <button className="toc-select" onClick={() => setSelectedKeywordId(keyword.id)} type="button">
+                        <Circle className="toc-dot" size={12} />
                         <span className="toc-title">{keywordName(keyword)}</span>
-                        <span className="toc-meta">
-                          <em>{keyword.client_name || "클라이언트 미지정"}</em>
-                          <em>{keyword.group_name || "그룹 미지정"}</em>
-                        </span>
-                        <span className="toc-chips">
-                          <b>{monitoringLabels[keyword.monitoring_type] || keyword.monitoring_type || "브랜드"}</b>
-                          <b className={`priority-${keyword.priority_level || "normal"}`}>{priorityLabels[keyword.priority_level] || "일반"}</b>
-                          {keyword.email_auto_send && <b className="mail-chip">메일</b>}
-                        </span>
-                        <span className="toc-settings">
-                          <small>확인 범위 {formatCrawlInterval(keyword.crawl_interval_minutes)}</small>
-                          <small>한 번에 {keyword.crawl_limit || 10}개</small>
-                          {keyword.importance_criteria && <small>중요도 기준 설정됨</small>}
-                          <small>{emailSummary(keyword)}</small>
-                        </span>
+                        <span className="toc-summary">오늘 {todayArticleCount.toLocaleString()}건 · {keyword.is_active ? "활성" : "비활성"}</span>
                       </button>
                       <div className="toc-actions">
                         <button className="ghost" title="설정 수정" onClick={() => openEditModal(keyword)} type="button">
@@ -358,11 +1212,119 @@ function Sidebar({
                   );
                 })}
               </div>
+              {keywordPageCount > 1 && (
+                <div className="keyword-pager">
+                  <button className="secondary compact" disabled={keywordPage <= 1} onClick={() => setKeywordPage((page) => Math.max(1, page - 1))} type="button">
+                    이전
+                  </button>
+                  <span>{keywordPage} / {keywordPageCount}</span>
+                  <button className="secondary compact" disabled={keywordPage >= keywordPageCount} onClick={() => setKeywordPage((page) => Math.min(keywordPageCount, page + 1))} type="button">
+                    다음
+                  </button>
+                </div>
+              )}
             </>
           )}
 
         </section>
+        {!collapsed && (
+          <div className="sidebar-guide">
+            <button className="secondary" onClick={() => setGuideOpen(true)} type="button">
+              <HelpCircle size={16} /> 사용자 가이드
+            </button>
+          </div>
+        )}
       </aside>
+
+      {guideOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setGuideOpen(false)}>
+          <div
+            className="keyword-modal guide-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="user-guide-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="modal-heading">
+              <div>
+                <strong id="user-guide-title">사용자 가이드</strong>
+                <span>{dashboardMode === "dongguk" ? "동국대학교 홍보처 전용 화면 기준 안내입니다." : "일반 기사 모니터링 화면 기준 안내입니다."}</span>
+              </div>
+              <button className="ghost" onClick={() => setGuideOpen(false)} title="닫기" type="button">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="guide-content">
+              <section className="guide-block highlight">
+                <div>
+                  <span className="guide-kicker">현재 모드</span>
+                  <h3>{dashboardMode === "dongguk" ? "홍보처 모드" : "일반 모드"}</h3>
+                </div>
+                <p>
+                  {dashboardMode === "dongguk"
+                    ? "동국대학교 키워드를 기준으로 수집된 기사를 AI가 대표 기사로 정리하고, 관리자가 편집한 뒤 메일 미리보기와 발송 기록을 관리합니다."
+                    : "등록한 키워드별 기사 수집, 통계 확인, 기사 모니터링, 일반 리포트 발송 관리를 한 화면에서 진행합니다."}
+                </p>
+              </section>
+
+              <section className="guide-block">
+                <h3>왼쪽 사이드바</h3>
+                <ul>
+                  <li><strong>일반 / 홍보처</strong>: 일반 모니터링과 홍보처 전용 대시보드를 전환합니다.</li>
+                  <li><strong>키워드 목록</strong>: 등록된 키워드와 오늘 수집된 기사 수를 확인합니다. 4개 이상이면 페이지로 넘겨 볼 수 있습니다.</li>
+                  <li><strong>AI 채팅</strong>: 오른쪽 채팅 패널을 열어 현재 서비스 사용 중 궁금한 점을 물어볼 수 있습니다.</li>
+                  <li><strong>휴지통</strong>: 홍보처 모드에서 제외 후 휴지통으로 보낸 기사를 복구하거나 완전 삭제합니다.</li>
+                </ul>
+              </section>
+
+              {dashboardMode === "dongguk" ? (
+                <>
+                  <section className="guide-block">
+                    <h3>홍보처 작업 순서</h3>
+                    <ol>
+                      <li><strong>설정</strong>에서 기준일, 카테고리별 최대 기사 수, 수신인, 자동 발송 여부, 우선순위 기준을 정합니다.</li>
+                      <li><strong>오늘 수집된 기사</strong>에서 기준일과 전날 기사 후보를 확인합니다. 상위 카테고리와 하위 카테고리별로 볼 수 있습니다.</li>
+                      <li><strong>편집</strong>에서 메일에 들어갈 기사 제목, 요약, 순서, 카테고리, 우선순위를 조정합니다. URL을 넣어 수동 기사 추가도 할 수 있습니다.</li>
+                      <li><strong>메일 미리보기</strong>에서 실제 발송 문안을 확인하고 테스트 수신인을 따로 지정해 테스트 전송합니다.</li>
+                      <li><strong>발송 기록</strong>에서 보낸 메일과 제외된 기사 수를 확인합니다. 메일 발송 시 한글 파일도 함께 첨부됩니다.</li>
+                    </ol>
+                  </section>
+                  <section className="guide-block">
+                    <h3>AI 편집 기준</h3>
+                    <ul>
+                      <li>AI는 같은 주제나 같은 보도자료 기사를 묶고 대표 기사 1건만 메일 후보로 남깁니다.</li>
+                      <li>관리자가 저장한 우선순위 기준과 대표 기사 선정 기준이 AI 요청에 함께 전달됩니다.</li>
+                      <li>한 번 생성된 메일 편집 결과는 발송용 데이터로 저장되어, 이후 화면 이동이나 새로고침 후에도 유지됩니다.</li>
+                      <li>제외된 뉴스는 제외 이유를 확인한 뒤 다시 추가하거나 휴지통으로 이동할 수 있습니다.</li>
+                    </ul>
+                  </section>
+                </>
+              ) : (
+                <>
+                  <section className="guide-block">
+                    <h3>일반 모니터링 흐름</h3>
+                    <ol>
+                      <li><strong>키워드 관리</strong>에서 모니터링 키워드, 수집 주기, 기사 수, 발송 조건을 등록합니다.</li>
+                      <li><strong>기사 모니터링</strong>에서 수집된 기사 목록을 최신순, 중요도순, 감성 기준으로 확인합니다.</li>
+                      <li><strong>통계/분석</strong>에서 기사 수, 조회 기사, SNS 신호, 감성 분포를 봅니다.</li>
+                      <li><strong>발송 관리</strong>에서 리포트 수신인과 자동 발송 조건을 관리합니다.</li>
+                    </ol>
+                  </section>
+                  <section className="guide-block">
+                    <h3>키워드 등록 팁</h3>
+                    <ul>
+                      <li>클라이언트명과 그룹명을 함께 넣으면 여러 키워드를 구분하기 쉽습니다.</li>
+                      <li>중요도 기준과 경쟁사 키워드를 입력하면 통계와 리포트 판단에 함께 반영됩니다.</li>
+                      <li>자동 리포트는 정기 발송 외에도 부정 비중, 중요도, 기사량 조건을 활용할 수 있습니다.</li>
+                    </ul>
+                  </section>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <div className="modal-backdrop" role="presentation">
@@ -600,7 +1562,7 @@ function Sidebar({
             <div className="delete-notice">
               <strong>삭제하면 이렇게 정리됩니다.</strong>
               <p>좌측 키워드 목차에서 제거되고, 이후 자동 확인과 이메일 보고 대상에서 제외됩니다.</p>
-              <p>이 키워드로 등록된 Dify 지식 문서도 함께 삭제를 시도합니다.</p>
+              <p>이 키워드로 등록된 AI 지식 문서도 함께 삭제를 시도합니다.</p>
               <p>이미 수집된 기사와 요약 데이터는 다른 키워드와 연결되어 있을 수 있어 즉시 일괄 삭제하지 않습니다.</p>
             </div>
 
@@ -684,10 +1646,11 @@ function Summary({ selectedKeyword, articlePage, importancePage }) {
   );
 }
 
-function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
+function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, refreshSummary }) {
   const [articles, setArticles] = useState([]);
   const [pageInfo, setPageInfo] = useState(null);
   const [query, setQuery] = useState("");
+  const [articleDate, setArticleDate] = useState("");
   const [sort, setSort] = useState(sortOptions[0][1]);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
@@ -695,18 +1658,27 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
   const [running, setRunning] = useState("");
   const [details, setDetails] = useState({});
   const [deleteArticleTarget, setDeleteArticleTarget] = useState(null);
+  const [manualUrl, setManualUrl] = useState("");
+  const selectedSendTime = selectedKeyword?.email_send_time || "08:30";
   const rankMap = useMemo(() => new Map(topItems.map((item, index) => [item.article_id, index + 1])), [topItems]);
 
-  async function loadArticles() {
+  async function loadArticles(overrides = {}) {
     if (!selectedKeywordId) return;
     setBusy(true);
     try {
+      const nextPage = overrides.page ?? page;
+      const nextSize = overrides.size ?? size;
+      const nextSort = overrides.sort ?? sort;
+      const nextDate = Object.prototype.hasOwnProperty.call(overrides, "articleDate") ? overrides.articleDate : articleDate;
+      const nextQuery = Object.prototype.hasOwnProperty.call(overrides, "query") ? overrides.query : query;
+      const dateWindow = nextDate ? reportWindowForDate(nextDate, selectedSendTime) : null;
       const data = await endpoints.articles({
         keyword_id: selectedKeywordId,
-        page,
-        size,
-        sort,
-        ...(query.trim() ? { q: query.trim() } : {}),
+        page: nextPage,
+        size: nextSize,
+        sort: nextSort,
+        ...(dateWindow ? { from_at: dateWindow.from_at, to_at: dateWindow.to_at } : {}),
+        ...(nextQuery.trim() ? { q: nextQuery.trim() } : {}),
       });
       setArticles(data.items || []);
       setPageInfo(data.page_info);
@@ -719,7 +1691,7 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
 
   useEffect(() => {
     loadArticles();
-  }, [selectedKeywordId, page, size, sort]);
+  }, [selectedKeywordId, page, size, sort, articleDate, selectedSendTime]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -727,7 +1699,7 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
       loadArticles();
     }, 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, articleDate]);
 
   async function runCrawl() {
     setRunning("crawl");
@@ -736,6 +1708,42 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
       await loadArticles();
       refreshSummary?.();
       showToast(`오늘 날짜 기준 새 기사 확인을 요청했습니다. 수집 ${result.crawl_count ?? 0}건`, "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setRunning("");
+    }
+  }
+
+  async function addArticleFromUrl(event) {
+    event.preventDefault();
+    const url = manualUrl.trim();
+    if (!selectedKeywordId) {
+      showToast("키워드를 먼저 선택해 주세요.", "error");
+      return;
+    }
+    if (!url) {
+      showToast("추가할 기사 URL을 입력해 주세요.", "error");
+      return;
+    }
+    setRunning("manual-url");
+    try {
+      const result = await endpoints.createArticleFromUrl({
+        keyword_id: selectedKeywordId,
+        url,
+      });
+      setManualUrl("");
+      setArticleDate("");
+      setQuery("");
+      setSort("published_at_desc");
+      setPage(1);
+      await loadArticles({ page: 1, sort: "published_at_desc", articleDate: "", query: "" });
+      refreshSummary?.();
+      const article = result?.article;
+      showToast(
+        `${result?.created ? "새 기사로 저장했습니다." : "기존 기사에 키워드를 연결했습니다."} 요약/우선순위 분석을 완료했습니다.${article?.title ? ` (${article.title})` : ""}`,
+        "success"
+      );
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -784,6 +1792,15 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
             <Search size={16} />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="기사 검색" />
           </div>
+          <label className="inline-date-filter">
+            <span>날짜 선택</span>
+            <input type="date" value={articleDate} onChange={(event) => { setArticleDate(event.target.value); setPage(1); }} />
+          </label>
+          {articleDate && (
+            <button className="secondary compact" onClick={() => setArticleDate("")} type="button">
+              전체 날짜
+            </button>
+          )}
           <select value={sort} onChange={(event) => setSort(event.target.value)}>
             {sortOptions.map(([label, value]) => (
               <option key={value} value={value}>
@@ -821,6 +1838,24 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
         </div>
       </div>
 
+      <form className="manual-url-panel" onSubmit={addArticleFromUrl}>
+        <div>
+          <strong>URL로 기사 추가</strong>
+          <span>크롤링되지 않은 기사 URL을 넣으면 원문을 수집하고 요약과 우선순위를 바로 생성합니다.</span>
+        </div>
+        <div className="manual-url-controls">
+          <input
+            value={manualUrl}
+            onChange={(event) => setManualUrl(event.target.value)}
+            placeholder="https://news.example.com/article"
+          />
+          <button className="primary" disabled={running === "manual-url"} type="submit">
+            {running === "manual-url" ? <Loader2 className="spin" size={16} /> : <Plus size={16} />}
+            기사 추가
+          </button>
+        </div>
+      </form>
+
       {busy ? (
         <div className="loading-line">
           <Loader2 className="spin" size={18} /> 기사 목록을 불러오는 중
@@ -836,10 +1871,22 @@ function Articles({ selectedKeywordId, topItems, showToast, refreshSummary }) {
             const score = normalizeScore(article.importance ?? article.score);
             const summary = article.summary;
             const detail = details[articleId];
+            const thumbnailUrl = getArticleThumbnail(article);
             return (
               <article className="article-card" key={articleId}>
                 <div className={`article-main ${rank ? "has-rank" : "no-rank"}`}>
                   {rank && <div className="rank-badge">{rank}</div>}
+                  {thumbnailUrl && (
+                    <img
+                      className="article-thumbnail"
+                      src={thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
                   <div>
                     <h3>{article.title || "제목 없음"}</h3>
                     <div className="meta">
@@ -1041,7 +2088,7 @@ function Chat({
   );
 }
 
-function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
+function Stats({ selectedKeywordId, selectedKeyword, selectedKeywordName, showToast }) {
   const [briefTab, setBriefTab] = useState("current");
   const [days, setDays] = useState(7);
   const [articleStats, setArticleStats] = useState({});
@@ -1059,17 +2106,19 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
   const [busy, setBusy] = useState(false);
   const [emails, setEmails] = useState("");
   const [expandedChart, setExpandedChart] = useState(null);
+  const selectedSendTime = selectedKeyword?.email_send_time || "08:30";
 
   async function load() {
     setBusy(true);
     try {
-      const yesterdayKey = localDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+      const reportDateKey = localDateKey();
+      const reportWindow = reportWindowForDate(reportDateKey, selectedSendTime);
       const dailyArticleParams = {
         page: 1,
         size: 100,
         sort: "importance_desc",
-        from: yesterdayKey,
-        to: yesterdayKey,
+        from_at: reportWindow.from_at,
+        to_at: reportWindow.to_at,
       };
       if (selectedKeywordId) dailyArticleParams.keyword_id = selectedKeywordId;
       const [articles, analysis, searchVolume, searchTrend, pendingData, priorityData, dailyData, dailyHourlyData, dailySocialData] = await Promise.all([
@@ -1082,8 +2131,8 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
           ? endpoints.articles({ keyword_id: selectedKeywordId, page: 1, size: 8, sort: "importance_desc" })
           : Promise.resolve({ items: [] }),
         endpoints.articles(dailyArticleParams),
-        endpoints.articleHourlyStats(yesterdayKey, selectedKeywordId),
-        endpoints.dailySocialStats(yesterdayKey, selectedKeywordId),
+        endpoints.articleHourlyStats(reportDateKey, selectedKeywordId, reportWindow),
+        endpoints.dailySocialStats(reportDateKey, selectedKeywordId, reportWindow),
       ]);
       setArticleStats(articles || {});
       setAnalysisStats(analysis || {});
@@ -1105,7 +2154,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
 
   useEffect(() => {
     load();
-  }, [days, selectedKeywordId]);
+  }, [days, selectedKeywordId, selectedSendTime]);
 
   async function downloadReport() {
     try {
@@ -1213,9 +2262,9 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
   const latestTrendCount = selectedTrend.length ? Number(selectedTrend[selectedTrend.length - 1].article_count || 0) : 0;
   const previousTrendCount = selectedTrend.length > 1 ? Number(selectedTrend[selectedTrend.length - 2].article_count || 0) : 0;
   const trendDelta = latestTrendCount - previousTrendCount;
-  const baseDateKey = localDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
-  const previousBaseDateKey = localDateKey(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000));
-  const yesterdayKey = baseDateKey;
+  const baseDateKey = localDateKey();
+  const baseReportWindow = reportWindowForDate(baseDateKey, selectedSendTime);
+  const previousBaseDateKey = previousDateKey(baseDateKey);
   const publishedDateRows = selectedKeywordName ? selectedTrend : totalByDate;
   const baseDateArticleTotal = dailyPage?.total ?? publishedDateRows.find((row) => row.date === baseDateKey)?.article_count ?? 0;
   const previousBaseDateTotal = publishedDateRows.find((row) => row.date === previousBaseDateKey)?.article_count ?? 0;
@@ -1250,7 +2299,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
     dailyDelta >= 5 ? `기준일 발행 기사 수가 직전일 대비 ${dailyDelta}건 늘었습니다.` : null,
   ].filter(Boolean);
   const dailyBriefLines = [
-    `${selectedKeywordLabel} 기준 ${baseDateKey} 발행 기사는 ${baseDateArticleTotal}건입니다.`,
+    `${selectedKeywordLabel} 기준 ${baseDateKey} 수집 기준 기사(${baseReportWindow.label})는 ${baseDateArticleTotal}건입니다.`,
     dailyDelta > 0 ? `직전일보다 ${dailyDelta}건 증가해 관심도가 올라가는 흐름입니다.` : dailyDelta < 0 ? `직전일보다 ${Math.abs(dailyDelta)}건 감소해 노출은 다소 안정된 상태입니다.` : "직전일과 비슷한 수집 흐름입니다.",
     baseDateArticleHourlyRows.length ? `기준일 시간대별 발행 기사 합계는 ${baseDateArticleHourlyTotal}건이고, 피크는 ${baseDateArticlePeak}건입니다.` : "기준일 시간대별 발행 기사 데이터는 아직 충분하지 않습니다.",
     socialTotal ? `최근 SNS 샘플은 ${socialTotal}건이고, 부정 힌트는 ${socialNegativeRate}%입니다.` : "SNS 샘플은 아직 수집되지 않았습니다.",
@@ -1396,7 +2445,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
           yKey="total_count"
           type="bar"
           color="#2271b1"
-          note={`${baseDateKey} KST 00시~23시 발행 기사 수, 합계 ${baseDateArticleHourlyTotal}건`}
+          note={`${baseReportWindow.label} KST 발행 기사 수, 합계 ${baseDateArticleHourlyTotal}건`}
           onExpand={() => setExpandedChart({
             title: `${selectedKeywordLabel} 기준일 발행 기사 추이`,
             data: baseDateArticleHourlyRows,
@@ -1404,7 +2453,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
             yKey: "total_count",
             type: "bar",
             color: "#2271b1",
-            note: `${baseDateKey} KST 00시~23시 발행 기사 수, 합계 ${baseDateArticleHourlyTotal}건`,
+            note: `${baseReportWindow.label} KST 발행 기사 수, 합계 ${baseDateArticleHourlyTotal}건`,
           })}
         />
         <ChartCard
@@ -1414,7 +2463,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
           yKey="count"
           type="bar"
           color="#3858e9"
-          note={`${baseDateKey} KST 기준일에 올라온 SNS 플랫폼별 조회/언급 수, 합계 ${dailySocialTotal}건`}
+          note={`${baseReportWindow.label} KST SNS 플랫폼별 조회/언급 수, 합계 ${dailySocialTotal}건`}
           onExpand={() => setExpandedChart({
             title: `${selectedKeywordLabel} 기준일 SNS 조회 수`,
             data: dailySocialRows,
@@ -1422,7 +2471,7 @@ function Stats({ selectedKeywordId, selectedKeywordName, showToast }) {
             yKey: "count",
             type: "bar",
             color: "#3858e9",
-            note: `${baseDateKey} KST 기준일에 올라온 SNS 플랫폼별 조회/언급 수, 합계 ${dailySocialTotal}건`,
+            note: `${baseReportWindow.label} KST SNS 플랫폼별 조회/언급 수, 합계 ${dailySocialTotal}건`,
           })}
         />
       </div>
@@ -1589,6 +2638,2198 @@ function ChartModal({ chart, onClose }) {
   );
 }
 
+function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordName, showToast, onUpdateKeyword, viewMode, setViewMode, onCandidateCountChange }) {
+  const [emails, setEmails] = useState("");
+  const [testEmails, setTestEmails] = useState("");
+  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
+  const [autoSendTime, setAutoSendTime] = useState("08:30");
+  const [mailDate, setMailDate] = useState(localDateKey());
+  const [sending, setSending] = useState(false);
+  const [savingAuto, setSavingAuto] = useState(false);
+  const [savingPriorityCriteria, setSavingPriorityCriteria] = useState(false);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [runningCandidateCrawl, setRunningCandidateCrawl] = useState(false);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewArticles, setPreviewArticles] = useState([]);
+  const [previewExcludedArticles, setPreviewExcludedArticles] = useState([]);
+  const [previewExcludedCount, setPreviewExcludedCount] = useState(0);
+  const [previewEditorUsed, setPreviewEditorUsed] = useState(false);
+  const [previewCached, setPreviewCached] = useState(false);
+  const [aiProcessedArticleCount, setAiProcessedArticleCount] = useState(0);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [candidateArticles, setCandidateArticles] = useState([]);
+  const [trashArticles, setTrashArticles] = useState([]);
+  const [selectedArticleKeys, setSelectedArticleKeys] = useState(new Set());
+  const [history, setHistory] = useState([]);
+  const [recentRecipients, setRecentRecipients] = useState([]);
+  const [activeDonggukCategory, setActiveDonggukCategory] = useState("전체");
+  const [activeDonggukSubcategory, setActiveDonggukSubcategory] = useState("전체");
+  const [categoryArticleLimits, setCategoryArticleLimits] = useState(defaultDonggukSectionLimits);
+  const [maxVisibleCandidates, setMaxVisibleCandidates] = useState(10000);
+  const [duplicateExcludedKeys, setDuplicateExcludedKeys] = useState(new Set());
+  const [duplicateFilterNeedsRefresh, setDuplicateFilterNeedsRefresh] = useState(false);
+  const [manualArticleUrl, setManualArticleUrl] = useState("");
+  const [addingManualArticle, setAddingManualArticle] = useState(false);
+  const [priorityCriteria, setPriorityCriteria] = useState("");
+  const [priorityRuleItems, setPriorityRuleItems] = useState(defaultPriorityRuleItems);
+  const [representativeRuleItems, setRepresentativeRuleItems] = useState(defaultRepresentativeRuleItems);
+  const [exclusionRuleItems, setExclusionRuleItems] = useState(defaultExclusionRuleItems);
+  const [newPriorityRule, setNewPriorityRule] = useState("");
+  const [newRepresentativeRule, setNewRepresentativeRule] = useState("");
+  const [newExclusionRule, setNewExclusionRule] = useState("");
+  const [draggedPriorityIndex, setDraggedPriorityIndex] = useState(null);
+  const [recipientContextMenu, setRecipientContextMenu] = useState(null);
+  const [priorityContextMenu, setPriorityContextMenu] = useState(null);
+  const autoPreviewRequestKey = useRef("");
+  const scoredArticles = useMemo(
+    () => scoredFallbackDonggukArticles(),
+    []
+  );
+  const selectedCandidates = useMemo(
+    () => candidateArticles.filter((article, index) => !article.isTrashed && selectedArticleKeys.has(articleKey(article, index))),
+    [candidateArticles, selectedArticleKeys]
+  );
+  const workingArticles = useMemo(
+    () => (candidateArticles.length ? selectedCandidates : scoredArticles),
+    [candidateArticles.length, selectedCandidates, scoredArticles]
+  );
+  const mailArticles = useMemo(
+    () => (candidateArticles.length ? applyDonggukSectionLimits(selectedCandidates, categoryArticleLimits) : []),
+    [candidateArticles.length, selectedCandidates, categoryArticleLimits]
+  );
+  const effectiveMailArticles = useMemo(
+    () => dedupeExactArticles(previewArticles.length ? previewArticles : mailArticles),
+    [previewArticles, mailArticles]
+  );
+  const maxMailArticleTotal = useMemo(
+    () => Object.values(categoryArticleLimits).reduce((total, value) => total + Number(value || 0), 0),
+    [categoryArticleLimits]
+  );
+  const mailArticleKeySet = useMemo(() => {
+    const keys = new Set();
+    effectiveMailArticles.forEach((article) => {
+      const articleLinks = realArticleLinks(article);
+      const index = candidateArticles.findIndex((candidate) => {
+        const candidateLinks = realArticleLinks(candidate);
+        return candidate === article
+          || (article.id && candidate.id && String(candidate.id) === String(article.id))
+          || (article.url && candidate.url && String(candidate.url) === String(article.url))
+          || (article.title && candidate.title && String(candidate.title) === String(article.title))
+          || articleLinks.some((link) => candidateLinks.includes(link));
+      });
+      if (index >= 0) keys.add(articleKey(article, index));
+    });
+    return keys;
+  }, [effectiveMailArticles, candidateArticles]);
+  const candidateRows = useMemo(
+    () => candidateArticles.map((article, index) => ({ article, index, key: articleKey(article, index) })),
+    [candidateArticles]
+  );
+  const excludedHomeRows = useMemo(
+    () => candidateRows.filter(({ article, key }) => !mailArticleKeySet.has(key)),
+    [candidateRows, mailArticleKeySet]
+  );
+  const editedMailArticles = previewArticles.length ? previewArticles : [];
+  const sectionCounts = countBy(workingArticles, (item) => item.sectionLabel);
+  const priorityCounts = countBy(workingArticles, (item) => item.priority);
+  const categoryCounts = countBy(workingArticles, (item) => item.category);
+  const totalLinks = workingArticles.reduce((total, item) => total + (item.links?.length || 0), 0);
+  const syndicatedCount = workingArticles.filter((item) => item.isSyndicated).length;
+  const leadArticle = effectiveMailArticles[0] || workingArticles[0];
+  const selectedMailDate = useMemo(() => new Date(`${mailDate}T12:00:00`), [mailDate]);
+  const mailSubject = donggukMailSubject(selectedMailDate);
+  const recipientList = useMemo(
+    () => emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean),
+    [emails]
+  );
+  const testRecipientList = useMemo(
+    () => testEmails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean),
+    [testEmails]
+  );
+  const selectedArticleKeySignature = useMemo(
+    () => [...selectedArticleKeys].map(String).sort().join("|"),
+    [selectedArticleKeys]
+  );
+  const sectionChart = Object.values(donggukSections).map((label) => ({ label, count: sectionCounts[label] || 0 }));
+  const priorityChart = donggukPriorityBands.map((band) => ({ label: band.label, count: priorityCounts[band.label] || 0 }));
+  const aiSelectedCandidateRows = useMemo(
+    () => candidateRows.filter(({ article, key }) => !article.isTrashed && selectedArticleKeys.has(key)),
+    [candidateRows, selectedArticleKeys]
+  );
+  const aiSelectedCandidateArticles = useMemo(
+    () => aiSelectedCandidateRows.map(({ article }) => article),
+    [aiSelectedCandidateRows]
+  );
+  const candidateCategoryTabs = useMemo(() => {
+    const counts = countBy(aiSelectedCandidateArticles, (item) => item.sectionLabel || "미분류");
+    const orderedLabels = Object.values(donggukSections);
+    const extraLabels = Object.keys(counts).filter((label) => !orderedLabels.includes(label));
+    return [
+      { label: "전체", count: aiSelectedCandidateArticles.length },
+      ...orderedLabels.map((label) => ({ label, count: counts[label] || 0 })),
+      ...extraLabels.map((label) => ({ label, count: counts[label] || 0 })),
+    ];
+  }, [aiSelectedCandidateArticles]);
+  const candidateSubcategoryTabs = useMemo(() => {
+    if (activeDonggukCategory === "전체") return [];
+    const scoped = aiSelectedCandidateArticles.filter((article) => article.sectionLabel === activeDonggukCategory);
+    const counts = countBy(scoped, (item) => item.category || "미분류");
+    const orderedLabels = donggukCategoryRules.map((rule) => rule.label);
+    const usedLabels = [
+      ...orderedLabels.filter((label) => counts[label] || scoped.some((article) => article.category === label)),
+      ...Object.keys(counts).filter((label) => !orderedLabels.includes(label)),
+    ];
+    return [
+      { label: "전체", count: scoped.length },
+      ...usedLabels.map((label) => ({ label, count: counts[label] || 0 })),
+    ];
+  }, [aiSelectedCandidateArticles, activeDonggukCategory]);
+  const filteredCandidateRows = useMemo(
+    () => aiSelectedCandidateRows.filter(({ article }) => {
+      const sectionMatched = activeDonggukCategory === "전체" || article.sectionLabel === activeDonggukCategory;
+      const subcategoryMatched = activeDonggukSubcategory === "전체" || article.category === activeDonggukSubcategory;
+      return sectionMatched && subcategoryMatched;
+    }),
+    [aiSelectedCandidateRows, activeDonggukCategory, activeDonggukSubcategory]
+  );
+  const visibleCandidateRows = useMemo(
+    () => filteredCandidateRows.slice(0, maxVisibleCandidates),
+    [filteredCandidateRows, maxVisibleCandidates]
+  );
+  const duplicateExcludedCount = useMemo(
+    () => candidateRows.filter(({ key }) => duplicateExcludedKeys.has(key)).length,
+    [candidateRows, duplicateExcludedKeys]
+  );
+  const aiSelectedCount = aiSelectedCandidateRows.length;
+  const aiExcludedCount = Math.max(0, candidateArticles.length - aiSelectedCount);
+  const visibleTopicGroups = useMemo(() => {
+    const byTopic = new Map();
+    visibleCandidateRows.forEach((row) => {
+      const topic = row.article.sectionLabel || "미분류";
+      if (!byTopic.has(topic)) byTopic.set(topic, []);
+      byTopic.get(topic).push(row);
+    });
+    const topicOrder = Object.values(donggukSections);
+    return [...byTopic.entries()]
+      .sort(([left], [right]) => {
+        const leftIndex = topicOrder.indexOf(left);
+        const rightIndex = topicOrder.indexOf(right);
+        if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right, "ko");
+        if (leftIndex === -1) return 1;
+        if (rightIndex === -1) return -1;
+        return leftIndex - rightIndex;
+      })
+      .map(([topic, rows]) => ({
+        topic,
+        rows: rows.sort((a, b) => b.article.score - a.article.score),
+      }));
+  }, [visibleCandidateRows]);
+
+  async function loadDonggukHistory() {
+    try {
+      const data = await endpoints.donggukHistory();
+      setHistory(data.items || []);
+      setRecentRecipients(data.recent_recipients || []);
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  useEffect(() => {
+    loadDonggukHistory();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedKeywordId || !onCandidateCountChange) return undefined;
+    if (!draftLoaded) return undefined;
+    onCandidateCountChange(selectedKeywordId, candidateArticles.length);
+    return () => onCandidateCountChange(selectedKeywordId, null);
+  }, [selectedKeywordId, candidateArticles.length, draftLoaded]);
+
+  useEffect(() => {
+    setActiveDonggukSubcategory("전체");
+  }, [activeDonggukCategory]);
+
+  async function loadDonggukTrash(targetMailDate = mailDate, keywordId = selectedKeywordId) {
+    if (!targetMailDate || !keywordId) {
+      setTrashArticles([]);
+      return [];
+    }
+    try {
+      const data = await endpoints.donggukTrash({
+        keyword_id: keywordId,
+        mail_date: targetMailDate,
+      });
+      const rows = (data.items || []).map((item) => ({
+        ...item,
+        article: normalizeDonggukPreviewArticle(item.article || {}),
+      }));
+      setTrashArticles(rows);
+      return rows;
+    } catch (err) {
+      showToast?.(err.message, "error");
+      setTrashArticles([]);
+      return [];
+    }
+  }
+
+  useEffect(() => {
+    setAutoSendEnabled(Boolean(selectedKeyword?.email_auto_send));
+    setAutoSendTime(selectedKeyword?.email_send_time || "08:30");
+    setEmails((selectedKeyword?.email_recipients || []).join("\n"));
+    const nextCriteria = normalizeDonggukCriteria(selectedKeyword?.importance_criteria);
+    const nextPriorityRules = priorityRulesFromCriteria(nextCriteria);
+    const nextRepresentativeRules = representativeRulesFromCriteria(nextCriteria);
+    const nextExclusionRules = exclusionRulesFromCriteria(nextCriteria);
+    setPriorityRuleItems(nextPriorityRules);
+    setRepresentativeRuleItems(nextRepresentativeRules);
+    setExclusionRuleItems(nextExclusionRules);
+    setPriorityCriteria(criteriaFromRuleGroups(nextPriorityRules, nextRepresentativeRules, nextExclusionRules));
+  }, [selectedKeywordId, selectedKeyword]);
+
+  useEffect(() => {
+    function closeMenus() {
+      setRecipientContextMenu(null);
+      setPriorityContextMenu(null);
+    }
+    window.addEventListener("click", closeMenus);
+    window.addEventListener("scroll", closeMenus, true);
+    return () => {
+      window.removeEventListener("click", closeMenus);
+      window.removeEventListener("scroll", closeMenus, true);
+    };
+  }, []);
+
+  async function loadCandidateArticles() {
+    if (!selectedKeywordId || !mailDate) {
+      setCandidateArticles([]);
+      setSelectedArticleKeys(new Set());
+      setPreviewArticles([]);
+      setPreviewExcludedArticles([]);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      setAiProcessedArticleCount(0);
+      setDraftLoaded(false);
+      setDuplicateExcludedKeys(new Set());
+      setDuplicateFilterNeedsRefresh(false);
+      return [];
+    }
+    setLoadingCandidates(true);
+    try {
+      const mailWindow = reportWindowForDate(mailDate, autoSendTime || "08:30");
+      const [publishedItems, collectedItems] = await Promise.all([
+        loadAllArticlePages({
+          keyword_id: selectedKeywordId,
+          sort: "importance_desc",
+          from_at: mailWindow.from_at,
+          to_at: mailWindow.to_at,
+        }),
+        loadAllArticlePages({
+          keyword_id: selectedKeywordId,
+          sort: "importance_desc",
+          matched_from: mailDate,
+          matched_to: mailDate,
+        }),
+      ]);
+      const byArticleKey = new Map();
+      [...publishedItems, ...collectedItems].forEach((item) => {
+        const article = inferDonggukArticle(item);
+        byArticleKey.set(exactArticleIdentity(article), article);
+      });
+      const rawRows = [...byArticleKey.values()].sort((a, b) => b.score - a.score);
+      const trashRows = await loadDonggukTrash(mailDate, selectedKeywordId);
+      const trashedIds = new Set(trashRows.map((item) => String(item.article_id || item.article?.id)));
+      const rows = rawRows.map((article) => ({
+        ...article,
+        isTrashed: trashedIds.has(String(article.id)),
+      }));
+      const mailableKeySet = new Set(
+        rows
+          .map((article, index) => ({ article, key: articleKey(article, index) }))
+          .filter(({ article }) => !article.isTrashed && isArticleInMailWindow(article, mailDate, autoSendTime))
+          .map(({ key }) => key)
+      );
+      let restoredRows = rows;
+      setActiveDonggukCategory("전체");
+      setPreviewArticles([]);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      setDraftLoaded(false);
+      try {
+        const draft = await endpoints.donggukDraft({
+          keyword_id: selectedKeywordId,
+          mail_date: mailDate,
+        });
+        if (draft?.found) {
+          const currentArticleIds = new Set(rows.map((article) => String(article.id)).filter(Boolean));
+          const savedArticles = [
+            ...(draft.selected_articles || []),
+            ...(draft.removed_articles || []),
+          ].map(normalizeDonggukPreviewArticle)
+            .filter((article) => currentArticleIds.has(String(article.id)))
+            .filter((article) => !articlePublishedDateKey(article) || isArticleInMailWindow(article, mailDate, autoSendTime));
+          const byKey = new Map();
+          rows.forEach((article, index) => byKey.set(articleKey(article, index), article));
+          savedArticles.forEach((article, index) => {
+            const key = articleKey(article, index);
+            if (!byKey.has(key)) byKey.set(key, article);
+          });
+          restoredRows = [...byKey.values()];
+          setCandidateArticles(restoredRows);
+          const availableKeys = new Set(restoredRows.map((article, index) => articleKey(article, index)));
+          const draftSelectedKeys = (draft.selected_article_keys || []).map(String);
+          const draftRemovedKeys = (draft.removed_article_keys || []).map(String);
+          const restoredMailableKeySet = new Set(
+              restoredRows
+                .map((article, index) => ({ article, key: articleKey(article, index) }))
+              .filter(({ article }) => !article.isTrashed && isArticleInMailWindow(article, mailDate, autoSendTime))
+                .map(({ key }) => key)
+          );
+          const restoredKeys = draftSelectedKeys.filter((key) => availableKeys.has(key) && restoredMailableKeySet.has(key));
+          const removedKeys = new Set(draftRemovedKeys.filter((key) => availableKeys.has(key)));
+          const nextKeys = draftSelectedKeys.length
+            ? restoredKeys
+            : restoredRows
+                .map((article, index) => articleKey(article, index))
+                .filter((key) => restoredMailableKeySet.has(key) && !removedKeys.has(key));
+          setSelectedArticleKeys(new Set(nextKeys));
+          const preview = draft.preview_data;
+          const aiExcluded = (preview?.excluded_articles || draft.removed_articles || []).map(normalizeDonggukPreviewArticle);
+          const aiSelected = (preview?.articles || draft.selected_articles || []).map(normalizeDonggukPreviewArticle);
+          const aiSelectedKeys = candidateKeysForAiArticles(aiSelected, restoredRows);
+          setPreviewExcludedArticles(aiExcluded);
+          setDuplicateExcludedKeys(aiDuplicateExcludedKeys(aiExcluded, restoredRows));
+          setAiProcessedArticleCount(aiSelected.length + aiExcluded.length);
+          if (preview?.articles?.length && nextKeys.length && preview.editor_used !== false) {
+            setPreviewArticles(dedupeExactArticles((preview.articles || []).map(normalizeDonggukPreviewArticle).filter((article) => isArticleInMailWindow(article, mailDate, autoSendTime))).slice(0, maxMailArticleTotal));
+            if (aiSelectedKeys.size) setSelectedArticleKeys(aiSelectedKeys);
+            setPreviewExcludedCount(Number(preview.excluded_count || 0));
+            setPreviewEditorUsed(Boolean(preview.editor_used));
+            setPreviewCached(true);
+          } else {
+            setPreviewArticles([]);
+            setPreviewExcludedCount(0);
+            setPreviewEditorUsed(false);
+            setPreviewCached(false);
+          }
+          setDraftLoaded(true);
+        } else {
+          setCandidateArticles(restoredRows);
+          setSelectedArticleKeys(mailableKeySet);
+          setPreviewExcludedArticles([]);
+          setDuplicateExcludedKeys(new Set());
+          setAiProcessedArticleCount(0);
+          setDraftLoaded(true);
+        }
+      } catch (err) {
+        setCandidateArticles(restoredRows);
+        setSelectedArticleKeys(mailableKeySet);
+        setPreviewExcludedArticles([]);
+        setDuplicateExcludedKeys(new Set());
+        setAiProcessedArticleCount(0);
+        setDraftLoaded(true);
+        showToast?.(err.message, "error");
+      }
+      setDuplicateFilterNeedsRefresh(false);
+      refreshMissingThumbnails(restoredRows);
+      return restoredRows;
+    } catch (err) {
+      showToast?.(err.message, "error");
+      return [];
+    } finally {
+      setLoadingCandidates(false);
+    }
+  }
+
+  async function runDonggukCandidateCrawl() {
+    if (!selectedKeywordId) {
+      showToast?.("키워드를 먼저 선택해 주세요.", "error");
+      return;
+    }
+    setRunningCandidateCrawl(true);
+    try {
+      const result = await endpoints.runCrawl(selectedKeywordId);
+      showToast?.(`새 기사 확인을 요청했습니다. 수집 ${result.crawl_count ?? 0}건`, "success");
+      await loadCandidateArticles();
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setRunningCandidateCrawl(false);
+    }
+  }
+
+  async function refreshMissingThumbnails(rows) {
+    const missingIds = rows
+      .filter((article) => article.id && realArticleLinks(article).length && !getArticleThumbnail(article))
+      .slice(0, 12)
+      .map((article) => Number(article.id));
+    if (!missingIds.length) return;
+    try {
+      const result = await endpoints.refreshArticleThumbnails(missingIds);
+      const refreshed = result.items || {};
+      if (!Object.keys(refreshed).length) return;
+      setCandidateArticles((prev) => prev.map((article) => {
+        const nextThumbnail = refreshed[String(article.id)];
+        return nextThumbnail ? { ...article, thumbnail_url: nextThumbnail } : article;
+      }));
+      setPreviewArticles((prev) => prev.map((article) => {
+        const nextThumbnail = refreshed[String(article.id)];
+        return nextThumbnail ? { ...article, thumbnail_url: nextThumbnail } : article;
+      }));
+    } catch (err) {
+      console.warn("thumbnail refresh failed", err);
+    }
+  }
+
+  useEffect(() => {
+    loadCandidateArticles();
+  }, [selectedKeywordId, mailDate, autoSendTime]);
+
+  useEffect(() => {
+    if (previewArticles.length <= maxMailArticleTotal) return;
+    const next = previewArticles.slice(0, maxMailArticleTotal);
+    setPreviewArticles(next);
+    saveEditedPreview(next);
+  }, [maxMailArticleTotal]);
+
+  function addRecipient(email) {
+    const current = emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+    if (!current.includes(email)) current.push(email);
+    setEmails(current.join("\n"));
+  }
+
+  function updateRecipient(index, value) {
+    const nextValue = value.trim();
+    if (!nextValue) return;
+    const current = emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+    current[index] = nextValue;
+    setEmails([...new Set(current)].join("\n"));
+  }
+
+  function deleteRecipient(index) {
+    const current = emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+    setEmails(current.filter((_, itemIndex) => itemIndex !== index).join("\n"));
+  }
+
+  function updateCategoryLimit(section, value) {
+    const nextValue = Math.max(0, Math.min(30, Number(value) || 0));
+    setCategoryArticleLimits((prev) => ({ ...prev, [section]: nextValue }));
+  }
+
+  function syncCriteria(nextPriority = priorityRuleItems, nextRepresentative = representativeRuleItems, nextExclusion = exclusionRuleItems) {
+    setPriorityCriteria(criteriaFromRuleGroups(nextPriority, nextRepresentative, nextExclusion));
+  }
+
+  function movePriorityRule(fromIndex, toIndex) {
+    if (fromIndex === null || fromIndex === toIndex) return;
+    setPriorityRuleItems((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      syncCriteria(next, representativeRuleItems, exclusionRuleItems);
+      return next;
+    });
+  }
+
+  function addPriorityRule() {
+    const value = newPriorityRule.trim();
+    if (!value) return;
+    setPriorityRuleItems((prev) => {
+      if (prev.includes(value)) return prev;
+      const next = [...prev, value];
+      syncCriteria(next, representativeRuleItems, exclusionRuleItems);
+      return next;
+    });
+    setNewPriorityRule("");
+  }
+
+  function deletePriorityRule(index) {
+    setPriorityRuleItems((prev) => {
+      const next = prev.filter((_, itemIndex) => itemIndex !== index);
+      syncCriteria(next, representativeRuleItems, exclusionRuleItems);
+      return next;
+    });
+  }
+
+  function updatePriorityRule(index, value) {
+    setPriorityRuleItems((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      syncCriteria(next, representativeRuleItems, exclusionRuleItems);
+      return next;
+    });
+  }
+
+  function addRepresentativeRule() {
+    const value = newRepresentativeRule.trim();
+    if (!value) return;
+    setRepresentativeRuleItems((prev) => {
+      if (prev.includes(value)) return prev;
+      const next = [...prev, value];
+      syncCriteria(priorityRuleItems, next, exclusionRuleItems);
+      return next;
+    });
+    setNewRepresentativeRule("");
+  }
+
+  function updateRepresentativeRule(index, value) {
+    setRepresentativeRuleItems((prev) => {
+      const next = prev.map((rule, itemIndex) => itemIndex === index ? value : rule);
+      syncCriteria(priorityRuleItems, next, exclusionRuleItems);
+      return next;
+    });
+  }
+
+  function deleteRepresentativeRule(index) {
+    setRepresentativeRuleItems((prev) => {
+      const next = prev.filter((_, itemIndex) => itemIndex !== index);
+      syncCriteria(priorityRuleItems, next, exclusionRuleItems);
+      return next;
+    });
+  }
+
+  function addExclusionRule(valueOverride = "") {
+    const value = (valueOverride || newExclusionRule).trim();
+    if (!value) return;
+    setExclusionRuleItems((prev) => {
+      if (prev.includes(value)) return prev;
+      const next = [...prev, value];
+      syncCriteria(priorityRuleItems, representativeRuleItems, next);
+      return next;
+    });
+    setNewExclusionRule("");
+  }
+
+  function updateExclusionRule(index, value) {
+    setExclusionRuleItems((prev) => {
+      const next = prev.map((rule, itemIndex) => itemIndex === index ? value : rule);
+      syncCriteria(priorityRuleItems, representativeRuleItems, next);
+      return next;
+    });
+  }
+
+  function deleteExclusionRule(index) {
+    setExclusionRuleItems((prev) => {
+      const next = prev.filter((_, itemIndex) => itemIndex !== index);
+      syncCriteria(priorityRuleItems, representativeRuleItems, next);
+      return next;
+    });
+  }
+
+  function openRecipientContext(event, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    setPriorityContextMenu(null);
+    setRecipientContextMenu({ index, x: event.clientX, y: event.clientY });
+  }
+
+  function openPriorityContext(event, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    setRecipientContextMenu(null);
+    setPriorityContextMenu({ index, x: event.clientX, y: event.clientY });
+  }
+
+  function editRecipientFromMenu(index) {
+    const current = recipientList[index] || "";
+    const next = window.prompt("수신인 이메일 수정", current);
+    if (next !== null) updateRecipient(index, next);
+    setRecipientContextMenu(null);
+  }
+
+  function focusPriorityRule(index) {
+    window.setTimeout(() => {
+      document.querySelector(`[data-priority-rule-index="${index}"]`)?.focus();
+    }, 0);
+    setPriorityContextMenu(null);
+  }
+
+  function copyMailPreview() {
+    if (!editedMailArticles.length) {
+      showToast?.("복사할 AI 편집 미리보기가 없습니다. 메일 미리보기에서 편집 미리보기를 먼저 생성해 주세요.", "error");
+      return;
+    }
+    const body = buildDonggukMailText(mailSubject, editedMailArticles);
+    navigator.clipboard?.writeText(body);
+    showToast?.("제목, 요약, URL이 포함된 홍보처 메일 문안을 복사했습니다.", "success");
+  }
+
+  function updateCandidateArticle(index, patch) {
+    setCandidateArticles((prev) => prev.map((article, idx) => {
+      if (idx !== index) return article;
+      const next = { ...article, ...patch };
+      if (patch.sectionLabel) next.section = patch.sectionLabel;
+      return next;
+    }));
+    setPreviewArticles([]);
+    setPreviewExcludedCount(0);
+    setPreviewEditorUsed(false);
+    setPreviewCached(false);
+  }
+
+  async function deleteCandidateArticle(article, index) {
+    if (!article?.id || String(article.id).startsWith("manual-")) {
+      showToast?.("직접 추가 기사는 메일 미리보기에서 삭제해 주세요.", "error");
+      return;
+    }
+    const confirmed = window.confirm("이 기사를 DB에서 삭제하고 후보 목록에서 더 이상 보이지 않게 할까요?");
+    if (!confirmed) return;
+    try {
+      await endpoints.deleteArticle(article.id);
+      const key = articleKey(article, index);
+      const nextKeys = new Set([...selectedArticleKeys].filter((item) => item !== key));
+      const nextArticles = candidateArticles.filter((_, idx) => idx !== index);
+      setSelectedArticleKeys(nextKeys);
+      setCandidateArticles(nextArticles);
+      setPreviewArticles([]);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      await saveDraftSelection(nextKeys, null, nextArticles);
+      showToast?.("기사를 삭제했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  function excludedArticleReason(article, key) {
+    if (!isArticleInMailWindow(article, mailDate, autoSendTime)) {
+      const publishedKey = articlePublishedDateKey(article);
+      const mailWindow = reportWindowForDate(mailDate, autoSendTime);
+      return publishedKey
+        ? `발행일이 ${publishedKey}라 발송 대상 기간(${mailWindow.label})에서 제외되었습니다.`
+        : `발행일을 확인할 수 없어 발송 대상 기간(${mailWindow.label})에서 제외되었습니다.`;
+    }
+    if (!selectedArticleKeys.has(key)) {
+      const representative = effectiveMailArticles.find((item) => isSimilarDonggukArticle(item, article));
+      if (representative) {
+        return `같은 주제의 대표 기사 '${representative.title || "제목 없음"}'로 묶여 메일 대표 목록에는 포함되지 않았습니다.`;
+      }
+      return `메일 대표 기사로 선택되지 않았습니다. ${articlePriorityReason(article)}`;
+    }
+    const representative = effectiveMailArticles.find((item) => isSimilarDonggukArticle(item, article) && String(item.id || item.title) !== String(article.id || article.title));
+    if (representative) {
+      return `같은 주제의 대표 기사 '${representative.title || "제목 없음"}'로 묶여 메일 대표 목록에는 포함되지 않았습니다.`;
+    }
+    return `이번 메일 대표 목록에는 포함되지 않았습니다. ${articlePriorityReason(article)}`;
+  }
+
+  async function restoreExcludedArticle(article, index) {
+    if (!isArticleInMailWindow(article, mailDate, autoSendTime)) {
+      showToast?.("발송 대상 기간 밖의 기사는 메일에 추가하지 않습니다. 해당 발행일에 맞춰 기준일을 바꿔 주세요.", "error");
+      return;
+    }
+    const key = articleKey(article, index);
+    const nextKeys = new Set([...selectedArticleKeys, key]);
+    const section = article.sectionLabel || article.section || donggukSections.foundation;
+    const sectionMailCount = mailArticles.filter((item) => (item.sectionLabel || item.section) === section).length;
+    const sectionLimit = Number(categoryArticleLimits[section] ?? 0);
+    const nextLimits = sectionMailCount >= sectionLimit
+      ? { ...categoryArticleLimits, [section]: sectionLimit + 1 }
+      : categoryArticleLimits;
+
+    setSelectedArticleKeys(nextKeys);
+    setCategoryArticleLimits(nextLimits);
+    setPreviewArticles([]);
+    setPreviewExcludedCount(0);
+    setPreviewEditorUsed(false);
+    setPreviewCached(false);
+    await saveDraftSelection(nextKeys, null, candidateArticles);
+    showToast?.("제외된 기사를 메일 포함 목록에 다시 추가했습니다.", "success");
+  }
+
+  async function moveExcludedArticleToTrash(article, index) {
+    if (!article?.id || String(article.id).startsWith("manual-")) {
+      showToast?.("직접 추가 기사는 휴지통으로 이동할 수 없습니다.", "error");
+      return;
+    }
+    const key = articleKey(article, index);
+    const nextKeys = new Set([...selectedArticleKeys].filter((item) => item !== key));
+    const nextArticles = candidateArticles.filter((_, itemIndex) => itemIndex !== index);
+    try {
+      const result = await endpoints.moveDonggukTrash({
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        article: donggukArticlePayload(article),
+      });
+      setSelectedArticleKeys(nextKeys);
+      setCandidateArticles(nextArticles);
+      setTrashArticles((prev) => {
+        const item = result.item ? { ...result.item, article: normalizeDonggukPreviewArticle(result.item.article || article) } : { article_id: article.id, article };
+        return [item, ...prev.filter((row) => String(row.article_id || row.article?.id) !== String(article.id))];
+      });
+      setPreviewArticles([]);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      await saveDraftSelection(nextKeys, null, nextArticles);
+      showToast?.("기사를 휴지통으로 이동했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function restoreTrashArticle(item) {
+    const article = normalizeDonggukPreviewArticle(item.article || {});
+    if (!article.id) return;
+    try {
+      await endpoints.restoreDonggukTrash({
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        article_id: article.id,
+      });
+      const nextArticles = candidateArticles.some((candidate) => String(candidate.id) === String(article.id))
+        ? candidateArticles
+        : [article, ...candidateArticles];
+      setTrashArticles((prev) => prev.filter((row) => String(row.article_id || row.article?.id) !== String(article.id)));
+      setCandidateArticles(nextArticles);
+      await saveDraftSelection(selectedArticleKeys, null, nextArticles);
+      showToast?.("휴지통에서 복구했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function permanentlyDeleteTrashArticle(item) {
+    const article = item.article || {};
+    if (!article.id) return;
+    const confirmed = window.confirm("이 기사를 데이터베이스에서 완전히 삭제할까요? 이 작업은 되돌릴 수 없습니다.");
+    if (!confirmed) return;
+    try {
+      await endpoints.deleteDonggukTrash({
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        article_id: article.id,
+      });
+      setTrashArticles((prev) => prev.filter((row) => String(row.article_id || row.article?.id) !== String(article.id)));
+      showToast?.("기사를 데이터베이스에서 삭제했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function saveDraftSelection(nextKeys = selectedArticleKeys, previewData = null, articleSource = candidateArticles) {
+    if (!selectedKeywordId || !mailDate || !articleSource.length) return;
+    const keySet = new Set([...nextKeys].map(String));
+    const selectedForDraft = articleSource.filter((article, index) => keySet.has(articleKey(article, index)));
+    const removedForDraft = articleSource.filter((article, index) => !keySet.has(articleKey(article, index)));
+    try {
+      const removedKeys = articleSource
+        .map((article, index) => articleKey(article, index))
+        .filter((key) => !keySet.has(key));
+      await endpoints.saveDonggukDraft({
+        subject: mailSubject,
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        selected_article_keys: [...keySet],
+        selected_articles: selectedForDraft.map(donggukArticlePayload),
+        removed_article_keys: removedKeys,
+        removed_articles: removedForDraft.map(donggukArticlePayload),
+        preview_data: previewData,
+      });
+      setDraftLoaded(true);
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function saveEditedPreview(nextArticles = previewArticles) {
+    if (!selectedKeywordId || !mailDate) return;
+    const previewData = {
+      articles: nextArticles.map(donggukArticlePayload),
+      excluded_articles: [],
+      article_count: nextArticles.length,
+      excluded_count: previewExcludedCount,
+      editor_used: previewEditorUsed,
+      cached: true,
+      manually_edited: true,
+    };
+    await saveDraftSelection(selectedArticleKeys, previewData);
+  }
+
+  function updatePreviewArticle(index, patch) {
+    setPreviewArticles((prev) => {
+      const next = prev.map((article, idx) => {
+        if (idx !== index) return article;
+        const updated = { ...article, ...patch };
+        if (patch.priority) {
+          const band = donggukPriorityBands.find((item) => item.label === patch.priority) || donggukPriorityFromScore(updated.score);
+          updated.priority = band.label;
+          updated.priorityName = band.name;
+          updated.priorityTone = band.tone;
+          if (patch.score == null) updated.score = Math.max(Number(updated.score || 0), band.min);
+        }
+        if (patch.sectionLabel) updated.section = patch.sectionLabel;
+        return normalizeDonggukPreviewArticle(updated);
+      });
+      saveEditedPreview(next);
+      return next;
+    });
+  }
+
+  function movePreviewArticle(index, direction) {
+    setPreviewArticles((prev) => {
+      const target = index + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      saveEditedPreview(next);
+      return next;
+    });
+  }
+
+  function removePreviewArticle(index) {
+    setPreviewArticles((prev) => {
+      const next = prev.filter((_, idx) => idx !== index);
+      saveEditedPreview(next);
+      return next;
+    });
+  }
+
+  async function addManualArticleFromLink() {
+    const url = manualArticleUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      showToast?.("http 또는 https로 시작하는 기사 URL을 입력해 주세요.", "error");
+      return;
+    }
+    setAddingManualArticle(true);
+    try {
+      const hostname = new URL(url).hostname.replace(/^www\./, "");
+      let preview = null;
+      try {
+        preview = await endpoints.donggukLinkPreview({ url });
+      } catch {
+        preview = null;
+      }
+      const article = normalizeDonggukPreviewArticle({
+        id: `manual-${Date.now()}`,
+        title: preview?.title || `${hostname} 추가 기사`,
+        source: preview?.source || hostname,
+        section: donggukSections.foundation,
+        category: "기타 개별 홍보 피처",
+        summary: preview?.summary || "추가한 링크입니다. 제목과 요약을 확인 후 수정해 주세요.",
+        url,
+        links: preview?.links?.length ? preview.links : [url],
+        priority: "P4",
+        priority_name: "참고",
+        score: 35,
+        is_syndicated: false,
+      });
+      const next = [...previewArticles, article].slice(0, maxMailArticleTotal);
+      setPreviewArticles(next);
+      setCandidateArticles((prev) => [...prev, article]);
+      setDuplicateFilterNeedsRefresh(true);
+      setManualArticleUrl("");
+      saveEditedPreview(next);
+      showToast?.("메일 편집본에 기사를 추가했습니다.", "success");
+    } catch {
+      showToast?.("기사 URL을 확인해 주세요.", "error");
+    } finally {
+      setAddingManualArticle(false);
+    }
+  }
+
+  async function refreshDuplicateTopicFilter() {
+    const completed = await loadDifyPreview(true, candidateArticles);
+    if (completed) {
+      setDuplicateFilterNeedsRefresh(false);
+      showToast?.("AI가 추가 기사를 포함해 중복 주제를 다시 확인했습니다.", "success");
+    }
+  }
+
+  async function downloadDonggukHwp() {
+    const articles = editedMailArticles.length ? editedMailArticles : mailArticles;
+    if (!articles.length) {
+      showToast?.("다운로드할 기사가 없습니다.", "error");
+      return;
+    }
+    try {
+      const response = await endpoints.donggukHwp({
+        subject: mailSubject,
+        mail_date: mailDate,
+        articles: articles.slice(0, maxMailArticleTotal).map(donggukArticlePayload),
+      });
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `오늘의 주요 뉴스(${mailDate.replaceAll("-", "").slice(2)}).hwpx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      showToast?.("한글 파일 다운로드를 시작했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function loadDifyPreview(forceRebuild = false, articlePool = null) {
+    const sourceArticles = articlePool || mailArticles;
+    const candidates = sourceArticles.filter((article) => !article.isTrashed && realArticleLinks(article).length > 0);
+    if (!candidates.length) {
+      setPreviewArticles([]);
+      setPreviewExcludedArticles([]);
+      setAiProcessedArticleCount(0);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      return false;
+    }
+    setLoadingPreview(true);
+    try {
+      const selectedKeySet = new Set([...selectedArticleKeys].map(String));
+      const removedRows = candidateArticles
+        .map((article, index) => ({ article, key: articleKey(article, index) }))
+        .filter(({ key }) => !selectedKeySet.has(key));
+      const result = await endpoints.donggukPreview({
+        subject: mailSubject,
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        exclude_similar_sent: true,
+        selected_article_keys: [...selectedArticleKeys],
+        removed_article_keys: removedRows.map(({ key }) => key),
+        removed_articles: removedRows.map(({ article }) => donggukArticlePayload(article)),
+        priority_criteria: normalizeDonggukCriteria(priorityCriteria),
+        force_rebuild: forceRebuild,
+        articles: candidates.map(donggukArticlePayload),
+      });
+      const nextArticles = dedupeExactArticles((result.articles || []).map(normalizeDonggukPreviewArticle));
+      const nextExcludedArticles = (result.excluded_articles || []).map(normalizeDonggukPreviewArticle);
+      const nextSelectedKeys = candidateKeysForAiArticles(nextArticles, candidateArticles);
+      setPreviewArticles(nextArticles);
+      setPreviewExcludedArticles(nextExcludedArticles);
+      setSelectedArticleKeys(nextSelectedKeys);
+      setDuplicateExcludedKeys(aiDuplicateExcludedKeys(nextExcludedArticles, candidateArticles));
+      setAiProcessedArticleCount(candidates.length);
+      setPreviewExcludedCount(Number(result.excluded_count || 0));
+      setPreviewEditorUsed(Boolean(result.editor_used));
+      setPreviewCached(Boolean(result.cached));
+      return true;
+    } catch (err) {
+      setPreviewArticles([]);
+      setPreviewExcludedArticles([]);
+      setAiProcessedArticleCount(0);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      showToast?.(err.message, "error");
+      return false;
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
+  useEffect(() => {
+    if (loadingCandidates || loadingPreview) return;
+    if (!draftLoaded) return;
+    if (duplicateFilterNeedsRefresh) return;
+    const eligibleCount = candidateArticles.filter((article) => !article.isTrashed && realArticleLinks(article).length > 0).length;
+    if (!eligibleCount) return;
+    if (previewArticles.length && aiProcessedArticleCount >= eligibleCount) return;
+    const requestKey = [
+      selectedKeywordId,
+      mailDate,
+      candidateArticles.length,
+      aiProcessedArticleCount,
+      selectedArticleKeySignature,
+      normalizeDonggukCriteria(priorityCriteria),
+    ].join("::");
+    if (autoPreviewRequestKey.current === requestKey) return;
+    autoPreviewRequestKey.current = requestKey;
+    const timer = setTimeout(() => {
+      loadDifyPreview(aiProcessedArticleCount > 0, candidateArticles);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [
+    mailDate,
+    selectedKeywordId,
+    selectedArticleKeySignature,
+    priorityCriteria,
+    draftLoaded,
+    candidateArticles.length,
+    aiProcessedArticleCount,
+    previewArticles.length,
+    duplicateFilterNeedsRefresh,
+    loadingCandidates,
+    loadingPreview,
+  ]);
+
+  async function saveAutoSendSettings(nextEnabled = autoSendEnabled) {
+    if (!selectedKeywordId || !onUpdateKeyword) {
+      showToast?.("키워드를 먼저 선택해 주세요.", "error");
+      return;
+    }
+    const recipients = emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+    if (nextEnabled && !recipients.length) {
+      showToast?.("수신인을 먼저 지정해 주세요.", "error");
+      return;
+    }
+    setAutoSendEnabled(nextEnabled);
+    setSavingAuto(true);
+    try {
+      await onUpdateKeyword(selectedKeywordId, {
+        email_auto_send: nextEnabled,
+        email_recipients: nextEnabled ? recipients : [],
+        email_send_time: autoSendTime || "08:30",
+        email_condition_type: "daily_summary",
+      });
+      showToast?.(`홍보처 자동 발송을 ${nextEnabled ? "켰습니다." : "껐습니다."}`, "success");
+    } finally {
+      setSavingAuto(false);
+    }
+  }
+
+  async function savePriorityCriteria() {
+    if (!selectedKeywordId || !onUpdateKeyword) {
+      showToast?.("키워드를 먼저 선택해 주세요.", "error");
+      return;
+    }
+    setSavingPriorityCriteria(true);
+    try {
+      await onUpdateKeyword(selectedKeywordId, {
+        importance_criteria: normalizeDonggukCriteria(priorityCriteria),
+      });
+      setPreviewArticles([]);
+      setPreviewExcludedCount(0);
+      setPreviewEditorUsed(false);
+      setPreviewCached(false);
+      showToast?.("우선순위 선정 기준을 저장했습니다. AI 미리보기를 갱신하면 새 기준이 적용됩니다.", "success");
+    } finally {
+      setSavingPriorityCriteria(false);
+    }
+  }
+
+  async function sendDonggukEmail(isTest = false) {
+    const sourceEmails = isTest ? testEmails : emails;
+    const toEmails = sourceEmails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+    if (!toEmails.length) {
+      showToast?.(isTest ? "테스트 수신 이메일을 입력해 주세요." : "수신 이메일을 입력해 주세요.", "error");
+      return;
+    }
+    setSending(true);
+    try {
+      if (!selectedKeywordId) {
+        showToast?.("키워드를 먼저 선택해 주세요.", "error");
+        return;
+      }
+      const loadedCandidates = candidateArticles.length ? selectedCandidates : await loadCandidateArticles();
+      const editedCandidates = editedMailArticles.length ? editedMailArticles : applyDonggukSectionLimits(loadedCandidates, categoryArticleLimits);
+      const candidates = editedCandidates.filter((article) => realArticleLinks(article).length > 0);
+      if (!candidates.length) {
+        showToast?.(`${mailDate} 기준 수집된 원문 URL 포함 기사 후보가 없습니다.`, "error");
+        return;
+      }
+      const result = await endpoints.donggukEmail({
+        to_emails: toEmails,
+        subject: mailSubject,
+        keyword_id: selectedKeywordId,
+        mail_date: mailDate,
+        exclude_similar_sent: true,
+        use_current_articles: editedMailArticles.length > 0,
+        articles: candidates.map(donggukArticlePayload),
+        priority_criteria: normalizeDonggukCriteria(priorityCriteria),
+        is_test: isTest,
+      });
+      if (Number(result?.article_count || 0) === 0) {
+        showToast?.(result?.message || "오늘 발송할 신규 기사가 없습니다.", "error");
+      } else {
+        showToast?.(
+          isTest
+            ? `테스트 메일을 발송했습니다. AI 편집 후 제외 기사 ${result?.excluded_count || 0}건은 발송 기록에 반영되지 않습니다.`
+            : `홍보처 맞춤 메일을 발송했습니다. AI 편집 후 제외 기사 ${result?.excluded_count || 0}건이 기록됐습니다.`,
+          "success"
+        );
+      }
+      await loadDonggukHistory();
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const isMailEditView = viewMode === "edit";
+
+  return (
+    <section className="dongguk-console">
+      {viewMode !== "trash" && (
+        <>
+          <div className="dongguk-brief">
+            <div className="brief-head">
+              <div>
+                <span className="eyebrow">Dongguk PR Desk</span>
+                <h2>설정</h2>
+              </div>
+              <div className="daily-date">
+                <span>기준일 선택</span>
+                <input type="date" value={mailDate} onChange={(event) => setMailDate(event.target.value)} />
+                <strong>{mailSubject}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="toolbar full dongguk-toolbar">
+            <div className="brief-tabs" role="tablist" aria-label="홍보처 맞춤 화면">
+              <button className={viewMode === "home" ? "active" : ""} onClick={() => setViewMode("home")} type="button"><Settings size={18} /> 설정</button>
+              <button className={viewMode === "priority" ? "active" : ""} onClick={() => setViewMode("priority")} type="button"><FileText size={18} /> 오늘 수집된 기사</button>
+              <button className={viewMode === "stats" ? "active" : ""} onClick={() => setViewMode("stats")} type="button"><BarChart3 size={18} /> 통계</button>
+              <button className={viewMode === "edit" ? "active" : ""} onClick={() => setViewMode("edit")} type="button"><Pencil size={18} /> 편집</button>
+              <button className={viewMode === "mail" ? "active" : ""} onClick={() => setViewMode("mail")} type="button"><Mail size={18} /> 메일 미리보기</button>
+              <button className={viewMode === "history" ? "active" : ""} onClick={() => setViewMode("history")} type="button"><Send size={18} /> 발송 기록</button>
+            </div>
+            {["priority", "stats", "edit", "mail", "history"].includes(viewMode) && (
+              <div className="dongguk-toolbar-actions">
+                <button className="secondary" onClick={copyMailPreview} type="button">
+                  <Mail size={16} /> 복사
+                </button>
+                <button className="secondary" onClick={downloadDonggukHwp} type="button">
+                  <Download size={16} /> HWP
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {viewMode === "home" && (
+        <div className="dongguk-home-grid">
+          <section className="dongguk-home-card">
+            <div className="panel-heading clean">
+              <FileText className="panel-heading-icon" size={24} />
+              <strong>설정</strong>
+              <span>{selectedKeywordName || "동국대학교"}</span>
+            </div>
+            <div className="home-article-list">
+              <div className="home-news-section">
+                <div className="home-news-section-head">
+                  <strong>메일 포함 기사</strong>
+                  <span>{effectiveMailArticles.length}건</span>
+                </div>
+                {effectiveMailArticles.length ? (
+                  effectiveMailArticles.map((article, index) => {
+                    const thumbnailUrl = getArticleThumbnail(article);
+                    return (
+                      <article className="home-article-card included" key={`${article.id || article.title}-selected-${index}`}>
+                        <span className="lead-rank">{index + 1}</span>
+                        {thumbnailUrl ? (
+                          <img
+                            className="home-article-thumb"
+                            src={thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="lead-thumb compact">
+                            <div className="lead-thumb-mark">D</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="meta">
+                            <span className="pill include">메일 포함</span>
+                            <span className={`priority-pill ${article.priorityTone || "p3"}`}>{priorityDisplayName(article)}</span>
+                            <span>{article.category || "기사 후보"}</span>
+                            {article.isSyndicated && <span className="pill warning">중복</span>}
+                          </div>
+                          <h3>{article.title || "제목 없음"}</h3>
+                          <p>{article.summary || "요약문이 아직 없습니다."}</p>
+                          <div className="priority-reason">
+                            <span>{articlePriorityReason(article)}</span>
+                          </div>
+                        </div>
+                        <span className="lead-time">{formatDate(article.published_at) || autoSendTime || "08:30"}</span>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <EmptyState title="선정된 메일 포함 기사가 없습니다" body="기준일을 바꾸거나 오늘 수집된 기사 화면에서 메일 포함 기사를 선택해 주세요." />
+                )}
+              </div>
+
+              <div className="home-news-section">
+                <div className="home-news-section-head">
+                  <strong>제외된 뉴스</strong>
+                  <span>{excludedHomeRows.length}건</span>
+                </div>
+                {excludedHomeRows.length ? (
+                  excludedHomeRows.map(({ article, index, key }) => {
+                  const thumbnailUrl = getArticleThumbnail(article);
+                  return (
+                    <article className="home-article-card excluded" key={`${article.id || article.title}-${index}`}>
+                      <span className="lead-rank">{index + 1}</span>
+                      {thumbnailUrl ? (
+                        <img
+                          className="home-article-thumb"
+                          src={thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="lead-thumb compact">
+                          <div className="lead-thumb-mark">D</div>
+                        </div>
+                      )}
+                      <div>
+                        <div className="meta">
+                          <span className="pill muted">메일 제외</span>
+                          <span className={`priority-pill ${article.priorityTone || "p3"}`}>{priorityDisplayName(article)}</span>
+                          <span>{article.category || "기사 후보"}</span>
+                          {article.isSyndicated && <span className="pill warning">중복</span>}
+                        </div>
+                        <h3>{article.title || "제목 없음"}</h3>
+                        <p>{article.summary || "요약문이 아직 없습니다."}</p>
+                        <div className="excluded-reason">
+                          <span>{excludedArticleReason(article, key)}</span>
+                          <button className="secondary compact" onClick={() => restoreExcludedArticle(article, index)} type="button">
+                            <Plus size={14} /> 다시 추가
+                          </button>
+                          <button className="secondary compact danger-text" onClick={() => moveExcludedArticleToTrash(article, index)} type="button">
+                            <Trash2 size={14} /> 휴지통 이동
+                          </button>
+                        </div>
+                      </div>
+                      <span className="lead-time">{formatDate(article.published_at) || autoSendTime || "08:30"}</span>
+                    </article>
+                  );
+                  })
+                ) : (
+                  <EmptyState title="제외된 뉴스가 없습니다" body="현재 수집 기사 전체가 메일 포함 목록에 들어가 있습니다." />
+                )}
+              </div>
+
+            </div>
+          </section>
+
+          <section className="dongguk-send-panel settings-card">
+            <div className="panel-heading clean">
+              <Settings className="panel-heading-icon" size={24} />
+              <strong>설정</strong>
+              <span>{mailSubject}</span>
+            </div>
+            <label className="settings-row">
+              <Calendar size={18} />
+              <span>기준일</span>
+              <input type="date" value={mailDate} onChange={(event) => setMailDate(event.target.value)} />
+            </label>
+            <details className="settings-details">
+              <summary>
+                <span><Hash size={18} /> 최대 기사 수 지정하기</span>
+                <b>총 {maxMailArticleTotal}건</b>
+              </summary>
+              <div className="category-limit-list">
+                {Object.values(donggukSections).map((section) => (
+                  <label className="category-limit-row" key={section}>
+                    <span>{section}</span>
+                    <select value={categoryArticleLimits[section] ?? 0} onChange={(event) => updateCategoryLimit(section, event.target.value)}>
+                      {[0, 1, 2, 3, 4, 5, 6, 8, 10].map((value) => <option key={value} value={value}>{value}건</option>)}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </details>
+            <label className="settings-row">
+              <Clock size={18} />
+              <span>발송 시간</span>
+              <input type="time" value={autoSendTime} onChange={(event) => setAutoSendTime(event.target.value)} />
+            </label>
+            <details className="settings-details">
+              <summary>
+                <span><UserRound size={18} /> 수신인 지정</span>
+                <b>{recipientList.length}명</b>
+              </summary>
+              {recipientList.length > 0 && (
+                <div className="recipient-edit-list">
+                  {recipientList.map((email, index) => (
+                    <button
+                      className="recipient-edit-chip"
+                      key={`${email}-${index}`}
+                      onContextMenu={(event) => openRecipientContext(event, index)}
+                      type="button"
+                    >
+                      {email}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <textarea
+                value={emails}
+                onChange={(event) => setEmails(event.target.value)}
+                placeholder="pr-team@dongguk.edu&#10;newsroom@example.com"
+              />
+              {recentRecipients.length > 0 && (
+                <div className="recipient-chip-list compact-list inside-details">
+                  {recentRecipients.slice(0, 4).map((email) => (
+                    <button className="secondary compact" key={email} onClick={() => addRecipient(email)} type="button">
+                      {email}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </details>
+            <details className="settings-details priority-rule-details">
+              <summary>
+                <span><BarChart3 size={18} /> AI 기사 선정 기준</span>
+                <b>{priorityRuleItems.length + representativeRuleItems.length + exclusionRuleItems.length}개</b>
+              </summary>
+              <p className="criteria-help">아래 문장을 그대로 AI에 전달합니다. 순서를 바꾸거나 문장을 직접 수정할 수 있습니다.</p>
+              <details className="criteria-subdetails">
+                <summary>
+                  <span><strong>우선순위 기준</strong><small>위에 있는 문장부터 우선 적용</small></span>
+                  <b>{priorityRuleItems.length}개</b>
+                </summary>
+                <div className="priority-rule-list">
+                {priorityRuleItems.map((rule, index) => (
+                  <div
+                    className="priority-rule-item"
+                    draggable
+                    key={`${rule}-${index}`}
+                    onDragStart={() => setDraggedPriorityIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      movePriorityRule(draggedPriorityIndex, index);
+                      setDraggedPriorityIndex(null);
+                    }}
+                    onContextMenu={(event) => openPriorityContext(event, index)}
+                  >
+                    <span className="drag-handle">⋮⋮</span>
+                    <b>{index + 1}</b>
+                    <textarea
+                      data-priority-rule-index={index}
+                      rows={2}
+                      value={rule}
+                      onChange={(event) => updatePriorityRule(index, event.target.value)}
+                      onContextMenu={(event) => openPriorityContext(event, index)}
+                    />
+                    <button className="icon-button danger-text" title="기준 삭제" onClick={() => deletePriorityRule(index)} type="button">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                </div>
+                <div className="priority-rule-add">
+                <input
+                  value={newPriorityRule}
+                  onChange={(event) => setNewPriorityRule(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addPriorityRule();
+                    }
+                  }}
+                  placeholder="예: 학생 성과가 구체적으로 드러난 기사를 우선 선정합니다."
+                />
+                <button className="secondary compact" onClick={addPriorityRule} type="button">
+                  <Plus size={14} /> 추가
+                </button>
+                </div>
+              </details>
+              <details className="criteria-subdetails">
+                <summary>
+                  <span><strong>중복 주제 대표 기사 선정 기준</strong><small>같은 주제에서 1건을 고르는 방법</small></span>
+                  <b>{representativeRuleItems.length}개</b>
+                </summary>
+                <div className="criteria-sentence-list">
+                {representativeRuleItems.map((rule, index) => (
+                  <div className="criteria-sentence-item" key={`representative-${index}`}>
+                    <textarea rows={2} value={rule} onChange={(event) => updateRepresentativeRule(index, event.target.value)} />
+                    <button className="icon-button danger-text" title="기준 삭제" onClick={() => deleteRepresentativeRule(index)} type="button">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                </div>
+                <div className="priority-rule-add">
+                <input
+                  value={newRepresentativeRule}
+                  onChange={(event) => setNewRepresentativeRule(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addRepresentativeRule();
+                    }
+                  }}
+                  placeholder="예: 제목에 핵심 인물과 성과가 명확한 기사를 대표로 선정합니다."
+                />
+                <button className="secondary compact" onClick={addRepresentativeRule} type="button"><Plus size={14} /> 추가</button>
+                </div>
+              </details>
+              <details className="criteria-subdetails exclusion-subdetails">
+                <summary>
+                  <span><strong>제외 기준</strong><small>해당하는 기사는 메일 후보에서 제외</small></span>
+                  <b>{exclusionRuleItems.length}개</b>
+                </summary>
+                <div className="criteria-sentence-list">
+                {exclusionRuleItems.map((rule, index) => (
+                  <div className="criteria-sentence-item exclusion-item" key={`exclusion-${index}`}>
+                    <textarea rows={2} value={rule} onChange={(event) => updateExclusionRule(index, event.target.value)} />
+                    <button className="icon-button danger-text" title="제외 기준 삭제" onClick={() => deleteExclusionRule(index)} type="button">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                </div>
+                <div className="criteria-example-list">
+                <span>예시로 추가</span>
+                <button className="secondary compact" onClick={() => addExclusionRule("동국대의 인사발령 관련 기사는 모두 제외합니다.")} type="button">인사발령 제외</button>
+                <button className="secondary compact" onClick={() => addExclusionRule("동국대학교 경주캠퍼스 관련 주제는 모두 제외합니다.")} type="button">경주캠퍼스 제외</button>
+                </div>
+                <div className="priority-rule-add">
+                <input
+                  value={newExclusionRule}
+                  onChange={(event) => setNewExclusionRule(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addExclusionRule();
+                    }
+                  }}
+                  placeholder="예: 특정 인물의 단순 인사발령 기사는 모두 제외합니다."
+                />
+                <button className="secondary compact" onClick={() => addExclusionRule()} type="button"><Plus size={14} /> 추가</button>
+                </div>
+              </details>
+              <button className="secondary save-criteria-button" disabled={savingPriorityCriteria} onClick={savePriorityCriteria} type="button">
+                {savingPriorityCriteria ? <Loader2 className="spin" size={16} /> : <CheckCircle2 size={16} />}
+                AI 기사 선정 기준 저장
+              </button>
+            </details>
+            <details className="auto-send-box slim">
+              <summary>
+                <span>자동 발송 설정</span>
+                <button
+                  aria-checked={autoSendEnabled}
+                  className={`inline-switch ${autoSendEnabled ? "on" : ""}`}
+                  disabled={savingAuto}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    saveAutoSendSettings(!autoSendEnabled);
+                  }}
+                  role="switch"
+                  type="button"
+                >
+                  {savingAuto ? "저장 중" : autoSendEnabled ? "켜짐" : "꺼짐"}
+                </button>
+              </summary>
+              <div className="auto-send-description">
+                <p>켜짐 상태에서는 기준일과 발송 시간 설정에 맞춰 수신인 지정 목록의 메일 주소로 홍보처 맞춤 뉴스가 자동 발송됩니다.</p>
+                <p>수신인 변경은 위의 <b>수신인 지정</b>에서 관리하고, 테스트 전송은 <b>메일 미리보기</b> 탭에서 별도로 실행합니다.</p>
+              </div>
+            </details>
+          </section>
+        </div>
+      )}
+
+      {viewMode === "trash" && (
+        <section className="dongguk-panel">
+          <div className="panel-heading">
+            <div>
+              <strong>휴지통</strong>
+              <span>휴지통으로 이동한 기사는 메일 후보와 제외 뉴스에서 숨겨집니다.</span>
+            </div>
+            <span className="count-pill">{trashArticles.length}건</span>
+          </div>
+          <div className="home-article-list">
+            {trashArticles.length ? (
+              trashArticles.map((item, index) => {
+                const article = item.article || {};
+                const thumbnailUrl = getArticleThumbnail(article);
+                return (
+                  <article className="home-article-card trash" key={`${article.id || article.title}-trash-${index}`}>
+                    <span className="lead-rank">{index + 1}</span>
+                    {thumbnailUrl ? (
+                      <img
+                        className="home-article-thumb"
+                        src={thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="lead-thumb compact">
+                        <div className="lead-thumb-mark">D</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="meta">
+                        <span className="pill muted">휴지통</span>
+                        <span>{article.source || "언론사 없음"}</span>
+                        {item.trashed_at && <span>{item.trashed_at}</span>}
+                      </div>
+                      <h3>{article.title || "제목 없음"}</h3>
+                      <p>{article.summary || "요약문이 아직 없습니다."}</p>
+                      <div className="excluded-reason">
+                        <span>복구하면 다시 해당 기준일의 기사 후보로 돌아갑니다.</span>
+                        <button className="secondary compact" onClick={() => restoreTrashArticle(item)} type="button">
+                          <RotateCcw size={14} /> 복구
+                        </button>
+                        <button className="secondary compact danger-text" onClick={() => permanentlyDeleteTrashArticle(item)} type="button">
+                          <Trash2 size={14} /> 영구 삭제
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <EmptyState title="휴지통이 비어 있습니다" body="제외된 뉴스에서 휴지통으로 이동한 기사가 이곳에 표시됩니다." />
+            )}
+          </div>
+        </section>
+      )}
+
+      {viewMode === "priority" && (
+        <div className="dongguk-layout">
+          <div className="dongguk-category-panel">
+            <div className="panel-heading">
+              <strong>상위 분류</strong>
+              <span>{mailDate}</span>
+            </div>
+            <div className="dongguk-category-tabs" role="tablist" aria-label="홍보처 상위 분류">
+              {candidateCategoryTabs.map((tab) => (
+                <button
+                  className={activeDonggukCategory === tab.label ? "active" : ""}
+                  key={tab.label}
+                  onClick={() => {
+                    setActiveDonggukCategory(tab.label);
+                    setActiveDonggukSubcategory("전체");
+                  }}
+                  type="button"
+                >
+                  <span>{tab.label}</span>
+                  <b>{tab.count}</b>
+                </button>
+              ))}
+            </div>
+            {activeDonggukCategory !== "전체" && (
+              <div className="subcategory-panel">
+                <div className="panel-heading compact-heading">
+                  <strong>하위 카테고리</strong>
+                  <span>{activeDonggukCategory}</span>
+                </div>
+                <div className="dongguk-category-tabs subcategory-tabs" role="tablist" aria-label="홍보처 하위 카테고리">
+                  {candidateSubcategoryTabs.map((tab) => (
+                    <button
+                      className={activeDonggukSubcategory === tab.label ? "active" : ""}
+                      key={`${activeDonggukCategory}-${tab.label}`}
+                      onClick={() => setActiveDonggukSubcategory(tab.label)}
+                      type="button"
+                    >
+                      <span>{tab.label}</span>
+                      <b>{tab.count}</b>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="dongguk-article-list">
+            <div className="candidate-heading">
+              <div>
+                <strong>
+                  {activeDonggukCategory === "전체"
+                    ? "오늘 수집된 기사"
+                    : `${activeDonggukCategory}${activeDonggukSubcategory !== "전체" ? ` · ${activeDonggukSubcategory}` : ""}`}
+                </strong>
+                <span>
+                  {loadingCandidates
+                    ? "불러오는 중"
+                    : `전체 수집 ${candidateArticles.length}건 · AI 제외 ${aiExcludedCount}건${duplicateExcludedCount ? ` (중복 주제 ${duplicateExcludedCount}건)` : ""} · ${aiSelectedCount}건 표시`}
+                </span>
+              </div>
+              <div className="candidate-actions">
+                <button
+                  aria-label="중복 주제 제외: 기사 제목과 요약의 핵심 단어, 원문 URL, 언론사와 발행 시각을 비교해 같은 주제를 묶고 우선순위가 가장 높은 기사 1개만 남깁니다."
+                  className="secondary compact duplicate-filter-toggle active"
+                  data-tooltip={duplicateFilterNeedsRefresh
+                    ? "추가한 링크 기사까지 다시 비교합니다. 기사 제목과 요약의 핵심 단어, 원문 URL, 언론사와 발행 시각을 비교해 같은 주제를 묶고 우선순위가 가장 높은 기사 1개만 남깁니다."
+                    : "중복된 주제를 가진 기사들 중 우선순위가 가장 높은 기사 1개만 남깁니다. URL로 기사를 추가하면 다시 실행할 수 있습니다."}
+                  disabled={!duplicateFilterNeedsRefresh || loadingPreview}
+                  onClick={refreshDuplicateTopicFilter}
+                  type="button"
+                >
+                  {loadingPreview ? <Loader2 className="spin" size={15} /> : <CopyMinus size={15} />}
+                  AI로 중복 주제 확인
+                </button>
+                <label className="candidate-limit-field">
+                  <span>화면 표시</span>
+                  <select value={maxVisibleCandidates} onChange={(event) => setMaxVisibleCandidates(Number(event.target.value))}>
+                    <option value={10}>10건</option>
+                    <option value={20}>20건</option>
+                    <option value={50}>50건</option>
+                    <option value={100}>100건</option>
+                    <option value={10000}>전체</option>
+                  </select>
+                </label>
+                <button className="secondary compact" disabled={runningCandidateCrawl} onClick={runDonggukCandidateCrawl} type="button">
+                  {runningCandidateCrawl ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />}
+                  새로 확인
+                </button>
+                <button className="secondary compact" disabled={loadingCandidates} onClick={loadCandidateArticles} type="button">
+                  {loadingCandidates ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />}
+                  새로고침
+                </button>
+              </div>
+            </div>
+            {!loadingCandidates && candidateArticles.length === 0 && (
+              <EmptyState
+                title="수집된 기사 후보가 없습니다"
+                body="실제 기사 부재가 아니라 수집 데이터가 없을 수 있습니다. 새 기사 확인을 실행하거나 기준일을 바꿔 주세요."
+              />
+            )}
+            {!loadingCandidates && candidateArticles.length > 0 && visibleCandidateRows.length === 0 && (
+              <EmptyState title="이 카테고리의 기사 후보가 없습니다" body="다른 카테고리 탭을 선택해 주세요." />
+            )}
+            {visibleTopicGroups.map(({ topic, rows }) => {
+              return (
+                <div className="priority-article-group" key={topic}>
+                  <div className="priority-group-heading">
+                    <span className="topic-group-title">{topic}</span>
+                    <strong>{rows.length}건</strong>
+                  </div>
+                  {rows.map(({ article, index, key }) => {
+                    const links = realArticleLinks(article);
+                    const thumbnailUrl = getArticleThumbnail(article);
+                    const includedInMail = mailArticleKeySet.has(key);
+                    const isTrashed = Boolean(article.isTrashed);
+                    return (
+                      <article className={`dongguk-article-card ${includedInMail ? "included-in-mail" : "excluded-from-mail"} ${isTrashed ? "trashed-article" : ""}`} key={key}>
+                        {thumbnailUrl && (
+                          <img
+                            className="dongguk-article-thumb"
+                            src={thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                        <div>
+                          <div className="meta">
+                            <span className={`pill ${includedInMail ? "include" : "muted"}`}>{isTrashed ? "휴지통" : includedInMail ? "메일 포함" : "메일 제외"}</span>
+                            <span className={`priority-pill ${article.priorityTone}`}>{priorityDisplayName(article)}</span>
+                            <span>{article.score}점</span>
+                            <span>{article.category}</span>
+                            {article.isSyndicated && <span className="pill warning">중복 보도</span>}
+                            {article.isCampaign && <span className="pill">캠페인 +8</span>}
+                          </div>
+                          <h3>{article.title}</h3>
+                          <p>{article.summary}</p>
+                          <div className="priority-reason">
+                            <span>{articlePriorityReason(article)}</span>
+                          </div>
+                          <div className="dongguk-link-row">
+                            <span>{article.source}</span>
+                            <span>원문 링크 {links.length}개</span>
+                          </div>
+                          {links.length > 0 && (
+                            <div className="article-url-list">
+                              {links.map((link) => (
+                                <a href={link} target="_blank" rel="noreferrer" key={link}>
+                                  <ExternalLink size={14} /> 원문 보기
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                          <div className="candidate-edit-row">
+                            <label>
+                              <span>상위 분류</span>
+                              <select value={article.sectionLabel || donggukSections.foundation} onChange={(event) => updateCandidateArticle(index, { sectionLabel: event.target.value, section: event.target.value })}>
+                                {Object.values(donggukSections).map((label) => <option key={label} value={label}>{label}</option>)}
+                              </select>
+                            </label>
+                            <label>
+                              <span>하위 카테고리</span>
+                              <select value={article.category || ""} onChange={(event) => updateCandidateArticle(index, { category: event.target.value })}>
+                                {donggukCategoryRules.map((rule) => <option key={rule.key} value={rule.label}>{rule.label}</option>)}
+                              </select>
+                            </label>
+                          </div>
+                          {!includedInMail && !isTrashed && (
+                            <div className="excluded-reason">
+                              <span>{excludedArticleReason(article, key)}</span>
+                              {isArticleInMailWindow(article, mailDate, autoSendTime) && (
+                                <button className="secondary compact" onClick={() => restoreExcludedArticle(article, index)} type="button">
+                                  <Plus size={14} /> 메일에 추가
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {!isTrashed && (
+                            <button className="danger compact candidate-toggle" onClick={() => deleteCandidateArticle(article, index)} type="button">
+                              <Trash2 size={14} /> 휴지통으로 이동
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "stats" && (
+        <div className="dongguk-stats">
+          <ChartCard title="상위 카테고리별 기사 수" data={sectionChart} xKey="label" yKey="count" color="#2271b1" note="동국대 법인/건학위, 대학 교육, 불교 종단 기준" />
+          <ChartCard title="우선순위별 기사 수" data={priorityChart.map((item) => {
+            const band = donggukPriorityBands.find((entry) => entry.label === item.label);
+            return { ...item, label: priorityDisplayName(band) };
+          })} xKey="label" yKey="count" color="#00a32a" note="최우선~낮음 점수 구간 기준" />
+          <div className="dongguk-stat-table">
+            <div className="panel-heading">
+              <strong>섹션별 구성</strong>
+              <span>동국대·대학 교육·불교계 기준으로 분류</span>
+            </div>
+            {sectionChart.map(({ label: section, count }) => (
+              <div className="stat-row" key={section}>
+                <span>{section}</span>
+                <strong>{count}건</strong>
+              </div>
+            ))}
+          </div>
+          <div className="dongguk-stat-table">
+            <div className="panel-heading">
+              <strong>우선순위/대표 기사 선정 기준</strong>
+              <span>사용자 지정 기준 반영</span>
+            </div>
+            {["상위/하위 카테고리", "기사별 1~2문장 요약", "관리자 입력 기준", "대표 기사 1건 선정 기준", "같은 주제 중복 보도 묶음", "데일리 발송 제목", "메일 포함/제외 편집 결과"].map((item) => (
+              <div className="stat-row" key={item}>
+                <span>{item}</span>
+                <strong>반영</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "edit" && (
+        <div className="article-edit-page">
+          <div className="article-edit-header">
+            <div>
+              <h2>기사 편집</h2>
+              <p>기사의 제목, 요약, 분류, 우선순위 정보를 조정합니다.</p>
+            </div>
+            <div className="article-edit-header-actions">
+              <button className="secondary" onClick={() => setViewMode("mail")} type="button">
+                취소
+              </button>
+              <button
+                className="primary"
+                onClick={async () => {
+                  await saveEditedPreview(editedMailArticles);
+                  showToast?.("기사 편집 내용을 저장했습니다.", "success");
+                  setViewMode("mail");
+                }}
+                type="button"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+
+          <section className="article-url-add-card">
+            <div className="article-url-add-icon">
+              <ExternalLink size={20} />
+            </div>
+            <div>
+              <strong>기사 URL 추가 <span>(선택)</span></strong>
+              <p>URL을 추가하면 일부 정보를 자동으로 불러옵니다.</p>
+            </div>
+            <input
+              value={manualArticleUrl}
+              onChange={(event) => setManualArticleUrl(event.target.value)}
+              placeholder="https://example.com/article"
+            />
+            <button className="secondary" disabled={addingManualArticle} onClick={addManualArticleFromLink} type="button">
+              {addingManualArticle ? <Loader2 className="spin" size={16} /> : <Plus size={16} />}
+              링크 기사 추가
+            </button>
+          </section>
+
+          {loadingPreview && (
+            <div className="loading-line">
+              <Loader2 className="spin" size={18} /> AI가 같은 주제 기사를 묶고 대표 기사를 고르는 중
+            </div>
+          )}
+
+          <div className="article-edit-list">
+            {editedMailArticles.map((article, index) => {
+              const links = realArticleLinks(article);
+              return (
+                <article className="article-edit-row" key={`${article.id || article.title}-${index}`}>
+                  <div className="article-edit-card">
+                    <div className="article-edit-titlebar">
+                      <span className="article-edit-number">{index + 1}</span>
+                      <input
+                        className="article-title-input"
+                        value={article.title || ""}
+                        onChange={(event) => updatePreviewArticle(index, { title: event.target.value })}
+                      />
+                      <div className="mail-editor-actions">
+                        <button className="secondary compact icon-only" disabled={index === 0} onClick={() => movePreviewArticle(index, -1)} title="위로 이동" type="button">↑</button>
+                        <button className="secondary compact icon-only" disabled={index === editedMailArticles.length - 1} onClick={() => movePreviewArticle(index, 1)} title="아래로 이동" type="button">↓</button>
+                        <button className="danger compact icon-only" onClick={() => removePreviewArticle(index)} title="메일에서 삭제" type="button">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <label className="field full">
+                      <span>요약</span>
+                      <textarea value={article.summary || ""} onChange={(event) => updatePreviewArticle(index, { summary: event.target.value })} />
+                    </label>
+
+                    <div className="article-edit-grid">
+                      <label className="field">
+                        <span>상위 카테고리</span>
+                        <select value={article.sectionLabel} onChange={(event) => updatePreviewArticle(index, { sectionLabel: event.target.value, section: event.target.value })}>
+                          {Object.values(donggukSections).map((label) => <option key={label} value={label}>{label}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>하위 카테고리</span>
+                        <select value={article.category} onChange={(event) => updatePreviewArticle(index, { category: event.target.value })}>
+                          {donggukCategoryRules.map((rule) => <option key={rule.key} value={rule.label}>{rule.label}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>우선순위</span>
+                        <select value={article.priority} onChange={(event) => updatePreviewArticle(index, { priority: event.target.value })}>
+                          {donggukPriorityBands.map((band) => <option key={band.label} value={band.label}>{band.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="field">
+                        <span>점수</span>
+                        <input
+                          min="0"
+                          max="100"
+                          type="number"
+                          value={article.score}
+                          onChange={(event) => updatePreviewArticle(index, { score: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <aside className="article-edit-info">
+                    <strong>선택 기사 정보</strong>
+                    <div className="meta">
+                      <span>{article.sectionLabel}</span>
+                      <span>{article.category}</span>
+                      <span>점수 {article.score}</span>
+                      {article.isSyndicated && <span>중복 보도 {links.length}건</span>}
+                    </div>
+                    <div className="article-edit-links">
+                      <b>기사 원문</b>
+                      {links.length ? (
+                        <ul>
+                          {links.map((link) => (
+                            <li key={link}>
+                              <a href={link} target="_blank" rel="noreferrer">{link.replace(/^https?:\/\//i, "")}</a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span>등록된 원문 URL이 없습니다.</span>
+                      )}
+                    </div>
+                  </aside>
+                </article>
+              );
+            })}
+          </div>
+
+          {!loadingPreview && !editedMailArticles.length && (
+            <EmptyState
+              title="편집할 대표 기사가 없습니다"
+              body="오늘 수집된 기사 화면에서 메일에 포함할 기사를 선택하거나 AI 미리보기를 갱신해 주세요."
+            />
+          )}
+        </div>
+      )}
+
+      {viewMode === "mail" && (
+        <div className="dongguk-mail-preview">
+          <div className="panel-heading">
+            <div>
+              <strong>{mailSubject}</strong>
+              <span>
+                {loadingPreview
+                  ? "AI 편집 미리보기를 생성하는 중입니다."
+                  : previewCached
+                    ? `저장된 AI 편집본 표시 · 제외 ${previewExcludedCount}건`
+                    : previewEditorUsed
+                      ? `AI 편집 적용 · 제외 ${previewExcludedCount}건`
+                    : "선택한 기사를 AI로 편집해 대표 기사만 표시합니다."}
+              </span>
+            </div>
+            <div className="candidate-actions">
+              {isMailEditView ? (
+                <button className="secondary compact" onClick={() => setViewMode("mail")} type="button">
+                  <Eye size={15} /> 미리보기로 이동
+                </button>
+              ) : (
+                <button className="secondary compact" onClick={() => setViewMode("edit")} type="button">
+                  <Pencil size={15} /> 편집으로 이동
+                </button>
+              )}
+              <button className="secondary compact" disabled={loadingPreview || !mailArticles.length} onClick={() => loadDifyPreview(true)} type="button">
+                {loadingPreview ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
+                AI 미리보기 갱신
+              </button>
+            </div>
+          </div>
+          {!isMailEditView && (
+            <div className="test-send-panel">
+              <div>
+                <strong>테스트 전송</strong>
+                <span>현재 미리보기 문안을 아래 테스트 수신인에게만 보내며, 발송 기록과 중복 제외 기준에는 반영하지 않습니다.</span>
+                <textarea
+                  className="test-send-input"
+                  value={testEmails}
+                  onChange={(event) => setTestEmails(event.target.value)}
+                  placeholder="테스트로 받을 이메일 주소"
+                />
+                {recentRecipients.length > 0 && (
+                  <div className="test-recipient-chips" aria-label="최근 수신인">
+                    {recentRecipients.slice(0, 4).map((email) => (
+                      <button
+                        className="chip-button"
+                        key={`test-${email}`}
+                        onClick={() => {
+                          const current = testEmails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+                          setTestEmails([...new Set([...current, email])].join("\n"));
+                        }}
+                        type="button"
+                      >
+                        {email}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="test-send-meta">
+                <span>테스트 수신인 {testRecipientList.length}명</span>
+                <button className="primary compact" disabled={sending || !testRecipientList.length} onClick={() => sendDonggukEmail(true)} type="button">
+                  {sending ? <Loader2 className="spin" size={15} /> : <Send size={15} />}
+                  테스트 전송
+                </button>
+              </div>
+            </div>
+          )}
+          {isMailEditView && (
+            <div className="edit-section-panel">
+              <div>
+                <strong>편집</strong>
+                <span>기사 순서, 제목, 요약, 분류, 우선순위 정보를 조정합니다.</span>
+              </div>
+              <div className="manual-article-add">
+                <input
+                  value={manualArticleUrl}
+                  onChange={(event) => setManualArticleUrl(event.target.value)}
+                  placeholder="추가할 기사 URL"
+                />
+                <button className="secondary compact" disabled={addingManualArticle} onClick={addManualArticleFromLink} type="button">
+                  {addingManualArticle ? <Loader2 className="spin" size={15} /> : <Plus size={15} />}
+                  링크 기사 추가
+                </button>
+              </div>
+            </div>
+          )}
+          {loadingPreview && (
+            <div className="loading-line">
+              <Loader2 className="spin" size={18} /> AI가 같은 주제 기사를 묶고 대표 기사를 고르는 중
+            </div>
+          )}
+          {Object.values(donggukSections).map((section) => {
+            const rows = editedMailArticles.filter((article) => article.sectionLabel === section);
+            if (!rows.length) return null;
+            return (
+              <div className="mail-section" key={section}>
+                <h3>{section}</h3>
+                {rows.map((article, index) => (
+                  <article className="mail-editor-card" key={`${article.id || article.title}-${index}`}>
+                    <div className="mail-editor-main">
+                      <div className="mail-editor-title-row">
+                        <strong>{index + 1}. {article.title} [{article.source}]</strong>
+                        {isMailEditView && (
+                          <div className="mail-editor-actions">
+                            <button className="secondary compact icon-only" disabled={index === 0} onClick={() => movePreviewArticle(editedMailArticles.indexOf(article), -1)} title="위로 이동" type="button">↑</button>
+                            <button className="secondary compact icon-only" disabled={index === rows.length - 1} onClick={() => movePreviewArticle(editedMailArticles.indexOf(article), 1)} title="아래로 이동" type="button">↓</button>
+                            <button className="danger compact icon-only" onClick={() => removePreviewArticle(editedMailArticles.indexOf(article))} title="메일에서 삭제" type="button">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {isMailEditView ? (
+                        <>
+                          <label className="field">
+                            <span>제목</span>
+                            <input value={article.title} onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { title: event.target.value })} />
+                          </label>
+                          <label className="field">
+                            <span>요약</span>
+                            <textarea value={article.summary || ""} onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { summary: event.target.value })} />
+                          </label>
+                          <div className="mail-editor-grid">
+                            <label className="field">
+                              <span>상위 카테고리</span>
+                              <select value={article.sectionLabel} onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { sectionLabel: event.target.value, section: event.target.value })}>
+                                {Object.values(donggukSections).map((label) => <option key={label} value={label}>{label}</option>)}
+                              </select>
+                            </label>
+                            <label className="field">
+                              <span>하위 카테고리</span>
+                              <select value={article.category} onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { category: event.target.value })}>
+                                {donggukCategoryRules.map((rule) => <option key={rule.key} value={rule.label}>{rule.label}</option>)}
+                              </select>
+                            </label>
+                            <label className="field">
+                              <span>우선순위</span>
+                              <select value={article.priority} onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { priority: event.target.value })}>
+                                {donggukPriorityBands.map((band) => <option key={band.label} value={band.label}>{band.name}</option>)}
+                              </select>
+                            </label>
+                            <label className="field">
+                              <span>점수</span>
+                              <input
+                                min="0"
+                                max="100"
+                                type="number"
+                                value={article.score}
+                                onChange={(event) => updatePreviewArticle(editedMailArticles.indexOf(article), { score: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })}
+                              />
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p>{article.summary || "요약문이 아직 없습니다."}</p>
+                          {realArticleLinks(article).length > 0 && (
+                            <div className="mail-preview-links">
+                              {realArticleLinks(article).map((link) => (
+                                <a href={link} target="_blank" rel="noreferrer" key={link}>{link}</a>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    {isMailEditView && (
+                      <aside className="mail-editor-side">
+                        <div className="meta">
+                          <span className={`priority-pill ${article.priorityTone}`}>{priorityDisplayName(article)}</span>
+                          <span>{article.sectionLabel}</span>
+                          <span>{article.category}</span>
+                          <span>점수 {article.score}</span>
+                          {article.isSyndicated && <span>중복 보도 {realArticleLinks(article).length}건</span>}
+                        </div>
+                        <strong>기사 원문</strong>
+                        {realArticleLinks(article).map((link) => <a href={link} target="_blank" rel="noreferrer" key={link}>{link}</a>)}
+                      </aside>
+                    )}
+                  </article>
+                ))}
+              </div>
+            );
+          })}
+          {!loadingPreview && !editedMailArticles.length && (
+            <EmptyState
+              title={mailArticles.length ? "메일에 넣을 대표 기사가 없습니다" : "AI 편집 미리보기가 없습니다"}
+              body={mailArticles.length
+                ? "전날 발송된 유사 기사이거나 AI 대표 기사 선정 기준에서 제외된 기사일 수 있습니다. 필요하면 AI 미리보기 갱신을 다시 실행해 주세요."
+                : "기준일을 선택해 기사 후보를 불러오거나, 오늘 수집된 기사 화면에서 발송할 기사를 선택한 뒤 미리보기를 갱신해 주세요."}
+            />
+          )}
+        </div>
+      )}
+
+      {viewMode === "history" && (
+        <div className="dongguk-history">
+          <div className="panel-heading">
+            <div>
+              <strong>홍보처 발송 기록</strong>
+              <span>최근 발송 메일과 제외된 유사 기사 수를 확인합니다.</span>
+            </div>
+            <button className="secondary compact" onClick={loadDonggukHistory} type="button">
+              <RefreshCw size={15} /> 새로고침
+            </button>
+          </div>
+          {history.length ? history.map((item) => (
+            <article className="history-card" key={`${item.id}-${item.sent_at}`}>
+              <div>
+                <strong>{item.subject}</strong>
+                <span>{formatDate(item.sent_at)} · 수신자 {item.recipients?.join(", ")}</span>
+              </div>
+              <div className="history-stats">
+                <b>발송 {item.article_count}건</b>
+                <b>유사 제외 {item.excluded_count || 0}건</b>
+              </div>
+              <div className="history-articles">
+                {(item.articles || []).slice(0, 5).map((article, index) => (
+                  <p key={`${article.title}-${index}`}>{index + 1}. {article.title}</p>
+                ))}
+              </div>
+            </article>
+          )) : (
+            <EmptyState title="발송 기록 없음" body="홍보처 메일을 발송하면 이곳에 모입니다." />
+          )}
+        </div>
+      )}
+      {recipientContextMenu && (
+        <div
+          className="inline-context-menu"
+          onClick={(event) => event.stopPropagation()}
+          style={{ left: recipientContextMenu.x, top: recipientContextMenu.y }}
+        >
+          <button type="button" onClick={() => editRecipientFromMenu(recipientContextMenu.index)}>
+            수정
+          </button>
+          <button className="danger-text" type="button" onClick={() => {
+            deleteRecipient(recipientContextMenu.index);
+            setRecipientContextMenu(null);
+          }}>
+            삭제
+          </button>
+        </div>
+      )}
+      {priorityContextMenu && (
+        <div
+          className="inline-context-menu"
+          onClick={(event) => event.stopPropagation()}
+          style={{ left: priorityContextMenu.x, top: priorityContextMenu.y }}
+        >
+          <button type="button" onClick={() => focusPriorityRule(priorityContextMenu.index)}>
+            수정
+          </button>
+          <button className="danger-text" type="button" onClick={() => {
+            deletePriorityRule(priorityContextMenu.index);
+            setPriorityContextMenu(null);
+          }}>
+            삭제
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function App() {
   const [bootstrapped, setBootstrapped] = useState(false);
   const [loginRequired, setLoginRequired] = useState(false);
@@ -1603,23 +4844,52 @@ function App() {
   const [articlePage, setArticlePage] = useState(null);
   const [importancePage, setImportancePage] = useState(null);
   const [activeTab, setActiveTab] = useState("stats");
+  const [dashboardMode, setDashboardMode] = useState("general");
+  const [donggukViewMode, setDonggukViewMode] = useState("home");
   const [toast, setToast] = useState(null);
   const [loadingSide, setLoadingSide] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [keywordArticleCountOverrides, setKeywordArticleCountOverrides] = useState({});
 
   const selectedKeyword = keywords.find((item) => item.id === selectedKeywordId);
+  const donggukKeyword = keywords.find((item) => keywordName(item).includes("동국"));
+  const activeKeyword = dashboardMode === "dongguk" && donggukKeyword ? donggukKeyword : selectedKeyword;
+  const activeKeywordId = activeKeyword?.id || selectedKeywordId;
   const showToast = (message, type = "info") => setToast({ message, type });
+  const unreadNotificationCount = notifications.filter((item) => !item.read).length;
 
-  async function loadShell() {
+  async function loadNotifications() {
+    setLoadingNotifications(true);
+    try {
+      const data = await endpoints.donggukNotifications();
+      setNotifications(data.items || []);
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }
+
+  async function loadShell(mode = dashboardMode) {
     setLoadingSide(true);
     try {
-      const [keywordData, chatData] = await Promise.all([endpoints.keywords(), endpoints.chats()]);
+      const [keywordData, chatData] = await Promise.all([endpoints.keywords(mode), endpoints.chats()]);
       const nextKeywords = keywordData.items || [];
       const nextChats = chatData.items || [];
+      const nextDonggukKeyword = nextKeywords.find((item) => keywordName(item).includes("동국"));
 
       setKeywords(nextKeywords);
       setChats(nextChats);
-      setSelectedKeywordId((current) => current || nextKeywords[0]?.id || null);
+      setSelectedKeywordId((current) => {
+        if (current && nextKeywords.some((item) => item.id === current)) return current;
+        return mode === "dongguk"
+          ? nextDonggukKeyword?.id || nextKeywords[0]?.id || null
+          : nextKeywords[0]?.id || null;
+      });
       setLoginRequired(false);
     } catch (err) {
       if (String(err.message).includes("Authentication")) setLoginRequired(true);
@@ -1682,8 +4952,19 @@ function App() {
   }
 
   useEffect(() => {
-    loadShell();
-  }, []);
+    loadShell(dashboardMode);
+  }, [dashboardMode]);
+
+  useEffect(() => {
+    if (bootstrapped && !loginRequired) loadNotifications();
+  }, [bootstrapped, loginRequired]);
+
+  useEffect(() => {
+    if (activeTab !== "dongguk") return;
+    if (!donggukKeyword?.id) return;
+    if (selectedKeywordId === donggukKeyword.id) return;
+    setSelectedKeywordId(donggukKeyword.id);
+  }, [activeTab, donggukKeyword?.id, selectedKeywordId]);
 
   useEffect(() => {
     loadSummary(selectedKeywordId);
@@ -1756,6 +5037,11 @@ function App() {
     }
   }
 
+  async function openChatSidebar() {
+    setChatSidebarOpen(true);
+    await ensureChatSession(activeKeywordId || selectedKeywordId);
+  }
+
   async function updateKeyword(id, keywordConfig) {
     setLoadingSide(true);
     try {
@@ -1805,65 +5091,142 @@ function App() {
   }
 
   return (
-    <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+    <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${chatSidebarOpen ? "chat-sidebar-open" : ""}`}>
       <Sidebar
         keywords={keywords}
         selectedKeywordId={selectedKeywordId}
         setSelectedKeywordId={setSelectedKeywordId}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        dashboardMode={dashboardMode}
+        setDashboardMode={setDashboardMode}
+        donggukViewMode={donggukViewMode}
+        setDonggukViewMode={setDonggukViewMode}
+        chatSidebarOpen={chatSidebarOpen}
+        onOpenChat={openChatSidebar}
         onCreateKeyword={createKeyword}
         onUpdateKeyword={updateKeyword}
         onDeleteKeyword={deleteKeyword}
         loading={loadingSide}
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
+        keywordArticleCountOverrides={keywordArticleCountOverrides}
       />
       <main className="main">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">뉴스 인텔리전스 콘솔</span>
-            <h1>{selectedKeyword ? keywordName(selectedKeyword) : "키워드를 선택하세요"}</h1>
-          </div>
-        </header>
+        {!(dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "trash") && (
+          <header className="topbar">
+            <div className="topbar-title">
+              <span className="console-mark" aria-hidden="true" />
+              <div>
+                <span className="eyebrow">뉴스 인텔리전스 콘솔</span>
+                <h1>{activeKeyword ? keywordName(activeKeyword) : "키워드를 선택하세요"}</h1>
+              </div>
+            </div>
+            {dashboardMode !== "dongguk" && (
+              <div className="topbar-actions">
+              <div className="notification-menu">
+                <button
+                  className="ghost icon-round"
+                  title="알림"
+                  type="button"
+                  onClick={() => {
+                    setNotificationOpen((open) => !open);
+                    loadNotifications();
+                  }}
+                >
+                  <Bell size={19} />
+                  {unreadNotificationCount > 0 && <span className="notification-dot">{unreadNotificationCount}</span>}
+                </button>
+                {notificationOpen && (
+                  <div className="notification-panel">
+                    <div className="notification-head">
+                      <strong>알림</strong>
+                      <button className="ghost compact" onClick={loadNotifications} type="button">새로고침</button>
+                    </div>
+                    {loadingNotifications ? (
+                      <div className="notification-empty"><Loader2 className="spin" size={16} /> 불러오는 중</div>
+                    ) : notifications.length ? (
+                      <div className="notification-list">
+                        {notifications.map((item) => (
+                          <div className="notification-item" key={item.id}>
+                            <span className={`notification-type ${item.type}`}>{item.type === "dify" ? "AI" : "수집"}</span>
+                            <strong>{item.title}</strong>
+                            <p>{item.message}</p>
+                            <small>{formatDate(item.created_at)}</small>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="notification-empty">아직 표시할 알림이 없습니다.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              </div>
+            )}
+          </header>
+        )}
 
-        <Summary selectedKeyword={selectedKeyword} articlePage={articlePage} importancePage={importancePage} />
-
-        <nav className="tabs">
-          <button className={activeTab === "stats" ? "active" : ""} onClick={() => setActiveTab("stats")}>
-            <BarChart3 size={16} /> 통계
-          </button>
-          <button className={activeTab === "articles" ? "active" : ""} onClick={() => setActiveTab("articles")}>
-            <Search size={16} /> 기사
-          </button>
-          <button className={activeTab === "chat" ? "active" : ""} onClick={() => setActiveTab("chat")}>
-            <MessageSquare size={16} /> AI 채팅
-          </button>
-        </nav>
+        {dashboardMode === "general" && activeTab === "stats" && (
+          <Summary selectedKeyword={selectedKeyword} articlePage={articlePage} importancePage={importancePage} />
+        )}
 
         {activeTab === "articles" && (
-          <Articles selectedKeywordId={selectedKeywordId} topItems={topItems} showToast={showToast} refreshSummary={() => loadSummary()} />
+          <Articles selectedKeywordId={selectedKeywordId} selectedKeyword={selectedKeyword} topItems={topItems} showToast={showToast} refreshSummary={() => loadSummary()} />
         )}
-        {activeTab === "chat" && (
+        {activeTab === "dongguk" && (
+          <DonggukPrConsole
+            selectedKeyword={activeKeyword}
+            selectedKeywordId={activeKeywordId}
+            selectedKeywordName={activeKeyword ? keywordName(activeKeyword) : ""}
+            showToast={showToast}
+            onUpdateKeyword={updateKeyword}
+            viewMode={donggukViewMode}
+            setViewMode={setDonggukViewMode}
+            onCandidateCountChange={(keywordId, count) => {
+              setKeywordArticleCountOverrides((prev) => {
+                const next = { ...prev };
+                if (count == null) delete next[keywordId];
+                else next[keywordId] = count;
+                return next;
+              });
+            }}
+          />
+        )}
+        {activeTab === "stats" && (
+          <Stats
+            selectedKeywordId={selectedKeywordId}
+            selectedKeyword={selectedKeyword}
+            selectedKeywordName={selectedKeyword ? keywordName(selectedKeyword) : ""}
+            showToast={showToast}
+          />
+        )}
+      </main>
+      <aside className={`right-chat-sidebar ${chatSidebarOpen ? "open" : ""}`} aria-label="AI 채팅">
+        <div className="right-chat-head">
+          <div>
+            <strong>AI 채팅</strong>
+            <span>{activeKeyword ? keywordName(activeKeyword) : "키워드를 선택하세요"}</span>
+          </div>
+          <button className="icon-button" onClick={() => setChatSidebarOpen(false)} title="오른쪽 사이드바 닫기" type="button">
+            <X size={17} />
+          </button>
+        </div>
+        {chatSidebarOpen && (
           <Chat
             chatId={selectedChatId}
             conversationId={chatConversationId}
             setConversationId={setChatConversationId}
             messages={chatMessages}
             setMessages={setChatMessages}
-            ensureChat={ensureChatSession}
+            ensureChat={() => ensureChatSession(activeKeywordId || selectedKeywordId)}
             onReset={resetCurrentChat}
-            selectedKeywordId={selectedKeywordId}
-            selectedKeywordName={selectedKeyword ? keywordName(selectedKeyword) : ""}
+            selectedKeywordId={activeKeywordId || selectedKeywordId}
+            selectedKeywordName={activeKeyword ? keywordName(activeKeyword) : ""}
             showToast={showToast}
           />
         )}
-        {activeTab === "stats" && (
-          <Stats
-            selectedKeywordId={selectedKeywordId}
-            selectedKeywordName={selectedKeyword ? keywordName(selectedKeyword) : ""}
-            showToast={showToast}
-          />
-        )}
-      </main>
+      </aside>
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );

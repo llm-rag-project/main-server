@@ -16,6 +16,7 @@ class Keyword(Base, TimestampMixin):
     keyword_text: Mapped[str] = mapped_column(String(255), nullable=False)
     language: Mapped[str] = mapped_column(String(10), nullable=False, default="ko", server_default="ko")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    dashboard_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="general", server_default="general")
     client_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     group_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     monitoring_type: Mapped[str] = mapped_column(String(40), nullable=False, default="brand", server_default="brand")
@@ -46,6 +47,7 @@ class Keyword(Base, TimestampMixin):
         UniqueConstraint("user_id", "keyword_text", name="uq_keywords_user_keyword_text"),
         Index("ux_keywords_user_keyword_lower", "user_id", func.lower(keyword_text), unique=True),
         Index("ix_keywords_user_active", "user_id", "is_active"),
+        Index("ix_keywords_user_dashboard_mode", "user_id", "dashboard_mode"),
         Index("ix_keywords_user_group", "user_id", "group_name"),
         Index("ix_keywords_user_monitoring_type", "user_id", "monitoring_type"),
     )

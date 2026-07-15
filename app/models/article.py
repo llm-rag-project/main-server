@@ -14,9 +14,12 @@ class Article(Base, TimestampMixin):
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_article_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     url: Mapped[str] = mapped_column(Text, nullable=False)
+    canonical_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     publisher: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     language: Mapped[str] = mapped_column(String(10), nullable=True)
     
@@ -38,4 +41,6 @@ class Article(Base, TimestampMixin):
             postgresql_where=(source_article_id.is_not(None)),
         ),
         Index("ix_articles_published_at", "published_at"),
+        Index("ix_articles_canonical_url", "canonical_url"),
+        Index("ix_articles_content_fingerprint", "content_fingerprint"),
     )

@@ -29,8 +29,12 @@ class ArticleListQuery(BaseModel):
     language: Optional[ArticleLanguage] = None
     from_date: Optional[date] = Field(default=None, alias="from")
     to_date: Optional[date] = Field(default=None, alias="to")
+    from_at: Optional[datetime] = None
+    to_at: Optional[datetime] = None
     collected_from_date: Optional[date] = Field(default=None, alias="collected_from")
     collected_to_date: Optional[date] = Field(default=None, alias="collected_to")
+    matched_from_date: Optional[date] = Field(default=None, alias="matched_from")
+    matched_to_date: Optional[date] = Field(default=None, alias="matched_to")
     min_importance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     max_importance: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     has_feedback: Optional[bool] = None
@@ -43,12 +47,20 @@ class ArticleListQuery(BaseModel):
     def validate_ranges(self):
         if self.from_date and self.to_date and self.from_date > self.to_date:
             raise ValueError("'from' must be less than or equal to 'to'")
+        if self.from_at and self.to_at and self.from_at > self.to_at:
+            raise ValueError("'from_at' must be less than or equal to 'to_at'")
         if (
             self.collected_from_date
             and self.collected_to_date
             and self.collected_from_date > self.collected_to_date
         ):
             raise ValueError("'collected_from' must be less than or equal to 'collected_to'")
+        if (
+            self.matched_from_date
+            and self.matched_to_date
+            and self.matched_from_date > self.matched_to_date
+        ):
+            raise ValueError("'matched_from' must be less than or equal to 'matched_to'")
         if (
             self.min_importance is not None
             and self.max_importance is not None
@@ -67,6 +79,8 @@ class TransNewsArticleItem(BaseModel):
     language: str = "ko"
     published: Optional[str] = None
     content: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class TransNewsSearchResponse(BaseModel):
@@ -80,6 +94,7 @@ class ArticleListItem(BaseModel):
     summary: Optional[str]
     url: str
     original_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     source: Optional[str] = None
     language: str
     published_at: Optional[datetime]
@@ -97,6 +112,7 @@ class ArticleDetailResponse(BaseModel):
     summary: Optional[str] = None
     content: Optional[str] = None
     url: str
+    thumbnail_url: Optional[str] = None
     source: Optional[str] = None
     language: str
     published_at: Optional[datetime] = None

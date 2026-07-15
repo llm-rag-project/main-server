@@ -108,6 +108,7 @@ class ArticleRepository:
                 Article.title,
                 latest_summary_subq.c.summary_text.label("summary"),
                 Article.url,
+                Article.thumbnail_url,
                 Article.publisher.label("source"),
                 Article.language,
                 Article.published_at,
@@ -172,12 +173,16 @@ class ArticleRepository:
         if query.language:
             stmt = stmt.where(Article.language == query.language.value)
 
-        if query.from_date:
+        if query.from_at:
+            stmt = stmt.where(Article.published_at >= query.from_at)
+        elif query.from_date:
             stmt = stmt.where(
                 Article.published_at >= datetime.combine(query.from_date, time.min, tzinfo=KST)
             )
 
-        if query.to_date:
+        if query.to_at:
+            stmt = stmt.where(Article.published_at <= query.to_at)
+        elif query.to_date:
             stmt = stmt.where(
                 Article.published_at <= datetime.combine(query.to_date, time.max, tzinfo=KST)
             )
@@ -190,6 +195,30 @@ class ArticleRepository:
         if query.collected_to_date:
             stmt = stmt.where(
                 Article.created_at <= datetime.combine(query.collected_to_date, time.max, tzinfo=KST)
+            )
+
+        if query.matched_from_date or query.matched_to_date:
+            match_conditions = [
+                ArticleMatch.article_id == Article.id,
+                Keyword.user_id == user_id,
+            ]
+            if query.keyword_id:
+                match_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
+            if query.matched_from_date:
+                match_conditions.append(
+                    ArticleMatch.matched_at >= datetime.combine(query.matched_from_date, time.min, tzinfo=KST)
+                )
+            if query.matched_to_date:
+                match_conditions.append(
+                    ArticleMatch.matched_at <= datetime.combine(query.matched_to_date, time.max, tzinfo=KST)
+                )
+            stmt = stmt.where(
+                exists(
+                    select(literal(1))
+                    .select_from(ArticleMatch)
+                    .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                    .where(*match_conditions)
+                )
             )
 
         if query.min_importance is not None:
@@ -312,6 +341,7 @@ class ArticleRepository:
                 latest_summary_subq.c.summary_text.label("summary"),
                 Article.content,
                 Article.url,
+                Article.thumbnail_url,
                 Article.publisher.label("source"),
                 Article.language,
                 Article.published_at,

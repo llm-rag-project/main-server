@@ -10,6 +10,7 @@ class LanguageEnum(str, Enum):
 
 
 class KeywordSettings(BaseModel):
+    dashboard_mode: str = Field(default="general", pattern=r"^(general|dongguk)$")
     client_name: str | None = None
     group_name: str | None = None
     monitoring_type: str = Field(default="brand", pattern=r"^(brand|competitor|campaign|issue)$")
@@ -36,6 +37,7 @@ class KeywordResponse(KeywordSettings):
     keyword: str
     language: LanguageEnum
     is_active: bool
+    article_count: int = 0
     created_at: datetime
 
 
@@ -58,6 +60,7 @@ class KeywordListResponse(BaseModel):
 class UpdateKeywordStatusRequest(BaseModel):
     is_active: bool | None = None
     keyword: str | None = Field(default=None, min_length=1)
+    dashboard_mode: str | None = Field(default=None, pattern=r"^(general|dongguk)$")
     client_name: str | None = None
     group_name: str | None = None
     monitoring_type: str | None = Field(default=None, pattern=r"^(brand|competitor|campaign|issue)$")

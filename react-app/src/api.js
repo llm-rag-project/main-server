@@ -53,12 +53,13 @@ export async function api(path, options = {}) {
 export const endpoints = {
   login: (email, password) => api("/auth/login", { method: "POST", body: { email, password } }),
   me: () => api("/users/me"),
-  keywords: () => api("/keywords?page=1&size=100"),
+  keywords: (dashboardMode = null) => api(`/keywords?page=1&size=100${dashboardMode ? `&dashboard_mode=${dashboardMode}` : ""}`),
   createKeyword: (keywordConfig) => api("/keywords", {
     method: "POST",
     body: {
       keyword: keywordConfig.keyword,
       language: "ko",
+      dashboard_mode: keywordConfig.dashboard_mode || "general",
       client_name: keywordConfig.client_name || null,
       group_name: keywordConfig.group_name || null,
       monitoring_type: keywordConfig.monitoring_type || "brand",
@@ -80,6 +81,7 @@ export const endpoints = {
     body: {
       keywords: keywordConfig.keywords,
       language: "ko",
+      dashboard_mode: keywordConfig.dashboard_mode || "general",
       client_name: keywordConfig.client_name || null,
       group_name: keywordConfig.group_name || null,
       monitoring_type: keywordConfig.monitoring_type || "competitor",
@@ -99,7 +101,9 @@ export const endpoints = {
   updateKeyword: (id, body) => api(`/keywords/${id}`, { method: "PATCH", body }),
   deleteKeyword: (id) => api(`/keywords/${id}`, { method: "DELETE" }),
   articles: (params) => api(`/articles?${new URLSearchParams(params)}`),
+  createArticleFromUrl: (body) => api("/articles/from-url", { method: "POST", body }),
   articleDetail: (id) => api(`/articles/${id}`),
+  refreshArticleThumbnails: (articleIds) => api("/articles/thumbnails/refresh", { method: "POST", body: { article_ids: articleIds } }),
   deleteArticle: (id) => api(`/articles/${id}`, { method: "DELETE" }),
   articleImportance: (id) => api(`/articles/${id}/importance`),
   summarize: (articleId, jobId) => api("/ai/summary", { method: "POST", body: { article_id: articleId, job_id: jobId } }),
@@ -129,14 +133,18 @@ export const endpoints = {
   resetChat: (id) => api(`/chats/${id}/reset`, { method: "POST" }),
   sendMessage: (chatId, body) => api(`/chats/${chatId}/messages`, { method: "POST", body }),
   articleStats: (days) => api(`/stats/articles?days=${days}`),
-  articleHourlyStats: (date, keywordId) => {
+  articleHourlyStats: (date, keywordId, window = null) => {
     const params = new URLSearchParams({ date });
     if (keywordId) params.set("keyword_id", keywordId);
+    if (window?.from_at) params.set("from_at", window.from_at);
+    if (window?.to_at) params.set("to_at", window.to_at);
     return api(`/stats/articles/hourly?${params}`);
   },
-  dailySocialStats: (date, keywordId) => {
+  dailySocialStats: (date, keywordId, window = null) => {
     const params = new URLSearchParams({ date });
     if (keywordId) params.set("keyword_id", keywordId);
+    if (window?.from_at) params.set("from_at", window.from_at);
+    if (window?.to_at) params.set("to_at", window.to_at);
     return api(`/stats/social/daily?${params}`);
   },
   analysisStats: (days) => api(`/stats/analysis?days=${days}`),
@@ -147,4 +155,16 @@ export const endpoints = {
   job: (jobId) => api(`/jobs/${jobId}`),
   report: (keywordId) => api(`/reports/daily${keywordId ? `?keyword_id=${keywordId}` : ""}`, { raw: true }),
   emailReport: (body) => api("/reports/email", { method: "POST", body }),
+  donggukDraft: (params) => api(`/reports/dongguk/draft?${new URLSearchParams(params)}`),
+  saveDonggukDraft: (body) => api("/reports/dongguk/draft", { method: "POST", body }),
+  donggukPreview: (body) => api("/reports/dongguk/preview", { method: "POST", body }),
+  donggukEmail: (body) => api("/reports/dongguk/email", { method: "POST", body }),
+  donggukHwp: (body) => api("/reports/dongguk/hwp", { method: "POST", body, raw: true }),
+  donggukLinkPreview: (body) => api("/reports/dongguk/link-preview", { method: "POST", body }),
+  donggukTrash: (params) => api(`/reports/dongguk/trash?${new URLSearchParams(params)}`),
+  moveDonggukTrash: (body) => api("/reports/dongguk/trash", { method: "POST", body }),
+  restoreDonggukTrash: (body) => api("/reports/dongguk/trash/restore", { method: "POST", body }),
+  deleteDonggukTrash: (body) => api("/reports/dongguk/trash/delete", { method: "POST", body }),
+  donggukHistory: () => api("/reports/dongguk/history"),
+  donggukNotifications: () => api("/reports/dongguk/notifications"),
 };

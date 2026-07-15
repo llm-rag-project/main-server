@@ -41,11 +41,15 @@ class StatsService:
         *,
         user_id: int,
         target_date: date,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
         keyword_id: int | None = None,
     ) -> list[dict]:
         return await self.repo.get_article_count_by_published_hour(
             user_id=user_id,
             target_date=target_date,
+            from_at=from_at,
+            to_at=to_at,
             keyword_id=keyword_id,
         )
 
@@ -54,11 +58,15 @@ class StatsService:
         *,
         user_id: int,
         target_date: date,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
         keyword_id: int | None = None,
     ) -> list[dict]:
         rows = await self.repo.get_social_metrics_by_sampled_date(
             user_id=user_id,
             target_date=target_date,
+            from_at=from_at,
+            to_at=to_at,
             keyword_id=keyword_id,
         )
         if rows or not self.transnews_client:
@@ -70,8 +78,8 @@ class StatsService:
         if not keywords:
             return []
 
-        start_at = datetime.combine(target_date, time.min, tzinfo=KST)
-        end_at = datetime.combine(target_date, time.max, tzinfo=KST)
+        start_at = (from_at.astimezone(KST) if from_at else datetime.combine(target_date, time.min, tzinfo=KST))
+        end_at = (to_at.astimezone(KST) if to_at else datetime.combine(target_date, time.max, tzinfo=KST))
         for kw in keywords:
             try:
                 result = await self.transnews_client.get_social_stats(
@@ -99,6 +107,8 @@ class StatsService:
         return await self.repo.get_social_metrics_by_sampled_date(
             user_id=user_id,
             target_date=target_date,
+            from_at=from_at,
+            to_at=to_at,
             keyword_id=keyword_id,
         )
 

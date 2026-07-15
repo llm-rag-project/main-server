@@ -318,10 +318,12 @@ class StatsRepository:
         user_id: int,
         *,
         target_date: date,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
         keyword_id: int | None = None,
     ) -> list[dict]:
-        start_at = datetime.combine(target_date, time.min, tzinfo=KST)
-        end_at = datetime.combine(target_date, time.max, tzinfo=KST)
+        start_at = from_at.astimezone(KST) if from_at else datetime.combine(target_date, time.min, tzinfo=KST)
+        end_at = to_at.astimezone(KST) if to_at else datetime.combine(target_date, time.max, tzinfo=KST)
         published_hour = func.date_trunc("hour", func.timezone("Asia/Seoul", Article.published_at))
 
         stmt = (
@@ -349,12 +351,14 @@ class StatsRepository:
             for r in rows.all()
             if r.hour
         }
+        bucket_start = start_at.replace(minute=0, second=0, microsecond=0)
+        hour_count = max(1, int((end_at - bucket_start).total_seconds() // 3600) + 1)
         return [
             {
-                "hour": (start_at + timedelta(hours=hour)).strftime("%Y-%m-%d %H:00"),
-                "article_count": counts_by_hour.get((start_at + timedelta(hours=hour)).strftime("%Y-%m-%d %H:00"), 0),
+                "hour": (bucket_start + timedelta(hours=hour)).strftime("%Y-%m-%d %H:00"),
+                "article_count": counts_by_hour.get((bucket_start + timedelta(hours=hour)).strftime("%Y-%m-%d %H:00"), 0),
             }
-            for hour in range(24)
+            for hour in range(hour_count)
         ]
 
     async def get_latest_social_metrics(self, user_id: int) -> list[dict]:
@@ -406,10 +410,12 @@ class StatsRepository:
         user_id: int,
         *,
         target_date: date,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
         keyword_id: int | None = None,
     ) -> list[dict]:
-        end_at = datetime.combine(target_date, time.max, tzinfo=KST)
-        start_at = end_at - timedelta(minutes=5)
+        end_at = to_at.astimezone(KST) if to_at else datetime.combine(target_date, time.max, tzinfo=KST)
+        start_at = from_at.astimezone(KST) if from_at else end_at - timedelta(minutes=5)
         latest_subq = (
             select(
                 SocialMetric.keyword_id,

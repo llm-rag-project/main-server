@@ -1,28 +1,53 @@
-import io
-from datetime import datetime, timezone
+﻿import io
+import hashlib
+import json
+import re
+import zipfile
+import xml.etree.ElementTree as ET
+from copy import deepcopy
+from datetime import datetime, time, timedelta, timezone
+from difflib import SequenceMatcher
 from html import escape
+from pathlib import Path
 from typing import Iterable, List
+from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, LineChart, Reference
 from openpyxl.formatting.rule import ColorScaleRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
 from app.core.response import success_response
+from app.core.transnews_client import TransNewsClient
 from app.models.article import Article
 from app.models.article_analysis import ArticleAnalysis
 from app.models.article_match import ArticleMatch
+from app.models.crawl_run import CrawlRun
+from app.models.email_delivery import EmailDelivery
+from app.models.dongguk_article_trash import DonggukArticleTrash
+from app.models.dongguk_preview_cache import DonggukPreviewCache
+from app.models.dongguk_mail_draft import DonggukMailDraft
 from app.models.importance_score import ImportanceScore
 from app.models.keyword import Keyword
 from app.models.social_metric import SocialMetric
 from app.models.summary import Summary
 from app.models.user import User
+import app.schemas.articles
+from app.services.article_service import ArticleService
+from app.services.article_identity import (
+    canonicalize_article_url,
+    is_same_publisher_article,
+    normalize_article_title,
+)
+from app.services.dify_service import DifyService
 from app.services.email_service import EmailService
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -37,6 +62,49 @@ MUTED = "64748B"
 GREEN = "16A34A"
 RED = "DC2626"
 AMBER = "D97706"
+KST = ZoneInfo("Asia/Seoul")
+DEFAULT_DONGGUK_PRIORITY_CRITERIA = """홍보처 AI 기사 선정 기준
+
+우선순위 기준:
+- 총장 또는 이사장의 공식 메시지가 포함된 기사를 가장 먼저 선정합니다.
+- 기부, 장학금, 발전기금처럼 학교 이미지와 직접 연결되는 기사를 우선 선정합니다.
+- 건학 120주년 등 현재 진행 중인 학교 캠페인 관련 기사를 우선 선정합니다.
+- 연구 성과, 기술 개발, 특허, AI 관련 성과 기사를 우선 선정합니다.
+- 공식 기관과의 협약, 사업 선정, 컨소시엄 참여 기사를 우선 선정합니다.
+- 학교, 교직원, 학생의 수상 및 공식 인증 획득 기사를 우선 선정합니다.
+- 학교가 주최하거나 공식적으로 참여한 주요 행사 기사를 우선 선정합니다.
+- 학술대회, 세미나, 입시, 교육 프로그램, 인사, 동문 및 교수 인터뷰 기사는 직접적인 학교 성과 기사보다 낮게 선정합니다.
+
+대표 기사 선정 기준:
+- 동일 주제, 동일 보도자료, 같은 사건의 반복 보도는 하나의 그룹으로 묶고 대표 기사 1건만 선정합니다.
+- 원문 URL이 정상이고 본문 전체를 확인할 수 있는 기사를 우선합니다.
+- 기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 제목에 명확히 드러난 기사를 우선합니다.
+- 요약에 필요한 사실 정보가 충분하고 기사 내용이 충실한 기사를 우선합니다.
+- 언론사 신뢰도와 홍보처 배포 활용도가 높은 기사를 우선합니다.
+
+제외 기준:
+- 동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.
+- 원문 확인이 어렵거나 본문 정보가 부족한 기사는 제외합니다."""
+DEFAULT_DONGGUK_REPRESENTATIVE_CRITERIA = """대표 기사 선정 기준:
+- 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
+- 대표 기사는 원문 URL이 정상이고 본문 확인이 가능한 기사를 우선한다.
+- 제목이 가장 명확하고 기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 잘 드러난 기사를 우선한다.
+- 기사 내용이 길고 요약에 필요한 사실 정보가 충분한 기사를 우선한다.
+- 출처 신뢰도와 홍보처 배포 활용성을 고려한다.
+- 단순 재전송, 제목만 바꾼 기사, 내용이 짧거나 원문 확인이 어려운 기사는 제외한다."""
+
+
+def _normalize_dongguk_priority_criteria(criteria: str | None) -> str:
+    text = (criteria or "").strip()
+    if not text:
+        return DEFAULT_DONGGUK_PRIORITY_CRITERIA
+    return text
+DONGGUK_DASHBOARD_URL = "https://2c25-210-94-172-73.ngrok-free.app/"
+DONGGUK_HWPX_TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / "dongguk_daily_news_template.hwpx"
+HWPX_NS = {
+    "hp": "http://www.hancom.co.kr/hwpml/2011/paragraph",
+    "hs": "http://www.hancom.co.kr/hwpml/2011/section",
+}
 
 ARTICLE_HEADERS = [
     "기사 ID",
@@ -62,6 +130,82 @@ class EmailReportRequest(BaseModel):
     keyword_name: str | None = None
 
 
+class DonggukMailArticle(BaseModel):
+    id: int | None = None
+    title: str
+    source: str | None = None
+    section: str | None = None
+    category: str = "기타"
+    summary: str | None = None
+    url: str | None = None
+    thumbnail_url: str | None = None
+    published_at: str | None = None
+    links: list[str] = []
+    priority: str | None = None
+    priority_name: str | None = None
+    score: int | float | None = None
+    is_syndicated: bool = False
+    selection_reason: str | None = None
+
+
+class DonggukEmailRequest(BaseModel):
+    to_emails: List[EmailStr]
+    subject: str
+    articles: list[DonggukMailArticle]
+    keyword_id: int | None = None
+    mail_date: str | None = None
+    exclude_similar_sent: bool = True
+    use_current_articles: bool = False
+    priority_criteria: str | None = None
+    is_test: bool = False
+
+
+class DonggukPreviewRequest(BaseModel):
+    subject: str
+    articles: list[DonggukMailArticle]
+    keyword_id: int | None = None
+    mail_date: str | None = None
+    exclude_similar_sent: bool = True
+    force_rebuild: bool = False
+    selected_article_keys: list[str] = []
+    removed_article_keys: list[str] = []
+    removed_articles: list[DonggukMailArticle] = []
+    priority_criteria: str | None = None
+
+
+class DonggukDraftRequest(BaseModel):
+    subject: str
+    keyword_id: int | None = None
+    mail_date: str
+    selected_article_keys: list[str] = []
+    selected_articles: list[DonggukMailArticle] = []
+    removed_article_keys: list[str] = []
+    removed_articles: list[DonggukMailArticle] = []
+    preview_data: dict | None = None
+
+
+class DonggukTrashRequest(BaseModel):
+    keyword_id: int | None = None
+    mail_date: str
+    article: DonggukMailArticle
+
+
+class DonggukTrashActionRequest(BaseModel):
+    keyword_id: int | None = None
+    mail_date: str
+    article_id: int
+
+
+class DonggukHwpRequest(BaseModel):
+    subject: str
+    articles: list[DonggukMailArticle]
+    mail_date: str | None = None
+
+
+class DonggukLinkPreviewRequest(BaseModel):
+    url: str
+
+
 def _fmt_dt(value) -> str:
     if value is None:
         return ""
@@ -83,7 +227,7 @@ def _sentiment_key(value: str | None) -> str:
         return "긍정"
     if "중립" in text or "neutral" in text:
         return "중립"
-    return "미분석"
+    return "미분류"
 
 
 def _promotion_label(value) -> str:
@@ -91,7 +235,7 @@ def _promotion_label(value) -> str:
         return "홍보성"
     if value is False:
         return "일반"
-    return "미분석"
+    return "미분류"
 
 
 async def _keyword_name(db: AsyncSession, current_user: User, keyword_id: int | None) -> str | None:
@@ -152,6 +296,7 @@ def _build_query(current_user: User, keyword_id: int | None = None):
             Article.publisher,
             Article.published_at,
             Article.url,
+            Article.thumbnail_url,
             Article.language,
             Article.created_at,
             keyword_subq.c.keywords,
@@ -235,8 +380,8 @@ async def _get_social_report_rows(db: AsyncSession, current_user: User, keyword_
 def _report_context(rows: Iterable[dict], keyword_name: str | None = None, social_rows: list[dict] | None = None) -> dict:
     rows = list(rows)
     keyword_counts: dict[str, int] = {}
-    sentiment_counts = {"긍정": 0, "중립": 0, "부정": 0, "미분석": 0}
-    promotion_counts = {"홍보성": 0, "일반": 0, "미분석": 0}
+    sentiment_counts = {"긍정": 0, "중립": 0, "부정": 0, "미분류": 0}
+    promotion_counts = {"홍보성": 0, "일반": 0, "미분류": 0}
     daily_counts: dict[str, int] = {}
     scores: list[float] = []
     summarized_count = 0
@@ -329,9 +474,9 @@ def _executive_summary(
     elif negative_rate:
         lines.append(f"부정 기사 비중은 {negative_rate}%로 관리 가능한 수준입니다.")
     else:
-        lines.append("현재 뚜렷한 부정 기사 신호는 낮습니다.")
+        lines.append("현재 뚜렷한 부정 기사 신호는 없습니다.")
     if promotion_rate >= 20:
-        lines.append(f"홍보성 기사 비중이 {promotion_rate}%입니다. 자연 노출과 유료/홍보 노출을 분리해 보고하세요.")
+        lines.append(f"홍보성 기사 비중은 {promotion_rate}%입니다. 자연 노출과 유료/홍보 노출을 분리해 보고하세요.")
     if social_total:
         lines.append(f"SNS 최근 7일 신호는 {social_total}건이며 부정 힌트 비중은 {social_negative_rate}%입니다.")
     return lines
@@ -515,7 +660,7 @@ def _build_excel(rows, keyword_name: str | None = None, social_rows: list[dict] 
 
 
 def _html_bar_chart(title: str, rows: list[tuple[str, int]], color: str = "#60a5fa") -> str:
-    data = rows[:8] or [("데이터 없음", 0)]
+    data = rows[:8] or [("?곗씠???놁쓬", 0)]
     max_value = max([value for _, value in data] + [1])
     bar_rows = []
     for label, value in data:
@@ -633,9 +778,1583 @@ async def _report_rows(db: AsyncSession, current_user: User, keyword_id: int | N
     return result.mappings().all()
 
 
+def _dongguk_grouped_articles(articles: list[DonggukMailArticle]) -> dict[str, list[DonggukMailArticle]]:
+    grouped: dict[str, list[DonggukMailArticle]] = {}
+    for article in articles:
+        grouped.setdefault(article.category or "기타", []).append(article)
+    return grouped
+
+
+def _dongguk_article_links(article: DonggukMailArticle) -> list[str]:
+    if article.url:
+        links = [article.url, *(article.links or [])]
+    else:
+        links = [*(article.links or [])]
+    cleaned = []
+    for link in links:
+        value = str(link or "").strip()
+        if value and value not in cleaned:
+            cleaned.append(value)
+    return cleaned
+
+
+def _exact_dongguk_article_key(article: DonggukMailArticle) -> str:
+    links = _dongguk_article_links(article)
+    if links:
+        return f"url:{canonicalize_article_url(links[0])}"
+    title = normalize_article_title(article.title, article.source)
+    source = re.sub(r"\s+", " ", (article.source or "")).strip().lower()
+    if title and source:
+        return f"title-source:{title}|{source}"
+    if article.id is not None:
+        return f"id:{article.id}"
+    return f"title:{(article.title or '').strip().lower()}|{(article.source or '').strip().lower()}"
+
+
+def _dedupe_exact_dongguk_articles(
+    articles: list[DonggukMailArticle],
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    kept: list[DonggukMailArticle] = []
+    removed: list[DonggukMailArticle] = []
+    seen: set[str] = set()
+    for article in articles:
+        key = _exact_dongguk_article_key(article)
+        duplicate_index = next((index for index, existing in enumerate(kept) if (
+            key == _exact_dongguk_article_key(existing)
+            or is_same_publisher_article(
+                left_title=article.title,
+                left_publisher=article.source,
+                left_content=article.summary,
+                left_url=article.url or (article.links[0] if article.links else None),
+                right_title=existing.title,
+                right_publisher=existing.source,
+                right_content=existing.summary,
+                right_url=existing.url or (existing.links[0] if existing.links else None),
+            )
+        )), None)
+        if key not in seen and duplicate_index is None:
+            seen.add(key)
+            kept.append(article)
+            continue
+        if duplicate_index is not None:
+            representative = kept[duplicate_index]
+            representative.links = list(dict.fromkeys([
+                *_dongguk_article_links(representative),
+                *_dongguk_article_links(article),
+            ]))
+            representative.is_syndicated = representative.is_syndicated or len(representative.links) > 1
+        duplicate_data = article.model_dump()
+        duplicate_data["selection_reason"] = "같은 언론사의 동일 원문 기사로 확인되어 대표 기사 1건에 통합했습니다."
+        removed.append(DonggukMailArticle(**duplicate_data))
+    return kept, removed
+
+
+def _dongguk_email_html(subject: str, articles: list[DonggukMailArticle]) -> str:
+    articles, _ = _dedupe_exact_dongguk_articles(articles)
+    grouped = _dongguk_grouped_articles(articles)
+    sections = []
+    for category, rows in grouped.items():
+        article_rows = []
+        for idx, article in enumerate(rows, start=1):
+            source = article.source or "언론사 없음"
+            suffix = " 외" if article.is_syndicated else ""
+            link_rows = "".join(
+                f'<div style="margin-top:5px;"><a href="{escape(link)}" style="color:#1d4ed8;text-decoration:none;">{escape(link)}</a></div>'
+                for link in _dongguk_article_links(article)
+            )
+            article_rows.append(
+                f"""
+                <div style="border-top:1px solid #e5e7eb;padding:15px 0;">
+                  <div style="font-size:16px;font-weight:700;line-height:1.5;color:#111827;">
+                    {idx}. {escape(article.title)} [{escape(source)}]{suffix}
+                  </div>
+                  <p style="margin:9px 0 0;color:#374151;line-height:1.65;">{escape(article.summary or '요약문이 아직 없습니다.')}</p>
+                  <div style="margin-top:9px;color:#4b5563;font-size:13px;">{link_rows}</div>
+                </div>
+                """
+            )
+        sections.append(
+            f"""
+            <section style="background:#ffffff;border:1px solid #d1d5db;border-radius:6px;margin-top:16px;padding:16px;">
+              <h2 style="font-size:18px;line-height:1.4;margin:0 0 4px;color:#1f2937;">{escape(category)}</h2>
+              <div style="color:#6b7280;font-size:13px;margin-bottom:6px;">{len(rows)}건</div>
+              {''.join(article_rows)}
+            </section>
+            """
+        )
+    return f"""
+    <html>
+      <body style="background:#f3f4f6;margin:0;padding:24px;font-family:Arial,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#111827;">
+        <main style="max-width:820px;margin:0 auto;">
+          <header style="background:#ffffff;border:1px solid #d1d5db;border-radius:6px;padding:20px;">
+            <h1 style="font-size:24px;line-height:1.35;margin:6px 0 0;">{escape(subject)}</h1>
+            <p style="margin:12px 0 0;color:#4b5563;line-height:1.55;">
+              관리자 확인 대시보드:
+              <a href="{escape(DONGGUK_DASHBOARD_URL)}" style="color:#1d4ed8;text-decoration:none;">{escape(DONGGUK_DASHBOARD_URL)}</a>
+            </p>
+          </header>
+          {''.join(sections)}
+        </main>
+      </body>
+    </html>
+    """
+
+
+def _dongguk_email_text(subject: str, articles: list[DonggukMailArticle]) -> str:
+    lines = [subject, f"대시보드: {DONGGUK_DASHBOARD_URL}", ""]
+    for category, rows in _dongguk_grouped_articles(articles).items():
+        lines.extend([f"[{category}]", ""])
+        for idx, article in enumerate(rows, start=1):
+            suffix = " 외" if article.is_syndicated else ""
+            lines.append(f"{idx}. {article.title} [{article.source or '언론사 없음'}]{suffix}")
+            if article.summary:
+                lines.append(article.summary)
+            lines.extend(_dongguk_article_links(article))
+            lines.append("")
+    return "\n".join(lines).strip()
+
+
+def _dongguk_section_label(section: str | None) -> str:
+    value = str(section or "")
+    if "교육" in value:
+        return "대학 [교육] 관련 기사"
+    if "종단" in value or "불교" in value:
+        return "불교 [종단] 관련 기사"
+    return "동국대 [법인/건학위] 관련 기사"
+
+
+def _dongguk_section_grouped_articles(articles: list[DonggukMailArticle]) -> dict[str, list[DonggukMailArticle]]:
+    order = [
+        "동국대 [법인/건학위] 관련 기사",
+        "대학 [교육] 관련 기사",
+        "불교 [종단] 관련 기사",
+    ]
+    grouped = {label: [] for label in order}
+    for article in articles:
+        grouped.setdefault(_dongguk_section_label(article.section), []).append(article)
+    return {label: grouped.get(label, []) for label in order if grouped.get(label)}
+
+
+def _dongguk_hangul_article_title(index: int, article: DonggukMailArticle) -> str:
+    source = (article.source or "").strip()
+    suffix = " 외" if article.is_syndicated or len(_dongguk_article_links(article)) > 1 else ""
+    if source.endswith(" 외"):
+        source = source[:-2].strip()
+        suffix = " 외"
+    source_part = f" [{source}]" if source else ""
+    return f"{index}. {article.title}{source_part}{suffix}"
+
+
+def _set_hwpx_paragraph_text(paragraph: ET.Element, text: str) -> ET.Element:
+    text_nodes = paragraph.findall(".//hp:t", HWPX_NS)
+    if not text_nodes:
+        return paragraph
+    text_nodes[0].text = text
+    for node in text_nodes[1:]:
+        node.text = ""
+    return paragraph
+
+
+def _dongguk_hwpx_preview_text(subject: str, articles: list[DonggukMailArticle]) -> str:
+    lines = [f"<{subject}><><>", "<><>", "대외협력처 홍보실", ""]
+    for section, rows in _dongguk_section_grouped_articles(articles).items():
+        lines.append(section)
+        for idx, article in enumerate(rows, start=1):
+            lines.append(_dongguk_hangul_article_title(idx, article))
+            for link in _dongguk_article_links(article):
+                lines.append(f"{link} ")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _dongguk_hwpx_bytes(subject: str, articles: list[DonggukMailArticle]) -> bytes:
+    articles, _ = _dedupe_exact_dongguk_articles(articles)
+    if not DONGGUK_HWPX_TEMPLATE.exists():
+        raise FileNotFoundError("Dongguk HWPX template is missing.")
+
+    ET.register_namespace("hs", HWPX_NS["hs"])
+    ET.register_namespace("hp", HWPX_NS["hp"])
+
+    with zipfile.ZipFile(DONGGUK_HWPX_TEMPLATE, "r") as template:
+        section_xml = template.read("Contents/section0.xml")
+        root = ET.fromstring(section_xml)
+        original_children = list(root)
+        title_proto = original_children[0]
+        office_proto = original_children[1]
+        spacer_proto = original_children[2]
+        section_proto = original_children[3]
+        line_proto = original_children[4]
+        blank_proto = original_children[14] if len(original_children) > 14 else original_children[2]
+
+        for child in list(root):
+            root.remove(child)
+
+        root.append(_set_hwpx_paragraph_text(deepcopy(title_proto), subject))
+        root.append(_set_hwpx_paragraph_text(deepcopy(office_proto), "대외협력처 홍보실"))
+        root.append(_set_hwpx_paragraph_text(deepcopy(spacer_proto), ""))
+
+        for section, rows in _dongguk_section_grouped_articles(articles).items():
+            root.append(_set_hwpx_paragraph_text(deepcopy(section_proto), section))
+            for idx, article in enumerate(rows, start=1):
+                root.append(_set_hwpx_paragraph_text(deepcopy(line_proto), _dongguk_hangul_article_title(idx, article)))
+                for link in _dongguk_article_links(article):
+                    root.append(_set_hwpx_paragraph_text(deepcopy(line_proto), f"{link} "))
+            root.append(_set_hwpx_paragraph_text(deepcopy(blank_proto), ""))
+
+        new_section = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+        preview_text = _dongguk_hwpx_preview_text(subject, articles).encode("utf-8")
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as generated:
+            for info in template.infolist():
+                if info.filename in {"Contents/section0.xml", "Preview/PrvText.txt"}:
+                    continue
+                data = template.read(info.filename)
+                compression = zipfile.ZIP_STORED if info.filename == "mimetype" else zipfile.ZIP_DEFLATED
+                generated.writestr(info.filename, data, compress_type=compression)
+            generated.writestr("Contents/section0.xml", new_section, compress_type=zipfile.ZIP_DEFLATED)
+            generated.writestr("Preview/PrvText.txt", preview_text, compress_type=zipfile.ZIP_DEFLATED)
+        return output.getvalue()
+
+
+def _dongguk_hwpx_filename(subject: str, mail_date: str | None = None) -> str:
+    filename_date = mail_date or _mail_date_from_subject(subject) or datetime.now(KST).date().isoformat()
+    compact_date = filename_date.replace("-", "")[2:] if re.match(r"^\d{4}-\d{2}-\d{2}$", filename_date) else filename_date
+    return f"오늘의 주요 뉴스({compact_date}).hwpx"
+
+
+def _normalize_title(value: str | None) -> str:
+    return "".join(ch for ch in (value or "").lower() if ch.isalnum())
+
+
+def _is_similar_title(left: str, right: str) -> bool:
+    left_key = _normalize_title(left)
+    right_key = _normalize_title(right)
+    if not left_key or not right_key:
+        return False
+    if left_key in right_key or right_key in left_key:
+        return True
+    return SequenceMatcher(None, left_key, right_key).ratio() >= 0.72
+
+
+def _mail_date_from_subject(subject: str | None) -> str | None:
+    match = re.search(r"(\d{4})\.(\d{2})\.(\d{2})", subject or "")
+    if not match:
+        return None
+    return "-".join(match.groups())
+
+
+async def _sent_dongguk_titles(db: AsyncSession, user_id: int, before_mail_date: str | None = None) -> set[str]:
+    stmt = (
+        select(EmailDelivery.body)
+        .where(EmailDelivery.user_id == user_id)
+        .where(EmailDelivery.status == "SENT")
+        .order_by(EmailDelivery.sent_at.desc().nullslast(), EmailDelivery.created_at.desc())
+        .limit(120)
+    )
+    result = await db.execute(stmt)
+    titles: set[str] = set()
+    for body in result.scalars().all():
+        try:
+            payload = json.loads(body or "{}")
+        except json.JSONDecodeError:
+            continue
+        if payload.get("type") != "DONGGUK_PR_DAILY":
+            continue
+        sent_mail_date = payload.get("mail_date") or _mail_date_from_subject(payload.get("subject"))
+        if before_mail_date and sent_mail_date and sent_mail_date >= before_mail_date:
+            continue
+        for article in payload.get("articles") or []:
+            title = article.get("title")
+            if title:
+                titles.add(title)
+    return titles
+
+
+def _filter_previously_sent_articles(
+    articles: list[DonggukMailArticle],
+    sent_titles: set[str],
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    included: list[DonggukMailArticle] = []
+    excluded: list[DonggukMailArticle] = []
+    for article in articles:
+        if any(_is_similar_title(article.title, sent_title) for sent_title in sent_titles):
+            excluded.append(article)
+        else:
+            included.append(article)
+    return included, excluded
+
+
+def _dongguk_delivery_body(
+    subject: str,
+    articles: list[DonggukMailArticle],
+    excluded: list[DonggukMailArticle],
+    mail_date: str | None = None,
+    keyword_id: int | None = None,
+) -> str:
+    articles, _ = _dedupe_exact_dongguk_articles(articles)
+    return json.dumps(
+        {
+            "type": "DONGGUK_PR_DAILY",
+            "subject": subject,
+            "mail_date": mail_date or _mail_date_from_subject(subject),
+            "keyword_id": keyword_id,
+            "articles": [article.model_dump() for article in articles],
+            "excluded_articles": [article.model_dump() for article in excluded],
+        },
+        ensure_ascii=False,
+    )
+
+
+def _dongguk_mail_subject(mail_date: str) -> str:
+    parsed = datetime.strptime(mail_date, "%Y-%m-%d").date()
+    weekdays = ["월", "화", "수", "목", "금", "토", "일"]
+    return f"오늘의 주요 뉴스 {parsed:%Y.%m.%d}.[{weekdays[parsed.weekday()]}]"
+
+
+def _parse_report_send_time(value: str | None) -> time:
+    try:
+        hour_text, minute_text = (value or "08:30")[:5].split(":")
+        return time(hour=int(hour_text), minute=int(minute_text))
+    except Exception:
+        return time(hour=8, minute=30)
+
+
+def _dongguk_report_window(mail_date: str, send_time: str | None = None) -> tuple[datetime, datetime]:
+    target_date = datetime.strptime(mail_date, "%Y-%m-%d").date()
+    end_at = datetime.combine(target_date, _parse_report_send_time(send_time), tzinfo=KST)
+    return end_at - timedelta(days=1), end_at
+
+
+def _article_item_to_dongguk(item: dict) -> DonggukMailArticle:
+    url = item.get("original_url") or item.get("url") or ""
+    return DonggukMailArticle(
+        id=item.get("id"),
+        title=item.get("title") or "제목 없음",
+        source=item.get("source") or item.get("publisher") or "언론사 없음",
+        category="기타",
+        summary=item.get("summary") or "요약문이 아직 없습니다.",
+        url=url,
+        thumbnail_url=item.get("thumbnail_url"),
+        published_at=str(item.get("published_at") or ""),
+        links=[url] if url else [],
+        score=item.get("importance"),
+    )
+
+
+def _extract_thumbnail_url(item: dict) -> str | None:
+    candidates = [
+        item.get("thumbnail_url"),
+        item.get("image_url"),
+        item.get("image"),
+        item.get("thumbnail"),
+        item.get("og_image"),
+        item.get("lead_image"),
+        item.get("main_image"),
+    ]
+    images = item.get("images")
+    if isinstance(images, list):
+        candidates.extend(images)
+    elif isinstance(images, dict):
+        candidates.extend(images.values())
+    for value in candidates:
+        if isinstance(value, dict):
+            value = value.get("url") or value.get("src")
+        if not value:
+            continue
+        url = str(value).strip()
+        if url.startswith("http://") or url.startswith("https://"):
+            return url
+    return None
+
+
+async def _dongguk_articles_for_keyword_date(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    keyword_id: int,
+    mail_date: str,
+) -> list[DonggukMailArticle]:
+    keyword = await db.get(Keyword, keyword_id)
+    send_time = keyword.email_send_time if keyword else None
+    try:
+        window_start, window_end = _dongguk_report_window(mail_date, send_time)
+    except ValueError:
+        window_start = datetime.combine(datetime.now(KST).date(), _parse_report_send_time(send_time), tzinfo=KST) - timedelta(days=1)
+        window_end = window_start + timedelta(days=1)
+    service = ArticleService(db)
+    page = 1
+    items = []
+    while True:
+        query = app.schemas.articles.ArticleListQuery(
+            page=page,
+            size=100,
+            keyword_id=keyword_id,
+            sort=app.schemas.articles.ArticleSort.importance_desc,
+            from_at=window_start,
+            to_at=window_end,
+        )
+        page_items, total = await service.get_article_list(user_id=user_id, query=query)
+        items.extend(page_items)
+        if len(items) >= total or not page_items:
+            break
+        page += 1
+    return [_article_item_to_dongguk(item) for item in items]
+
+
+def _articles_for_news_editor(articles: list[DonggukMailArticle]) -> str:
+    payload = []
+    for index, article in enumerate(articles, start=1):
+        article_id = article.id or index
+        links = _dongguk_article_links(article)
+        payload.append(
+            {
+                "id": article_id,
+                "title": article.title,
+                "source": article.source,
+                "summary": article.summary,
+                "url": article.url or (article.links[0] if article.links else ""),
+                "canonical_url": canonicalize_article_url(article.url or (article.links[0] if article.links else "")),
+                "original_urls": links,
+                "normalized_title": normalize_article_title(article.title, article.source),
+                "content_excerpt": (article.summary or "")[:4000],
+                "thumbnail_url": article.thumbnail_url,
+                "published_at": article.published_at,
+            }
+        )
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _dongguk_article_key(article: DonggukMailArticle, index: int = 0) -> str:
+    return str(article.id or article.url or article.title or index)
+
+
+def _dongguk_preview_cache_key(
+    *,
+    user_id: int,
+    keyword_id: int | None,
+    mail_date: str | None,
+    subject: str,
+    articles: list[DonggukMailArticle],
+    exclude_similar_sent: bool,
+    priority_criteria: str | None = None,
+) -> str:
+    articles, _ = _dedupe_exact_dongguk_articles(articles)
+    article_payload = []
+    for article in articles:
+        article_payload.append(
+            {
+                "id": article.id,
+                "title": article.title,
+                "url": article.url,
+                "links": sorted(_dongguk_article_links(article)),
+                "category": article.category,
+                "section": article.section,
+            }
+        )
+    payload = {
+        "version": 1,
+        "user_id": user_id,
+        "keyword_id": keyword_id,
+        "mail_date": mail_date,
+        "subject": subject,
+        "exclude_similar_sent": exclude_similar_sent,
+        "priority_criteria": _normalize_dongguk_priority_criteria(priority_criteria),
+        "articles": sorted(article_payload, key=lambda item: (str(item.get("id") or ""), item.get("title") or "")),
+    }
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+async def _get_cached_dongguk_preview(db: AsyncSession, cache_key: str) -> dict | None:
+    result = await db.execute(
+        select(DonggukPreviewCache.response_body)
+        .where(DonggukPreviewCache.cache_key == cache_key)
+        .limit(1)
+    )
+    body = result.scalar_one_or_none()
+    if not body:
+        return None
+    try:
+        cached = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    if cached.get("editor_used") is False:
+        return None
+    cached["cached"] = True
+    return cached
+
+
+async def _save_dongguk_preview_cache(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    keyword_id: int | None,
+    mail_date: str | None,
+    subject: str,
+    cache_key: str,
+    data: dict,
+) -> None:
+    stmt = pg_insert(DonggukPreviewCache).values(
+        user_id=user_id,
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+        subject=subject,
+        cache_key=cache_key,
+        response_body=json.dumps(data, ensure_ascii=False),
+    ).on_conflict_do_update(
+        index_elements=[DonggukPreviewCache.cache_key],
+        set_={
+            "keyword_id": keyword_id,
+            "mail_date": mail_date,
+            "subject": subject,
+            "response_body": json.dumps(data, ensure_ascii=False),
+            "updated_at": datetime.now(timezone.utc),
+        },
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+
+def _draft_response(draft: DonggukMailDraft | None) -> dict:
+    if draft is None:
+        return {"found": False}
+    try:
+        selected_article_keys = json.loads(draft.selected_article_keys or "[]")
+    except json.JSONDecodeError:
+        selected_article_keys = []
+    try:
+        selected_articles = json.loads(draft.selected_articles or "[]")
+    except json.JSONDecodeError:
+        selected_articles = []
+    try:
+        removed_article_keys = json.loads(draft.removed_article_keys or "[]")
+    except json.JSONDecodeError:
+        removed_article_keys = []
+    try:
+        removed_articles = json.loads(draft.removed_articles or "[]")
+    except json.JSONDecodeError:
+        removed_articles = []
+    try:
+        preview_data = json.loads(draft.preview_body) if draft.preview_body else None
+    except json.JSONDecodeError:
+        preview_data = None
+    # Old drafts can contain Google/Naver URL variants of the same publisher article.
+    # Sanitize them on every read so every Hongbo screen uses the same representative list.
+    selected_models = [DonggukMailArticle(**item) for item in selected_articles]
+    selected_models, newly_removed = _dedupe_exact_dongguk_articles(selected_models)
+    selected_articles = [item.model_dump() for item in selected_models]
+    if newly_removed:
+        removed_models = [DonggukMailArticle(**item) for item in removed_articles]
+        removed_models.extend(newly_removed)
+        removed_articles = [item.model_dump() for item in removed_models]
+    selected_article_keys = [_dongguk_article_key(item, index) for index, item in enumerate(selected_models)]
+    if preview_data:
+        preview_data["articles"] = selected_articles
+        preview_data["excluded_articles"] = removed_articles
+        preview_data["article_count"] = len(selected_articles)
+        preview_data["excluded_count"] = len(removed_articles)
+    return {
+        "found": True,
+        "id": draft.id,
+        "keyword_id": draft.keyword_id,
+        "mail_date": draft.mail_date,
+        "subject": draft.subject,
+        "selected_article_keys": selected_article_keys,
+        "selected_articles": selected_articles,
+        "removed_article_keys": removed_article_keys,
+        "removed_articles": removed_articles,
+        "preview_data": preview_data,
+        "updated_at": _fmt_dt(draft.updated_at),
+    }
+
+
+async def _get_dongguk_mail_draft(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    keyword_id: int | None,
+    mail_date: str,
+) -> DonggukMailDraft | None:
+    result = await db.execute(
+        select(DonggukMailDraft)
+        .where(
+            DonggukMailDraft.user_id == user_id,
+            DonggukMailDraft.keyword_id == keyword_id,
+            DonggukMailDraft.mail_date == mail_date,
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _save_dongguk_mail_draft(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    keyword_id: int | None,
+    mail_date: str,
+    subject: str,
+    selected_article_keys: list[str],
+    selected_articles: list[DonggukMailArticle],
+    removed_article_keys: list[str] | None = None,
+    removed_articles: list[DonggukMailArticle] | None = None,
+    preview_data: dict | None = None,
+) -> DonggukMailDraft:
+    draft = await _get_dongguk_mail_draft(db, user_id=user_id, keyword_id=keyword_id, mail_date=mail_date)
+    if draft is None:
+        draft = DonggukMailDraft(
+            user_id=user_id,
+            keyword_id=keyword_id,
+            mail_date=mail_date,
+            subject=subject,
+        )
+        db.add(draft)
+    draft.subject = subject
+    draft.selected_article_keys = json.dumps(selected_article_keys, ensure_ascii=False)
+    draft.selected_articles = json.dumps([article.model_dump() for article in selected_articles], ensure_ascii=False)
+    draft.removed_article_keys = json.dumps(removed_article_keys or [], ensure_ascii=False)
+    draft.removed_articles = json.dumps([article.model_dump() for article in (removed_articles or [])], ensure_ascii=False)
+    draft.preview_body = json.dumps(preview_data, ensure_ascii=False) if preview_data is not None else None
+    await db.commit()
+    await db.refresh(draft)
+    return draft
+
+
+def _articles_from_editor_result(result: dict, fallback_articles: list[DonggukMailArticle]) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    fallback_by_key: dict[str, DonggukMailArticle] = {}
+    for index, article in enumerate(fallback_articles, start=1):
+        keys = {str(article.id or index), str(index), article.title or "", article.url or ""}
+        keys.update(article.links or [])
+        for key in keys:
+            if key:
+                fallback_by_key[key] = article
+
+    def find_fallback(*values: object) -> DonggukMailArticle | None:
+        for value in values:
+            if value is None:
+                continue
+            match = fallback_by_key.get(str(value))
+            if match:
+                return match
+        return None
+
+    selected: list[DonggukMailArticle] = []
+    for item in result.get("selected_articles") or []:
+        representative_id = item.get("representative_article_id")
+        links = item.get("related_links") or []
+        main_url = item.get("main_url")
+        fallback = find_fallback(representative_id, main_url, item.get("title"), *(links or []))
+        if main_url and main_url not in links:
+            links = [main_url, *links]
+        if not links and fallback:
+            links = fallback.links
+        selected.append(
+            DonggukMailArticle(
+                id=representative_id if isinstance(representative_id, int) else (fallback.id if fallback else None),
+                title=item.get("title") or (fallback.title if fallback else "제목 없음"),
+                source=item.get("source") or (fallback.source if fallback else None),
+                section=fallback.section if fallback else None,
+                category=item.get("category") or (fallback.category if fallback else "기타"),
+                summary=item.get("summary") or (fallback.summary if fallback else None),
+                url=main_url or (fallback.url if fallback else None),
+                thumbnail_url=fallback.thumbnail_url if fallback else None,
+                published_at=fallback.published_at if fallback else None,
+                links=list(dict.fromkeys([link for link in links if link])),
+                priority=item.get("priority") or (fallback.priority if fallback else None),
+                is_syndicated=len(links) > 1,
+                selection_reason=item.get("selection_reason") or item.get("priority_reason") or (fallback.selection_reason if fallback else None),
+            )
+        )
+
+    excluded: list[DonggukMailArticle] = []
+    for item in result.get("excluded_articles") or []:
+        article_id = item.get("article_id") or item.get("representative_article_id")
+        fallback = find_fallback(article_id, item.get("main_url"), item.get("title"))
+        excluded.append(
+            DonggukMailArticle(
+                id=article_id if isinstance(article_id, int) else (fallback.id if fallback else None),
+                title=item.get("title") or (fallback.title if fallback else "제외 기사"),
+                source=fallback.source if fallback else None,
+                section=fallback.section if fallback else None,
+                category=fallback.category if fallback else "기타",
+                summary=item.get("reason") or (fallback.summary if fallback else None),
+                thumbnail_url=fallback.thumbnail_url if fallback else None,
+                links=fallback.links if fallback else [],
+                priority=fallback.priority if fallback else None,
+                priority_name=fallback.priority_name if fallback else None,
+                score=fallback.score if fallback else None,
+                is_syndicated=fallback.is_syndicated if fallback else False,
+                selection_reason=item.get("reason") or item.get("selection_reason") or (fallback.selection_reason if fallback else None),
+            )
+        )
+
+    return selected or fallback_articles, excluded
+
+
+async def _run_news_editor_or_fallback(
+    *,
+    current_user: User,
+    mail_date: str,
+    subject: str,
+    articles: list[DonggukMailArticle],
+    priority_criteria: str | None = None,
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle], dict | None]:
+    try:
+        result = await DifyService.from_settings().run_news_editor_workflow(
+            mail_date=mail_date,
+            subject=subject,
+            articles_json=_articles_for_news_editor(articles),
+            priority_criteria=_normalize_dongguk_priority_criteria(priority_criteria),
+            user=f"user-{current_user.id}",
+        )
+        selected, excluded = _articles_from_editor_result(result, articles)
+        return selected, excluded, result
+    except Exception as exc:
+        print(f"Dongguk news editor workflow failed: {exc}")
+        raise HTTPException(
+            status_code=503,
+            detail="AI 기사 선정에 실패했습니다. AI 연결 상태를 확인한 뒤 다시 시도해 주세요.",
+        ) from exc
+
+
+def _article_similarity_text(article: DonggukMailArticle) -> str:
+    return re.sub(r"\s+", " ", f"{article.title} {article.summary or ''}").strip().lower()
+
+
+def _article_similarity_tokens(article: DonggukMailArticle) -> set[str]:
+    text = _article_similarity_text(article)
+    stopwords = {
+        "동국대",
+        "동국대학교",
+        "기사",
+        "보도",
+        "개최",
+        "진행",
+        "관련",
+        "위해",
+        "이번",
+        "통해",
+        "있는",
+        "대한",
+        "한다",
+        "했다",
+        "에서",
+        "으로",
+        "하고",
+    }
+    return {
+        token
+        for token in re.findall(r"[가-힣A-Za-z0-9]{2,}", text)
+        if token not in stopwords
+    }
+
+
+def _published_minute_key(article: DonggukMailArticle) -> str:
+    value = (article.published_at or "").strip()
+    return value[:16] if len(value) >= 16 else value
+
+
+def _is_similar_dongguk_article(left: DonggukMailArticle, right: DonggukMailArticle) -> bool:
+    left_title = re.sub(r"\s+", " ", (left.title or "")).strip().lower()
+    right_title = re.sub(r"\s+", " ", (right.title or "")).strip().lower()
+    if left_title and right_title and SequenceMatcher(None, left_title, right_title).ratio() >= 0.55:
+        return True
+    left_text = _article_similarity_text(left)
+    right_text = _article_similarity_text(right)
+    if left_text and right_text and SequenceMatcher(None, left_text, right_text).ratio() >= 0.68:
+        return True
+    left_tokens = _article_similarity_tokens(left)
+    right_tokens = _article_similarity_tokens(right)
+    if left_tokens and right_tokens:
+        overlap = len(left_tokens & right_tokens) / max(1, min(len(left_tokens), len(right_tokens)))
+        same_source = (left.source or "").strip() and (left.source or "").strip() == (right.source or "").strip()
+        same_minute = _published_minute_key(left) and _published_minute_key(left) == _published_minute_key(right)
+        if overlap >= 0.42:
+            return True
+        if same_source and same_minute and overlap >= 0.22:
+            return True
+    shared_links = set(_dongguk_article_links(left)) & set(_dongguk_article_links(right))
+    return bool(shared_links)
+
+
+def _merge_dongguk_duplicate(base: DonggukMailArticle, duplicate: DonggukMailArticle) -> DonggukMailArticle:
+    base_score = float(base.score or 0)
+    duplicate_score = float(duplicate.score or 0)
+    representative = duplicate if duplicate_score > base_score else base
+    other = base if representative is duplicate else duplicate
+    links = list(dict.fromkeys([*_dongguk_article_links(representative), *_dongguk_article_links(other)]))
+    data = representative.model_dump()
+    data["links"] = links
+    data["is_syndicated"] = bool(representative.is_syndicated or other.is_syndicated or len(links) > 1)
+    if not data.get("summary"):
+        data["summary"] = other.summary
+    if not data.get("thumbnail_url"):
+        data["thumbnail_url"] = other.thumbnail_url
+    return DonggukMailArticle(**data)
+
+
+def _dedupe_representative_articles(articles: list[DonggukMailArticle]) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    kept: list[DonggukMailArticle] = []
+    removed: list[DonggukMailArticle] = []
+    for article in articles:
+        match_index = next((index for index, kept_article in enumerate(kept) if _is_similar_dongguk_article(article, kept_article)), None)
+        if match_index is None:
+            kept.append(article)
+            continue
+        merged = _merge_dongguk_duplicate(kept[match_index], article)
+        removed_article = article if merged.id == kept[match_index].id else kept[match_index]
+        removed_data = removed_article.model_dump()
+        removed_data["selection_reason"] = f"같은 주제의 대표 기사 '{merged.title}'로 묶여 메일 대표 목록에서는 제외되었습니다."
+        removed_article = DonggukMailArticle(**removed_data)
+        removed.append(removed_article)
+        kept[match_index] = merged
+    return kept, removed
+
+
+async def _build_dongguk_preview_result(
+    *,
+    db: AsyncSession,
+    current_user: User,
+    subject: str,
+    mail_date: str | None,
+    articles: list[DonggukMailArticle],
+    exclude_similar_sent: bool,
+    keyword_id: int | None = None,
+    priority_criteria: str | None = None,
+) -> dict:
+    articles, exact_duplicate_excluded = _dedupe_exact_dongguk_articles(articles)
+    normalized_priority_criteria = _normalize_dongguk_priority_criteria(priority_criteria)
+    cache_key = _dongguk_preview_cache_key(
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+        subject=subject,
+        articles=articles,
+        exclude_similar_sent=exclude_similar_sent,
+        priority_criteria=normalized_priority_criteria,
+    )
+    cached = await _get_cached_dongguk_preview(db, cache_key)
+    if cached is not None:
+        return cached
+
+    edited_articles, editor_excluded_articles, editor_result = await _run_news_editor_or_fallback(
+        current_user=current_user,
+        mail_date=mail_date or "",
+        subject=subject,
+        articles=articles,
+        priority_criteria=normalized_priority_criteria,
+    )
+    sent_titles = await _sent_dongguk_titles(db, current_user.id, before_mail_date=mail_date) if exclude_similar_sent else set()
+    included_articles, previously_sent_excluded = _filter_previously_sent_articles(edited_articles, sent_titles)
+    excluded_articles = [*editor_excluded_articles, *exact_duplicate_excluded, *previously_sent_excluded]
+    data = {
+        "articles": [article.model_dump() for article in included_articles],
+        "excluded_articles": [article.model_dump() for article in excluded_articles],
+        "article_count": len(included_articles),
+        "excluded_count": len(excluded_articles),
+        "editor_used": editor_result is not None,
+        "cached": False,
+    }
+    await _save_dongguk_preview_cache(
+        db,
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+        subject=subject,
+        cache_key=cache_key,
+        data=data,
+    )
+    return data
+
+
+@router.post("/dongguk/preview")
+async def preview_dongguk_email(
+    request: Request,
+    body: DonggukPreviewRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    mail_date = body.mail_date or _mail_date_from_subject(body.subject)
+    if mail_date and not body.force_rebuild:
+        draft = await _get_dongguk_mail_draft(
+            db,
+            user_id=current_user.id,
+            keyword_id=body.keyword_id,
+            mail_date=mail_date,
+        )
+        draft_data = _draft_response(draft)
+        preview_data = draft_data.get("preview_data")
+        if preview_data and preview_data.get("articles") and preview_data.get("editor_used") is not False:
+            preview_data["cached"] = True
+            preview_data["from_draft"] = True
+            return success_response(request=request, data=preview_data)
+
+    data = await _build_dongguk_preview_result(
+        db=db,
+        current_user=current_user,
+        subject=body.subject,
+        mail_date=mail_date,
+        articles=body.articles,
+        exclude_similar_sent=body.exclude_similar_sent,
+        keyword_id=body.keyword_id,
+        priority_criteria=body.priority_criteria,
+    )
+    if mail_date:
+        selected_articles = [DonggukMailArticle(**item) for item in data.get("articles") or []]
+        excluded_articles = [DonggukMailArticle(**item) for item in data.get("excluded_articles") or []]
+        await _save_dongguk_mail_draft(
+            db,
+            user_id=current_user.id,
+            keyword_id=body.keyword_id,
+            mail_date=mail_date,
+            subject=body.subject,
+            selected_article_keys=[_dongguk_article_key(article, index) for index, article in enumerate(selected_articles)],
+            selected_articles=selected_articles,
+            removed_article_keys=[_dongguk_article_key(article, index) for index, article in enumerate(excluded_articles)],
+            removed_articles=excluded_articles,
+            preview_data=data,
+        )
+    return success_response(request=request, data=data)
+
+
+@router.get("/dongguk/draft")
+async def get_dongguk_draft(
+    request: Request,
+    keyword_id: int | None = Query(None),
+    mail_date: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    draft = await _get_dongguk_mail_draft(
+        db,
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+    )
+    return success_response(request=request, data=_draft_response(draft))
+
+
+@router.post("/dongguk/draft")
+async def save_dongguk_draft(
+    request: Request,
+    body: DonggukDraftRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    draft = await _save_dongguk_mail_draft(
+        db,
+        user_id=current_user.id,
+        keyword_id=body.keyword_id,
+        mail_date=body.mail_date,
+        subject=body.subject,
+        selected_article_keys=body.selected_article_keys,
+        selected_articles=body.selected_articles,
+        removed_article_keys=body.removed_article_keys,
+        removed_articles=body.removed_articles,
+        preview_data=body.preview_data,
+    )
+    return success_response(request=request, data=_draft_response(draft))
+
+
+@router.get("/dongguk/trash")
+async def get_dongguk_trash(
+    request: Request,
+    keyword_id: int | None = Query(None),
+    mail_date: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    result = await db.execute(
+        select(DonggukArticleTrash)
+        .where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == keyword_id,
+            DonggukArticleTrash.mail_date == mail_date,
+        )
+        .order_by(DonggukArticleTrash.created_at.desc())
+    )
+    items = []
+    for row in result.scalars().all():
+        try:
+            article = json.loads(row.article_body or "{}")
+        except json.JSONDecodeError:
+            article = {"id": row.article_id, "title": "휴지통 기사"}
+        items.append(
+            {
+                "id": row.id,
+                "article_id": row.article_id,
+                "article": article,
+                "trashed_at": _fmt_dt(row.created_at),
+            }
+        )
+    return success_response(request=request, data={"items": items})
+
+
+@router.post("/dongguk/trash")
+async def move_dongguk_article_to_trash(
+    request: Request,
+    body: DonggukTrashRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    article_id = body.article.id
+    if article_id is None:
+        return success_response(request=request, data={"item": None})
+    existing = await db.execute(
+        select(DonggukArticleTrash)
+        .where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == body.keyword_id,
+            DonggukArticleTrash.mail_date == body.mail_date,
+            DonggukArticleTrash.article_id == article_id,
+        )
+        .limit(1)
+    )
+    row = existing.scalar_one_or_none()
+    if row is None:
+        row = DonggukArticleTrash(
+            user_id=current_user.id,
+            keyword_id=body.keyword_id,
+            mail_date=body.mail_date,
+            article_id=article_id,
+            article_body=json.dumps(body.article.model_dump(), ensure_ascii=False),
+        )
+        db.add(row)
+    else:
+        row.article_body = json.dumps(body.article.model_dump(), ensure_ascii=False)
+    await db.commit()
+    await db.refresh(row)
+    return success_response(request=request, data={"item": {"id": row.id, "article_id": row.article_id, "article": body.article.model_dump(), "trashed_at": _fmt_dt(row.created_at)}})
+
+
+@router.post("/dongguk/trash/restore")
+async def restore_dongguk_article_from_trash(
+    request: Request,
+    body: DonggukTrashActionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    await db.execute(
+        delete(DonggukArticleTrash).where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == body.keyword_id,
+            DonggukArticleTrash.mail_date == body.mail_date,
+            DonggukArticleTrash.article_id == body.article_id,
+        )
+    )
+    await db.commit()
+    return success_response(request=request, data={"restored": True, "article_id": body.article_id})
+
+
+@router.post("/dongguk/trash/delete")
+async def permanently_delete_dongguk_trashed_article(
+    request: Request,
+    body: DonggukTrashActionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    await db.execute(
+        delete(DonggukArticleTrash).where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == body.keyword_id,
+            DonggukArticleTrash.mail_date == body.mail_date,
+            DonggukArticleTrash.article_id == body.article_id,
+        )
+    )
+    service = ArticleService(db)
+    result = await service.delete_article(user_id=current_user.id, article_id=body.article_id)
+    await db.commit()
+    return success_response(request=request, data=result.model_dump())
+
+
+@router.post("/dongguk/email")
+async def send_dongguk_email(
+    request: Request,
+    body: DonggukEmailRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    mail_date = body.mail_date or _mail_date_from_subject(body.subject)
+    if body.use_current_articles:
+        preview_data = {"editor_used": False, "cached": True}
+        articles, excluded_articles = _dedupe_exact_dongguk_articles(body.articles)
+    else:
+        preview_data = await _build_dongguk_preview_result(
+            db=db,
+            current_user=current_user,
+            subject=body.subject,
+            mail_date=mail_date or "",
+            articles=body.articles,
+            exclude_similar_sent=body.exclude_similar_sent,
+            keyword_id=body.keyword_id,
+            priority_criteria=body.priority_criteria,
+        )
+        articles = [DonggukMailArticle(**article) for article in preview_data.get("articles") or []]
+        excluded_articles = [DonggukMailArticle(**article) for article in preview_data.get("excluded_articles") or []]
+    if not articles:
+        return success_response(
+            request=request,
+            data={
+                "sent_to": [],
+                "article_count": 0,
+                "excluded_count": len(excluded_articles),
+                "message": "오늘 발송할 신규 기사가 없습니다.",
+            },
+        )
+
+    effective_subject = f"[테스트] {body.subject}" if body.is_test else body.subject
+    html_body = _dongguk_email_html(body.subject, articles)
+    text_body = _dongguk_email_text(body.subject, articles)
+    delivery_body = _dongguk_delivery_body(body.subject, articles, excluded_articles, mail_date=mail_date)
+    hwpx_filename = _dongguk_hwpx_filename(body.subject, mail_date)
+    hwpx_bytes = _dongguk_hwpx_bytes(body.subject, articles)
+    email_service = EmailService()
+    email_service.send_html_email(
+        to_emails=[str(email) for email in body.to_emails],
+        subject=effective_subject,
+        html_body=html_body,
+        text_body=text_body,
+        from_name="동국대학교 홍보처",
+        attachments=[(hwpx_filename, hwpx_bytes, "application/vnd.hancom.hwpx")],
+    )
+    if not body.is_test:
+        sent_at = datetime.now(timezone.utc)
+        for email in body.to_emails:
+            db.add(
+                EmailDelivery(
+                    user_id=current_user.id,
+                    to_email=str(email),
+                    subject=body.subject,
+                    body=delivery_body,
+                    status="SENT",
+                    sent_at=sent_at,
+                )
+            )
+        await db.commit()
+    return success_response(
+        request=request,
+        data={
+            "sent_to": body.to_emails,
+            "article_count": len(articles),
+            "excluded_count": len(excluded_articles),
+            "editor_used": preview_data.get("editor_used"),
+            "cached": preview_data.get("cached"),
+            "is_test": body.is_test,
+            "message": "테스트 메일을 발송했습니다." if body.is_test else "홍보처 맞춤 메일을 발송했습니다.",
+        },
+    )
+
+
+@router.post("/dongguk/hwp")
+async def download_dongguk_hwp(
+    body: DonggukHwpRequest,
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    del current_user
+    hwpx = _dongguk_hwpx_bytes(body.subject, body.articles)
+    filename = _dongguk_hwpx_filename(body.subject, body.mail_date)
+    encoded_filename = quote(filename)
+    return StreamingResponse(
+        io.BytesIO(hwpx),
+        media_type="application/vnd.hancom.hwpx",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"},
+    )
+
+
+@router.post("/dongguk/link-preview")
+async def preview_dongguk_link(
+    request: Request,
+    body: DonggukLinkPreviewRequest,
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    del current_user
+    url = body.url.strip()
+    if not re.match(r"^https?://", url, re.I):
+        return success_response(
+            request=request,
+            data={
+                "title": "추가 기사",
+                "source": "직접 입력",
+                "summary": "URL을 확인할 수 없습니다. 제목과 요약을 직접 수정해 주세요.",
+                "url": url,
+                "links": [url] if url else [],
+            },
+        )
+
+    title = ""
+    source = ""
+    summary = ""
+    thumbnail_url = ""
+    try:
+        crawl_data = await TransNewsClient().crawl_article(url)
+        data = crawl_data.get("data") or {}
+        title = data.get("title") or data.get("headline") or ""
+        source = data.get("publisher") or data.get("source") or data.get("source_name") or ""
+        content = data.get("summary") or data.get("description") or data.get("content") or data.get("text") or ""
+        summary = re.sub(r"\s+", " ", str(content)).strip()[:240]
+        thumbnail_url = _extract_thumbnail_url(data) or ""
+    except Exception as exc:
+        print(f"Dongguk link preview fallback url={url}: {exc}")
+
+    if not source:
+        source = re.sub(r"^www\.", "", re.sub(r"^https?://", "", url).split("/")[0])
+    return success_response(
+        request=request,
+        data={
+            "title": title or f"{source} 추가 기사",
+            "source": source or "직접 입력",
+            "summary": summary or "추가한 링크입니다. 제목과 요약을 확인 후 수정해 주세요.",
+            "url": url,
+            "thumbnail_url": thumbnail_url,
+            "links": [url],
+        },
+    )
+
+
+async def deliver_dongguk_email_for_scheduler(
+    *,
+    db: AsyncSession,
+    current_user: User,
+    body: DonggukEmailRequest,
+) -> dict:
+    mail_date = body.mail_date or _mail_date_from_subject(body.subject)
+    preview_data = await _build_dongguk_preview_result(
+        db=db,
+        current_user=current_user,
+        subject=body.subject,
+        mail_date=mail_date or "",
+        articles=body.articles,
+        exclude_similar_sent=body.exclude_similar_sent,
+        keyword_id=body.keyword_id,
+        priority_criteria=body.priority_criteria,
+    )
+    articles = [DonggukMailArticle(**article) for article in preview_data.get("articles") or []]
+    excluded_articles = [DonggukMailArticle(**article) for article in preview_data.get("excluded_articles") or []]
+    if not articles:
+        return {
+            "sent_to": [],
+            "article_count": 0,
+            "excluded_count": len(excluded_articles),
+            "editor_used": preview_data.get("editor_used"),
+            "cached": preview_data.get("cached"),
+            "message": "no new articles",
+        }
+
+    html_body = _dongguk_email_html(body.subject, articles)
+    text_body = _dongguk_email_text(body.subject, articles)
+    delivery_body = _dongguk_delivery_body(
+        body.subject,
+        articles,
+        excluded_articles,
+        mail_date=mail_date,
+        keyword_id=body.keyword_id,
+    )
+    hwpx_filename = _dongguk_hwpx_filename(body.subject, mail_date)
+    hwpx_bytes = _dongguk_hwpx_bytes(body.subject, articles)
+    EmailService().send_html_email(
+        to_emails=[str(email) for email in body.to_emails],
+        subject=body.subject,
+        html_body=html_body,
+        text_body=text_body,
+        from_name="동국대학교 홍보처",
+        attachments=[(hwpx_filename, hwpx_bytes, "application/vnd.hancom.hwpx")],
+    )
+    sent_at = datetime.now(timezone.utc)
+    for email in body.to_emails:
+        db.add(
+            EmailDelivery(
+                user_id=current_user.id,
+                to_email=str(email),
+                subject=body.subject,
+                body=delivery_body,
+                status="SENT",
+                sent_at=sent_at,
+            )
+        )
+    await db.commit()
+    return {
+        "sent_to": body.to_emails,
+        "article_count": len(articles),
+        "excluded_count": len(excluded_articles),
+        "editor_used": preview_data.get("editor_used"),
+        "cached": preview_data.get("cached"),
+        "message": "sent",
+    }
+
+
+async def build_dongguk_auto_email_request(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    keyword_id: int,
+    to_emails: list[str],
+    mail_date: str,
+) -> DonggukEmailRequest | None:
+    keyword = await db.get(Keyword, keyword_id)
+    articles = await _dongguk_articles_for_keyword_date(
+        db,
+        user_id=user_id,
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+    )
+    if not articles:
+        return None
+    return DonggukEmailRequest(
+        to_emails=to_emails,
+        subject=_dongguk_mail_subject(mail_date),
+        keyword_id=keyword_id,
+        mail_date=mail_date,
+        exclude_similar_sent=True,
+        priority_criteria=_normalize_dongguk_priority_criteria(keyword.importance_criteria if keyword else None),
+        articles=articles,
+    )
+
+
+async def prebuild_dongguk_mail_drafts_for_scheduler(
+    db: AsyncSession,
+    *,
+    mail_date: str | None = None,
+    user_id: int | None = None,
+    keyword_ids: list[int] | None = None,
+) -> dict:
+    target_date = mail_date or datetime.now(KST).date().isoformat()
+    stmt = (
+        select(Keyword, User)
+        .join(User, User.id == Keyword.user_id)
+        .where(Keyword.is_active.is_(True))
+    )
+    if user_id is not None:
+        stmt = stmt.where(Keyword.user_id == user_id)
+    if keyword_ids:
+        stmt = stmt.where(Keyword.id.in_(keyword_ids))
+    elif user_id is None:
+        stmt = stmt.where(Keyword.email_auto_send.is_(True))
+    result = await db.execute(stmt)
+    rows = [
+        row for row in result.all()
+        if "동국" in str(getattr(row[0], "keyword_text", "") or getattr(row[0], "keyword", ""))
+    ]
+    built_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    for keyword, user in rows:
+        try:
+            subject = _dongguk_mail_subject(target_date)
+            existing_draft = await _get_dongguk_mail_draft(
+                db,
+                user_id=user.id,
+                keyword_id=keyword.id,
+                mail_date=target_date,
+            )
+            if existing_draft and existing_draft.preview_body:
+                skipped_count += 1
+                continue
+
+            articles = await _dongguk_articles_for_keyword_date(
+                db,
+                user_id=user.id,
+                keyword_id=keyword.id,
+                mail_date=target_date,
+            )
+            if not articles:
+                skipped_count += 1
+                continue
+
+            if existing_draft:
+                try:
+                    removed_keys = set(json.loads(existing_draft.removed_article_keys or "[]"))
+                except json.JSONDecodeError:
+                    removed_keys = set()
+                try:
+                    selected_keys = set(json.loads(existing_draft.selected_article_keys or "[]"))
+                except json.JSONDecodeError:
+                    selected_keys = set()
+                if selected_keys:
+                    articles = [
+                        article
+                        for index, article in enumerate(articles)
+                        if _dongguk_article_key(article, index) in selected_keys
+                    ]
+                if removed_keys:
+                    articles = [
+                        article
+                        for index, article in enumerate(articles)
+                        if _dongguk_article_key(article, index) not in removed_keys
+                    ]
+
+            if not articles:
+                skipped_count += 1
+                continue
+
+            preview_data = await _build_dongguk_preview_result(
+                db=db,
+                current_user=user,
+                subject=subject,
+                mail_date=target_date,
+                articles=articles,
+                exclude_similar_sent=True,
+                keyword_id=keyword.id,
+                priority_criteria=_normalize_dongguk_priority_criteria(keyword.importance_criteria),
+            )
+            selected_articles = [
+                DonggukMailArticle(**item)
+                for item in preview_data.get("articles", [])
+            ]
+            removed_articles = [
+                DonggukMailArticle(**item)
+                for item in preview_data.get("excluded_articles", [])
+            ]
+            await _save_dongguk_mail_draft(
+                db,
+                user_id=user.id,
+                keyword_id=keyword.id,
+                mail_date=target_date,
+                subject=subject,
+                selected_article_keys=[
+                    _dongguk_article_key(article, index)
+                    for index, article in enumerate(selected_articles)
+                ],
+                selected_articles=selected_articles,
+                removed_article_keys=[
+                    _dongguk_article_key(article, index)
+                    for index, article in enumerate(removed_articles)
+                ],
+                removed_articles=removed_articles,
+                preview_data=preview_data,
+            )
+            built_count += 1
+        except Exception as exc:
+            failed_count += 1
+            print(f"Dongguk prebuild draft failed keyword_id={getattr(keyword, 'id', None)}: {exc}")
+
+    return {
+        "mail_date": target_date,
+        "target_count": len(rows),
+        "built_count": built_count,
+        "skipped_count": skipped_count,
+        "failed_count": failed_count,
+    }
+
+
+@router.get("/dongguk/history")
+async def dongguk_history(
+    request: Request,
+    limit: int = Query(30, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    result = await db.execute(
+        select(EmailDelivery)
+        .where(EmailDelivery.user_id == current_user.id)
+        .where(EmailDelivery.status == "SENT")
+        .order_by(EmailDelivery.sent_at.desc().nullslast(), EmailDelivery.created_at.desc())
+        .limit(limit * 5)
+    )
+    deliveries = result.scalars().all()
+    grouped: dict[str, dict] = {}
+    recent_recipients: list[str] = []
+    for delivery in deliveries:
+        try:
+            payload = json.loads(delivery.body or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        if payload.get("type") != "DONGGUK_PR_DAILY":
+            continue
+        history_articles = [DonggukMailArticle(**article) for article in (payload.get("articles") or [])]
+        history_articles, history_duplicates = _dedupe_exact_dongguk_articles(history_articles)
+        history_excluded = [DonggukMailArticle(**article) for article in (payload.get("excluded_articles") or [])]
+        history_excluded.extend(history_duplicates)
+        key = f"{delivery.subject}|{delivery.sent_at or delivery.created_at}"
+        item = grouped.setdefault(
+            key,
+            {
+                "id": delivery.id,
+                "subject": delivery.subject,
+                "sent_at": delivery.sent_at or delivery.created_at,
+                "recipients": [],
+                "article_count": len(history_articles),
+                "excluded_count": len(history_excluded),
+                "articles": [article.model_dump() for article in history_articles],
+                "excluded_articles": [article.model_dump() for article in history_excluded],
+            },
+        )
+        item["recipients"].append(delivery.to_email)
+        if delivery.to_email not in recent_recipients:
+            recent_recipients.append(delivery.to_email)
+    items = list(grouped.values())[:limit]
+    return success_response(
+        request=request,
+        data={
+            "items": items,
+            "recent_recipients": recent_recipients[:12],
+        },
+    )
+
+
+@router.get("/dongguk/notifications")
+async def dongguk_notifications(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    items: list[dict] = []
+
+    crawl_result = await db.execute(
+        select(CrawlRun)
+        .where(CrawlRun.user_id == current_user.id)
+        .order_by(CrawlRun.finished_at.desc().nullslast(), CrawlRun.created_at.desc())
+        .limit(1)
+    )
+    crawl_run = crawl_result.scalars().first()
+    if crawl_run:
+        finished_at = crawl_run.finished_at or crawl_run.created_at
+        status_label = "완료" if crawl_run.status == "COMPLETED" else "진행 중"
+        items.append(
+            {
+                "id": f"crawl-{crawl_run.id}",
+                "type": "crawl",
+                "title": f"기사 수집 {status_label}",
+                "message": f"{crawl_run.article_count or 0}건 수집됨",
+                "created_at": finished_at.isoformat() if finished_at else None,
+                "read": False,
+            }
+        )
+
+    draft_result = await db.execute(
+        select(DonggukMailDraft)
+        .where(DonggukMailDraft.user_id == current_user.id)
+        .where(DonggukMailDraft.preview_body.is_not(None))
+        .order_by(DonggukMailDraft.updated_at.desc(), DonggukMailDraft.created_at.desc())
+        .limit(1)
+    )
+    draft = draft_result.scalars().first()
+    if draft:
+        try:
+            preview_data = json.loads(draft.preview_body or "{}")
+        except json.JSONDecodeError:
+            preview_data = {}
+        article_count = len(preview_data.get("articles") or [])
+        excluded_count = len(preview_data.get("excluded_articles") or [])
+        created_at = draft.updated_at or draft.created_at
+        items.append(
+            {
+                "id": f"dongguk-dify-{draft.id}",
+                "type": "dify",
+                "title": "Dify 우선순위 판정 완료",
+                "message": f"{draft.mail_date} 대표 기사 {article_count}건, 제외 {excluded_count}건",
+                "created_at": created_at.isoformat() if created_at else None,
+                "read": False,
+            }
+        )
+
+    items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+    return success_response(request=request, data={"items": items[:6]})
+
+
 @router.get("/daily")
 async def download_daily_report(
-    keyword_id: int | None = Query(None, description="특정 키워드 필터"),
+    keyword_id: int | None = Query(None, description="?뱀젙 ?ㅼ썙???꾪꽣"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -688,6 +2407,6 @@ async def send_daily_report_email(
         data={
             "sent_to": body.to_emails,
             "article_count": len(rows),
-            "message": f"{len(body.to_emails)}명에게 데일리 리포트를 발송했습니다.",
+            "message": f"{len(body.to_emails)}紐낆뿉寃??곗씪由?由ы룷?몃? 諛쒖넚?덉뒿?덈떎.",
         },
     )

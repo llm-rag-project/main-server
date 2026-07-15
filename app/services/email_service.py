@@ -21,6 +21,41 @@ class EmailService:
         if not self.user or not self.password:
             raise ValueError("SMTP 설정이 필요합니다. .env의 SMTP_USER, SMTP_PASSWORD를 확인해 주세요.")
 
+    def send_html_email(
+        self,
+        to_emails: list[str],
+        subject: str,
+        html_body: str,
+        text_body: str | None = None,
+        from_name: str = "News Intelligence",
+        attachments: list[tuple[str, bytes, str]] | None = None,
+    ) -> None:
+        self._check_config()
+
+        msg = MIMEMultipart("mixed")
+        msg["From"] = formataddr((from_name, self.from_addr))
+        msg["To"] = ", ".join(to_emails)
+        msg["Subject"] = subject
+
+        alternative = MIMEMultipart("alternative")
+        alternative.attach(MIMEText(text_body or "", "plain", "utf-8"))
+        alternative.attach(MIMEText(html_body, "html", "utf-8"))
+        msg.attach(alternative)
+
+        for filename, content, mime_type in attachments or []:
+            main_type, _, subtype = mime_type.partition("/")
+            attachment = MIMEBase(main_type or "application", subtype or "octet-stream")
+            attachment.set_payload(content)
+            encoders.encode_base64(attachment)
+            attachment.add_header("Content-Disposition", "attachment", filename=filename)
+            msg.attach(attachment)
+
+        with smtplib.SMTP(self.host, self.port) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(self.user, self.password)
+            server.sendmail(self.from_addr, to_emails, msg.as_string())
+
     def send_daily_report(
         self,
         to_emails: list[str],

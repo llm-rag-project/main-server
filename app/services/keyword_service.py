@@ -1,9 +1,15 @@
+from datetime import datetime, time, timedelta
+from zoneinfo import ZoneInfo
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import exists, func, or_, select
 
 from app.core.dify_knowledge_client import DifyKnowledgeClient
 from app.core.errors import ErrorCode, build_error
+from app.models.article import Article
 from app.models.dify_knowledge_document import DifyKnowledgeDocument
+from app.models.dongguk_article_trash import DonggukArticleTrash
+from app.models.article_match import ArticleMatch
 from app.models.user import User
 from app.repositories.keyword_repository import (
     create_keyword,
@@ -26,6 +32,16 @@ from app.schemas.keyword import (
     UpdateKeywordStatusResponse,
 )
 
+KST = ZoneInfo("Asia/Seoul")
+
+
+def _parse_send_time(value: str | None) -> tuple[int, int]:
+    try:
+        hour_text, minute_text = (value or "08:30")[:5].split(":")
+        return max(0, min(23, int(hour_text))), max(0, min(59, int(minute_text)))
+    except Exception:
+        return 8, 30
+
 
 def _pack_recipients(recipients: list[str] | None) -> str | None:
     if not recipients:
@@ -42,6 +58,7 @@ def _unpack_recipients(value: str | None) -> list[str]:
 
 def _keyword_settings(item) -> dict:
     return {
+        "dashboard_mode": item.dashboard_mode,
         "client_name": item.client_name,
         "group_name": item.group_name,
         "monitoring_type": item.monitoring_type,
@@ -64,6 +81,7 @@ async def create_user_keyword(
     current_user: User,
     keyword: str,
     language: str | None = None,
+    dashboard_mode: str = "general",
     client_name: str | None = None,
     group_name: str | None = None,
     monitoring_type: str = "brand",
@@ -105,6 +123,7 @@ async def create_user_keyword(
         user_id=current_user.id,
         keyword_text=normalized_keyword,
         language=final_language,
+        dashboard_mode=dashboard_mode,
         client_name=client_name.strip() if client_name else None,
         group_name=group_name.strip() if group_name else None,
         monitoring_type=monitoring_type,
@@ -142,6 +161,7 @@ async def get_my_keywords(
     is_active: bool | None = None,
     language: str | None = None,
     q: str | None = None,
+    dashboard_mode: str | None = None,
 ) -> KeywordListResponse:
     items, total = await list_user_keywords(
         db=db,
@@ -151,7 +171,50 @@ async def get_my_keywords(
         is_active=is_active,
         language=language,
         q=q,
+        dashboard_mode=dashboard_mode,
     )
+    keyword_ids = [item.id for item in items]
+    article_counts: dict[int, int] = {}
+    if keyword_ids:
+        today = datetime.now(KST).date()
+        today_start = datetime.combine(today, time.min, tzinfo=KST)
+        today_end = datetime.combine(today, time.max, tzinfo=KST)
+        if dashboard_mode == "dongguk":
+            for item in items:
+                hour, minute = _parse_send_time(item.email_send_time)
+                window_start = datetime.combine(today - timedelta(days=1), time(hour, minute), tzinfo=KST)
+                window_end = datetime.combine(today, time(hour, minute), tzinfo=KST)
+                result = await db.execute(
+                    select(func.count(func.distinct(Article.id)))
+                    .select_from(ArticleMatch)
+                    .join(Article, Article.id == ArticleMatch.article_id)
+                    .where(ArticleMatch.keyword_id == item.id)
+                    .where(
+                        ~exists(
+                            select(DonggukArticleTrash.id).where(
+                                DonggukArticleTrash.user_id == current_user.id,
+                                DonggukArticleTrash.keyword_id == ArticleMatch.keyword_id,
+                                DonggukArticleTrash.mail_date == today.isoformat(),
+                                DonggukArticleTrash.article_id == Article.id,
+                            )
+                        )
+                    )
+                    .where(
+                        or_(
+                            Article.published_at.between(window_start, window_end),
+                            ArticleMatch.matched_at.between(today_start, today_end),
+                        )
+                    )
+                )
+                article_counts[item.id] = int(result.scalar_one() or 0)
+        else:
+            result = await db.execute(
+                select(ArticleMatch.keyword_id, func.count(func.distinct(ArticleMatch.article_id)))
+                .where(ArticleMatch.keyword_id.in_(keyword_ids))
+                .where(ArticleMatch.matched_at >= today_start)
+                .group_by(ArticleMatch.keyword_id)
+            )
+            article_counts = {int(keyword_id): int(count) for keyword_id, count in result.all()}
 
     return KeywordListResponse(
         items=[
@@ -160,6 +223,7 @@ async def get_my_keywords(
                 keyword=item.keyword_text,
                 language=item.language,
                 is_active=item.is_active,
+                article_count=article_counts.get(item.id, 0),
                 **_keyword_settings(item),
                 created_at=item.created_at,
             )
@@ -181,6 +245,7 @@ async def patch_keyword_is_active(
     keyword_id: int,
     is_active: bool | None = None,
     keyword_text: str | None = None,
+    dashboard_mode: str | None = None,
     client_name: str | None = None,
     group_name: str | None = None,
     monitoring_type: str | None = None,
@@ -216,6 +281,7 @@ async def patch_keyword_is_active(
         value is not None
         for value in (
             keyword_text,
+            dashboard_mode,
             client_name,
             group_name,
             monitoring_type,
@@ -257,6 +323,7 @@ async def patch_keyword_is_active(
             db=db,
             keyword=keyword,
             keyword_text=normalized_keyword,
+            dashboard_mode=dashboard_mode or keyword.dashboard_mode,
             client_name=client_name.strip() if client_name else None,
             group_name=group_name.strip() if group_name else None,
             monitoring_type=monitoring_type or keyword.monitoring_type,
@@ -401,6 +468,7 @@ async def batch_create_user_keywords(
     group_name: str | None = None,
     monitoring_type: str = "brand",
     priority_level: str = "normal",
+    dashboard_mode: str = "general",
     importance_criteria: str | None = None,
 ) -> BatchCreateKeywordResponse:
     final_language = language or current_user.default_language
@@ -471,6 +539,7 @@ async def batch_create_user_keywords(
             user_id=current_user.id,
             keyword_text=normalized_keyword,
             language=final_language,
+            dashboard_mode=dashboard_mode,
             client_name=client_name.strip() if client_name else None,
             group_name=group_name.strip() if group_name else None,
             monitoring_type=monitoring_type,
