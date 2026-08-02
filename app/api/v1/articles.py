@@ -1,4 +1,7 @@
-from datetime import datetime, timezone
+import asyncio
+import logging
+import time
+from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, Query, Request
@@ -13,13 +16,19 @@ from app.models.article_match import ArticleMatch
 from app.models.keyword import Keyword
 from app.models.user import User
 import app.schemas.articles
-from app.core.transnews_client import TransNewsClient
+from app.core.transnews_client import TransNewsClient, TransNewsClientError
 from app.services.auto_ai_service import AutoAiService
 from app.services.article_service import ArticleService
 from app.services.article_identity import canonicalize_article_url, content_fingerprint
 from app.services.importance_service import ImportanceService
 
 router = APIRouter(prefix="/articles", tags=["articles"])
+logger = logging.getLogger(__name__)
+WEB_SEARCH_CACHE_TTL_SECONDS = 300
+WEB_SEARCH_CACHE_MAX_ITEMS = 64
+WEB_SEARCH_FETCH_LIMIT = 50
+_web_search_cache: dict[tuple, tuple[float, dict]] = {}
+_web_search_inflight: dict[tuple, asyncio.Task] = {}
 
 
 class ArticleThumbnailRefreshRequest(BaseModel):
@@ -87,11 +96,22 @@ def _clean_text(value: object, limit: int | None = None) -> str:
     return text[:limit] if limit else text
 
 
+def _clean_search_summary(value: object, limit: int = 500) -> str | None:
+    text = _clean_text(value, limit)
+    if not text:
+        return None
+    replacement_count = text.count("\ufffd")
+    if replacement_count >= 3 or replacement_count / max(len(text), 1) > 0.01:
+        return None
+    return text
+
+
 @router.get("")
 async def get_articles(
     request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    include_total: bool = Query(True),
     keyword_id: int | None = Query(None, ge=1),
     q: str | None = Query(None),
     language: app.schemas.articles.ArticleLanguage | None = Query(None),
@@ -114,6 +134,7 @@ async def get_articles(
     query = app.schemas.articles.ArticleListQuery(
         page=page,
         size=size,
+        include_total=include_total,
         keyword_id=keyword_id,
         q=q,
         language=language,
@@ -167,6 +188,7 @@ async def create_article_from_url(
     client = TransNewsClient()
     crawl_data = await client.crawl_article(url)
     data = crawl_data.get("data") or crawl_data
+    resolved_url = _clean_text(data.get("url") or data.get("original_url") or url)
 
     title = _clean_text(
         data.get("title")
@@ -195,17 +217,20 @@ async def create_article_from_url(
     thumbnail_url = _extract_thumbnail_url(data)
     language = data.get("language") or "ko"
 
-    canonical_url = canonicalize_article_url(url)
+    canonical_url = canonicalize_article_url(resolved_url)
     fingerprint = content_fingerprint(content)
     result = await db.execute(
         select(Article).where(
-            (Article.url == url) | (Article.canonical_url == canonical_url)
+            (Article.url == url)
+            | (Article.url == resolved_url)
+            | (Article.canonical_url == canonical_url)
         ).limit(1)
     )
     article = result.scalar_one_or_none()
     created = False
 
     if article:
+        article.url = resolved_url
         article.title = title or article.title
         article.publisher = publisher or article.publisher
         article.language = article.language or language
@@ -214,13 +239,13 @@ async def create_article_from_url(
             article.content = content
         if thumbnail_url and not article.thumbnail_url:
             article.thumbnail_url = thumbnail_url
-        article.canonical_url = article.canonical_url or canonical_url
+        article.canonical_url = canonical_url
         article.content_fingerprint = article.content_fingerprint or fingerprint
     else:
         article = Article(
             source_type="MANUAL_URL",
             source_article_id=None,
-            url=url,
+            url=resolved_url,
             canonical_url=canonical_url,
             content_fingerprint=fingerprint,
             title=title,
@@ -265,6 +290,124 @@ async def create_article_from_url(
     )
 
 
+async def search_web_news(
+    request: Request,
+    q: str = Query(..., min_length=2, max_length=100),
+    page: int = Query(1, ge=1, le=10),
+    size: int = Query(10, ge=1, le=20),
+    sort: app.schemas.articles.WebNewsSort = Query(app.schemas.articles.WebNewsSort.relevance),
+    from_date: date | None = Query(None, alias="from"),
+    to_date: date | None = Query(None, alias="to"),
+    publisher: str | None = Query(None, max_length=100),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    del current_user  # Authentication is required even though search itself is not user-specific.
+    if from_date and to_date and from_date > to_date:
+        raise build_error(ErrorCode.VALIDATION_ERROR, "시작일은 종료일보다 늦을 수 없습니다.")
+    if from_date and to_date and (to_date - from_date).days > 31:
+        raise build_error(ErrorCode.VALIDATION_ERROR, "웹 검색 기간은 최대 31일입니다.")
+
+    fetch_limit = WEB_SEARCH_FETCH_LIMIT
+    search_key = (
+        q.strip().casefold(),
+        from_date.isoformat() if from_date else "",
+        to_date.isoformat() if to_date else "",
+        sort.value,
+    )
+    now = time.monotonic()
+    cached = _web_search_cache.get(search_key)
+    if cached and now - cached[0] <= WEB_SEARCH_CACHE_TTL_SECONDS:
+        result = cached[1]
+    else:
+        try:
+            task = _web_search_inflight.get(search_key)
+            if task is None or task.done():
+                task = asyncio.create_task(
+                    TransNewsClient().search_news(
+                        q.strip(),
+                        published_after=from_date.isoformat() if from_date else None,
+                        published_before=to_date.isoformat() if to_date else None,
+                        limit=fetch_limit,
+                        include_empty_content=True,
+                        timeout_seconds=15,
+                        discovery_only=True,
+                        search_sort=sort.value,
+                    )
+                )
+                _web_search_inflight[search_key] = task
+            result = await asyncio.shield(task)
+        except TransNewsClientError as exc:
+            raise build_error(ErrorCode.UPSTREAM_ERROR, f"뉴스 검색 서버 오류: {exc}") from exc
+        except Exception as exc:
+            logger.exception("web news search failed")
+            raise build_error(ErrorCode.UPSTREAM_ERROR, "뉴스 검색 서버에 연결할 수 없습니다.") from exc
+        finally:
+            active_task = _web_search_inflight.get(search_key)
+            if active_task is not None and active_task.done():
+                _web_search_inflight.pop(search_key, None)
+        if len(_web_search_cache) >= WEB_SEARCH_CACHE_MAX_ITEMS:
+            oldest_key = min(_web_search_cache, key=lambda key: _web_search_cache[key][0])
+            _web_search_cache.pop(oldest_key, None)
+        _web_search_cache[search_key] = (now, result)
+
+    normalized: list[dict] = []
+    seen_urls: set[str] = set()
+    publisher_filter = (publisher or "").strip().lower()
+    for item in result.get("data") or []:
+        url = _clean_text(
+            item.get("original_url")
+            or item.get("article_link")
+            or item.get("link")
+        )
+        if not url or not url.startswith(("http://", "https://")):
+            continue
+        canonical_url = canonicalize_article_url(url)
+        if canonical_url in seen_urls:
+            continue
+        source = _clean_text(item.get("source_name") or item.get("publisher") or item.get("source"), 255)
+        if publisher_filter and publisher_filter not in (source or "").lower():
+            continue
+        published_at = _parse_manual_published_at(item)
+        if from_date and published_at and published_at.date() < from_date:
+            continue
+        if to_date and published_at and published_at.date() > to_date:
+            continue
+        seen_urls.add(canonical_url)
+        normalized.append(
+            {
+                "title": _clean_text(item.get("title") or "제목 없음"),
+                "source": source or None,
+                "published_at": published_at,
+                "summary": _clean_search_summary(
+                    item.get("content") or item.get("summary") or item.get("description")
+                ),
+                "url": url,
+                "thumbnail_url": _extract_thumbnail_url(item),
+            }
+        )
+
+    if sort == app.schemas.articles.WebNewsSort.latest:
+        normalized.sort(
+            key=lambda item: item.get("published_at") or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True,
+        )
+
+    offset = (page - 1) * size
+    items = normalized[offset:offset + size]
+    response = app.schemas.articles.WebNewsSearchResponse(
+        items=[app.schemas.articles.WebNewsSearchItem(**item) for item in items],
+        page_info=app.schemas.articles.PageInfo(
+            page=page,
+            size=size,
+            total=len(normalized),
+            has_next=(offset + size) < len(normalized),
+        ),
+        query=q.strip(),
+        sort=sort,
+    )
+    return success_response(request=request, data=response.model_dump())
+
+
 @router.get("/{article_id}")
 async def get_article_detail(
     article_id: int,
@@ -284,33 +427,64 @@ async def refresh_article_thumbnails(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
-    service = ArticleService(db)
     client = TransNewsClient()
     refreshed: dict[str, str] = {}
     article_ids = list(dict.fromkeys(body.article_ids))[:30]
+    if not article_ids:
+        return success_response(request=request, data={"items": refreshed, "attempted_count": 0})
 
-    for article_id in article_ids:
-        if not await service.article_repository.has_article_access(current_user.id, article_id):
-            continue
-        article = await service.get_article_by_id(article_id)
-        if not article:
-            continue
+    result = await db.execute(
+        select(Article)
+        .join(ArticleMatch, ArticleMatch.article_id == Article.id)
+        .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+        .where(
+            Article.id.in_(article_ids),
+            Keyword.user_id == current_user.id,
+        )
+        .distinct()
+    )
+    articles_by_id = {article.id: article for article in result.scalars().all()}
+    articles = [articles_by_id[article_id] for article_id in article_ids if article_id in articles_by_id]
+    retry_after = datetime.now(timezone.utc) - timedelta(hours=6)
+    pending: list[Article] = []
+
+    for article in articles:
         if article.thumbnail_url:
             refreshed[str(article.id)] = article.thumbnail_url
             continue
+        if article.thumbnail_checked_at and article.thumbnail_checked_at >= retry_after:
+            continue
+        pending.append(article)
+
+    semaphore = asyncio.Semaphore(5)
+
+    async def fetch_thumbnail(article: Article) -> tuple[Article, str | None]:
         try:
-            crawl_data = await client.crawl_article(article.url)
-            data = crawl_data.get("data") or crawl_data
-            thumbnail_url = _extract_thumbnail_url(data)
+            async with semaphore:
+                crawl_data = await client.crawl_article(article.url)
+                data = crawl_data.get("data") or crawl_data
+                return article, _extract_thumbnail_url(data)
         except Exception as exc:
-            print(f"thumbnail refresh failed article_id={article_id}: {exc}")
-            thumbnail_url = None
+            logger.info("thumbnail refresh failed article_id=%s: %s", article.id, exc)
+            return article, None
+
+    fetched = await asyncio.gather(*(fetch_thumbnail(article) for article in pending))
+    checked_at = datetime.now(timezone.utc)
+    for article, thumbnail_url in fetched:
+        article.thumbnail_checked_at = checked_at
         if thumbnail_url:
             article.thumbnail_url = thumbnail_url
             refreshed[str(article.id)] = thumbnail_url
 
     await db.commit()
-    return success_response(request=request, data={"items": refreshed})
+    return success_response(
+        request=request,
+        data={
+            "items": refreshed,
+            "attempted_count": len(pending),
+            "skipped_recent_count": len(articles) - len(pending) - len(refreshed),
+        },
+    )
 
 
 @router.get("/{article_id}/feedback")
@@ -351,10 +525,10 @@ async def delete_article(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
-    service = ArticleService(db)
-    result = await service.delete_article(user_id=current_user.id, article_id=article_id)
-    await db.commit()
-    return success_response(request, data=result.model_dump())
+    raise build_error(
+        ErrorCode.VALIDATION_ERROR,
+        "기사 삭제는 먼저 휴지통으로 이동한 뒤 휴지통 화면에서 영구 삭제해 주세요.",
+    )
 
 
 @router.get("/{article_id}/importance")

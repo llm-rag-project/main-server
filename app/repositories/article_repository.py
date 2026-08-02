@@ -9,6 +9,7 @@ from app.core.errors import ErrorCode, build_error
 from app.models.article import Article
 from app.models.article_analysis import ArticleAnalysis
 from app.models.article_match import ArticleMatch
+from app.models.dongguk_article_trash import DonggukArticleTrash
 from app.models.feedback import Feedback
 from app.models.importance_score import ImportanceScore
 from app.models.keyword import Keyword
@@ -30,19 +31,13 @@ class ArticleRepository:
         user_id: int,
         query: ArticleListQuery,
     ) -> Tuple[List[Dict[str, Any]], int]:
-        latest_summary_subq = (
-            select(
-                Summary.article_id.label("article_id"),
-                Summary.summary_text.label("summary_text"),
-                Summary.language.label("summary_language"),
-                func.row_number()
-                .over(
-                    partition_by=Summary.article_id,
-                    order_by=Summary.created_at.desc(),
-                )
-                .label("rn"),
-            )
-            .subquery()
+        latest_summary_expr = (
+            select(Summary.summary_text)
+            .where(Summary.article_id == Article.id)
+            .order_by(Summary.created_at.desc())
+            .limit(1)
+            .correlate(Article)
+            .scalar_subquery()
         )
 
         latest_importance_subq = (
@@ -52,25 +47,37 @@ class ArticleRepository:
                 ImportanceScore.score.label("score"),
                 ImportanceScore.status.label("status"),
                 ImportanceScore.created_at.label("scored_at"),
-                func.row_number()
-                .over(
-                    partition_by=(ImportanceScore.article_id, ImportanceScore.user_id),
-                    order_by=ImportanceScore.created_at.desc(),
-                )
-                .label("rn"),
             )
+            .where(ImportanceScore.is_current.is_(True))
             .subquery()
         )
 
-        matched_keyword_subq = (
-            select(
-                ArticleMatch.article_id.label("article_id"),
-                func.min(ArticleMatch.keyword_id).label("keyword_id"),
+        if query.keyword_id:
+            matched_keyword_expr = literal(query.keyword_id)
+        else:
+            matched_keyword_expr = (
+                select(func.min(ArticleMatch.keyword_id))
+                .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                .where(
+                    ArticleMatch.article_id == Article.id,
+                    Keyword.user_id == user_id,
+                )
+                .correlate(Article)
+                .scalar_subquery()
             )
+
+        matched_at_conditions = [
+            ArticleMatch.article_id == Article.id,
+            Keyword.user_id == user_id,
+        ]
+        if query.keyword_id:
+            matched_at_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
+        matched_at_expr = (
+            select(func.max(ArticleMatch.matched_at))
             .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-            .where(Keyword.user_id == user_id)
-            .group_by(ArticleMatch.article_id)
-            .subquery()
+            .where(*matched_at_conditions)
+            .correlate(Article)
+            .scalar_subquery()
         )
 
         has_feedback_expr = exists(
@@ -92,73 +99,72 @@ class ArticleRepository:
             )
         )
 
+        access_conditions = [
+            ArticleMatch.article_id == Article.id,
+            Keyword.user_id == user_id,
+        ]
+        if query.keyword_id:
+            access_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
         accessible_articles_expr = exists(
             select(literal(1))
             .select_from(ArticleMatch)
             .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-            .where(
-                ArticleMatch.article_id == Article.id,
-                Keyword.user_id == user_id,
-            )
+            .where(*access_conditions)
+        )
+        trash_conditions = [
+            DonggukArticleTrash.user_id == user_id,
+            DonggukArticleTrash.article_id == Article.id,
+        ]
+        if query.keyword_id:
+            trash_conditions.append(DonggukArticleTrash.keyword_id == query.keyword_id)
+        is_trashed_expr = exists(
+            select(literal(1))
+            .select_from(DonggukArticleTrash)
+            .where(*trash_conditions)
         )
 
         stmt = (
             select(
                 Article.id,
                 Article.title,
-                latest_summary_subq.c.summary_text.label("summary"),
+                latest_summary_expr.label("summary"),
                 Article.url,
                 Article.thumbnail_url,
                 Article.publisher.label("source"),
+                Article.collection_source,
                 Article.language,
                 Article.published_at,
-                matched_keyword_subq.c.keyword_id,
+                Article.created_at.label("collected_at"),
+                matched_at_expr.label("matched_at"),
+                matched_keyword_expr.label("keyword_id"),
                 latest_importance_subq.c.score.label("importance"),
                 case((is_liked_expr, True), else_=False).label("is_liked"),
                 case((has_feedback_expr, True), else_=False).label("has_feedback"),
                 ArticleAnalysis.sentiment,
                 ArticleAnalysis.is_promotion,
+                Article.section,
+                Article.pool,
+                Article.source_type,
+                Article.category,
+                Article.trusted_source,
+                Article.priority_boost,
+                Article.board,
+                Article.board_name,
             )
             .select_from(Article)
-            .outerjoin(
-                latest_summary_subq,
-                and_(
-                    latest_summary_subq.c.article_id == Article.id,
-                    latest_summary_subq.c.rn == 1,
-                ),
-            )
             .outerjoin(
                 latest_importance_subq,
                 and_(
                     latest_importance_subq.c.article_id == Article.id,
                     latest_importance_subq.c.user_id == user_id,
-                    latest_importance_subq.c.rn == 1,
                 ),
-            )
-            .outerjoin(
-                matched_keyword_subq,
-                matched_keyword_subq.c.article_id == Article.id,
             )
             .outerjoin(
                 ArticleAnalysis,
                 ArticleAnalysis.article_id == Article.id,
             )
-            .where(accessible_articles_expr)
+            .where(accessible_articles_expr, ~is_trashed_expr)
         )
-
-        if query.keyword_id:
-            stmt = stmt.where(
-                exists(
-                    select(literal(1))
-                    .select_from(ArticleMatch)
-                    .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-                    .where(
-                        ArticleMatch.article_id == Article.id,
-                        ArticleMatch.keyword_id == query.keyword_id,
-                        Keyword.user_id == user_id,
-                    )
-                )
-            )
 
         if query.q:
             like_expr = f"%{query.q.strip()}%"
@@ -166,7 +172,7 @@ class ArticleRepository:
                 or_(
                     Article.title.ilike(like_expr),
                     Article.content.ilike(like_expr),
-                    latest_summary_subq.c.summary_text.ilike(like_expr),
+                    latest_summary_expr.ilike(like_expr),
                 )
             )
 
@@ -233,9 +239,10 @@ class ArticleRepository:
         if query.liked is not None:
             stmt = stmt.where(is_liked_expr if query.liked else ~is_liked_expr)
 
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-        total = await self.db.scalar(count_stmt)
-        total = total or 0
+        total = 0
+        if query.include_total:
+            count_stmt = select(func.count()).select_from(stmt.subquery())
+            total = await self.db.scalar(count_stmt) or 0
 
         sort_map = {
             "published_at_desc": Article.published_at.desc().nullslast(),
@@ -271,22 +278,20 @@ class ArticleRepository:
 
         result = await self.db.execute(stmt)
         rows = result.mappings().all()
+        if not query.include_total:
+            loaded = (query.page - 1) * query.size + len(rows)
+            total = loaded + (1 if len(rows) == query.size else 0)
 
         return [dict(row) for row in rows], total
 
     async def get_article_detail(self, user_id: int, article_id: int) -> Optional[Dict[str, Any]]:
-        latest_summary_subq = (
-            select(
-                Summary.article_id.label("article_id"),
-                Summary.summary_text.label("summary_text"),
-                func.row_number()
-                .over(
-                    partition_by=Summary.article_id,
-                    order_by=Summary.created_at.desc(),
-                )
-                .label("rn"),
-            )
-            .subquery()
+        latest_summary_expr = (
+            select(Summary.summary_text)
+            .where(Summary.article_id == Article.id)
+            .order_by(Summary.created_at.desc())
+            .limit(1)
+            .correlate(Article)
+            .scalar_subquery()
         )
 
         latest_importance_subq = (
@@ -294,13 +299,8 @@ class ArticleRepository:
                 ImportanceScore.article_id.label("article_id"),
                 ImportanceScore.user_id.label("user_id"),
                 ImportanceScore.score.label("score"),
-                func.row_number()
-                .over(
-                    partition_by=(ImportanceScore.article_id, ImportanceScore.user_id),
-                    order_by=ImportanceScore.created_at.desc(),
-                )
-                .label("rn"),
             )
+            .where(ImportanceScore.is_current.is_(True))
             .subquery()
         )
 
@@ -323,29 +323,30 @@ class ArticleRepository:
             )
         )
 
-        matched_keyword_subq = (
-            select(
-                ArticleMatch.article_id.label("article_id"),
-                func.min(ArticleMatch.keyword_id).label("keyword_id"),
-            )
+        matched_keyword_expr = (
+            select(func.min(ArticleMatch.keyword_id))
             .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-            .where(Keyword.user_id == user_id)
-            .group_by(ArticleMatch.article_id)
-            .subquery()
+            .where(
+                ArticleMatch.article_id == Article.id,
+                Keyword.user_id == user_id,
+            )
+            .correlate(Article)
+            .scalar_subquery()
         )
 
         stmt = (
             select(
                 Article.id,
                 Article.title,
-                latest_summary_subq.c.summary_text.label("summary"),
+                latest_summary_expr.label("summary"),
                 Article.content,
                 Article.url,
                 Article.thumbnail_url,
                 Article.publisher.label("source"),
+                Article.collection_source,
                 Article.language,
                 Article.published_at,
-                matched_keyword_subq.c.keyword_id,
+                matched_keyword_expr.label("keyword_id"),
                 latest_importance_subq.c.score.label("importance"),
                 case((is_liked_expr, True), else_=False).label("is_liked"),
                 case((has_feedback_expr, True), else_=False).label("has_feedback"),
@@ -353,23 +354,11 @@ class ArticleRepository:
             )
             .select_from(Article)
             .outerjoin(
-                latest_summary_subq,
-                and_(
-                    latest_summary_subq.c.article_id == Article.id,
-                    latest_summary_subq.c.rn == 1,
-                ),
-            )
-            .outerjoin(
                 latest_importance_subq,
                 and_(
                     latest_importance_subq.c.article_id == Article.id,
                     latest_importance_subq.c.user_id == user_id,
-                    latest_importance_subq.c.rn == 1,
                 ),
-            )
-            .outerjoin(
-                matched_keyword_subq,
-                matched_keyword_subq.c.article_id == Article.id,
             )
             .where(Article.id == article_id)
         )

@@ -39,4 +39,5 @@ class ArticleMatch(Base):
         UniqueConstraint("article_id", "keyword_id", name="uq_article_matches_article_keyword"),
         Index("ix_article_matches_keyword", "keyword_id"),
         Index("ix_article_matches_article", "article_id"),
+        Index("ix_article_matches_keyword_matched_at", "keyword_id", "matched_at", "article_id"),
     )

@@ -1,10 +1,12 @@
 import json
 from typing import Any
 import re
+import time
 
 import httpx
 
 from app.core.config import settings
+from app.core.metrics import observe_external_request
 from app.core.dify_knowledge_client import DifyKnowledgeClient, DifyKnowledgeClientError
 from app.models.article import Article
 
@@ -29,6 +31,7 @@ class DifyService:
         scoring_workflow_api_key: str,
         analysis_workflow_api_key: str = "",
         news_editor_workflow_api_key: str = "",
+        priority_insight_workflow_api_key: str = "",
         timeout: float = 30.0,
     ):
         self.base_url = base_url.rstrip("/")
@@ -37,6 +40,7 @@ class DifyService:
         self.scoring_workflow_api_key = scoring_workflow_api_key
         self.analysis_workflow_api_key = analysis_workflow_api_key
         self.news_editor_workflow_api_key = news_editor_workflow_api_key
+        self.priority_insight_workflow_api_key = priority_insight_workflow_api_key
         self.timeout = timeout
 
     async def _post(self, path: str, api_key: str, payload: dict) -> dict:
@@ -45,24 +49,48 @@ class DifyService:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
+        operation = "chat"
+        if path != "/chat-messages":
+            operation = "workflow"
+            key_names = (
+                (self.summary_workflow_api_key, "summary"),
+                (self.scoring_workflow_api_key, "scoring"),
+                (self.analysis_workflow_api_key, "analysis"),
+                (self.news_editor_workflow_api_key, "news_editor"),
+                (self.priority_insight_workflow_api_key, "priority_insight"),
+            )
+            operation = next((name for key, name in key_names if key and key == api_key), operation)
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            try:
-                response = await client.post(url, headers=headers, json=payload)
-            except httpx.TimeoutException as e:
-                raise RuntimeError(f"DIFY_TIMEOUT: {e}") from e
-            except httpx.HTTPError as e:
-                raise RuntimeError(f"DIFY_CONNECTION_ERROR: {e}") from e
-
+        started_at = time.perf_counter()
+        metric_status = "error"
         try:
-            detail = response.json()
-        except Exception:
-            detail = response.text
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, headers=headers, json=payload)
 
-        if response.status_code >= 400:
-            raise RuntimeError(f"DIFY_ERROR status={response.status_code}, detail={detail}")
+            try:
+                detail = response.json()
+            except Exception:
+                detail = response.text
 
-        return detail
+            if response.status_code >= 400:
+                metric_status = "http_error"
+                raise RuntimeError(f"DIFY_ERROR status={response.status_code}, detail={detail}")
+
+            metric_status = "success"
+            return detail
+        except httpx.TimeoutException as exc:
+            metric_status = "timeout"
+            raise RuntimeError(f"DIFY_TIMEOUT: {exc}") from exc
+        except httpx.HTTPError as exc:
+            metric_status = "connection_error"
+            raise RuntimeError(f"DIFY_CONNECTION_ERROR: {exc}") from exc
+        finally:
+            observe_external_request(
+                service="dify",
+                operation=operation,
+                status=metric_status,
+                started_at=started_at,
+            )
 
     async def send_chat_message(
         self,
@@ -383,6 +411,64 @@ class DifyService:
             "excluded_articles": raw_result.get("excluded_articles") or [],
         }
 
+    async def run_priority_insight_workflow(
+        self,
+        *,
+        period_key: str,
+        cadence: str,
+        current_priority_criteria: str,
+        action_summary_json: str,
+        action_samples_json: str,
+        max_changes: int,
+        user: str,
+    ) -> dict:
+        if not self.priority_insight_workflow_api_key:
+            raise RuntimeError("PRIORITY_INSIGHT_WORKFLOW_API_KEY is not configured")
+        payload = {
+            "inputs": {
+                "period_key": period_key,
+                "cadence": cadence,
+                "current_priority_criteria": current_priority_criteria,
+                "action_summary_json": action_summary_json,
+                "action_samples_json": action_samples_json,
+                "max_changes": max_changes,
+            },
+            "response_mode": "blocking",
+            "user": user,
+        }
+        data = await self._post("/workflows/run", self.priority_insight_workflow_api_key, payload)
+        result_data = data.get("data") or {}
+        outputs = result_data.get("outputs") or {}
+        raw_result = (
+            outputs.get("result_json")
+            or outputs.get("result")
+            or outputs.get("output")
+            or outputs.get("text")
+        )
+        if isinstance(raw_result, str):
+            raw_result = json.loads(raw_result)
+        if isinstance(raw_result, dict) and isinstance(raw_result.get("data"), dict):
+            raw_result = raw_result["data"]
+        if not isinstance(raw_result, dict):
+            raise DifyWorkflowError(
+                "INVALID_LLM_JSON",
+                "Priority insight workflow must return a JSON object",
+                status_code=502,
+            )
+        changes = raw_result.get("changes")
+        if not isinstance(changes, list):
+            raise DifyWorkflowError(
+                "INVALID_LLM_JSON",
+                "Priority insight workflow output must include a changes array",
+                status_code=502,
+            )
+        return {
+            "workflow_run_id": result_data.get("workflow_run_id"),
+            "summary": str(raw_result.get("summary") or "").strip(),
+            "rationale": str(raw_result.get("rationale") or "").strip(),
+            "changes": changes[:max_changes],
+        }
+
     @classmethod
     def from_settings(cls) -> "DifyService":
         return cls(
@@ -392,6 +478,7 @@ class DifyService:
             scoring_workflow_api_key=settings.scoring_workflow_api_key,
             analysis_workflow_api_key=settings.analysis_workflow_api_key,
             news_editor_workflow_api_key=settings.news_editor_workflow_api_key,
+            priority_insight_workflow_api_key=settings.priority_insight_workflow_api_key,
             timeout=settings.dify_request_timeout,
         )
 
@@ -412,9 +499,30 @@ class DifyArticleUploadService:
             raise DifyUploadError(f"article_id={article.id} 본문이 비어 있어 업로드할 수 없습니다.")
 
         try:
+            title = f"[{keyword_text}] {article.title}" if keyword_text else article.title or f"article-{article.id}"
+            existing_document = await self.knowledge_client.find_document_by_title(title=title)
+            if existing_document:
+                document_id = existing_document["id"]
+                await self.knowledge_client.attach_article_keyword_metadata(
+                    document_id=document_id,
+                    article_id=article.id,
+                    keyword_id=keyword_id,
+                    keyword_text=keyword_text,
+                )
+                return {
+                    "article_id": article.id,
+                    "keyword_id": keyword_id,
+                    "keyword_text": keyword_text,
+                    "dataset_id": self.knowledge_client.dataset_id,
+                    "document_id": document_id,
+                    "batch": existing_document.get("batch"),
+                    "status": "UPLOADED",
+                    "reused": True,
+                }
+
             # 기사 본문을 기반으로 Dify 문서 생성
             created = await self.knowledge_client.create_document_by_text(
-                title=f"[{keyword_text}] {article.title}" if keyword_text else article.title or f"article-{article.id}",
+                title=title,
                 text=article.content,
             )
 

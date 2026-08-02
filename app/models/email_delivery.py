@@ -35,5 +35,7 @@ class EmailDelivery(Base, TimestampMixin):
         CheckConstraint("status IN ('QUEUED', 'SENT', 'FAIL')", name="chk_email_deliveries_status"),
         Index("ix_email_user_created_at", "user_id", "created_at"),
         Index("ix_email_status_sent_at", "status", "sent_at"),
+        Index("ix_email_user_status_sent_at", "user_id", "status", "sent_at"),
+        Index("ix_email_user_status_subject", "user_id", "status", "subject"),
         Index("ix_email_job", "job_id"),
     )

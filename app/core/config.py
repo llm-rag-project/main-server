@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     app_name: str = "News Monitoring API"
     api_v1_prefix: str = "/api/v1"
     debug: bool = True
+    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
 
     refresh_token_expire_days: int = 14
     database_url: str = Field(..., alias="DATABASE_URL")
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
     scoring_workflow_api_key: str = Field(..., alias="SCORING_WORKFLOW_API_KEY")
     analysis_workflow_api_key: str = Field(..., alias="ANALYSIS_WORKFLOW_API_KEY")
     news_editor_workflow_api_key: str = Field(default="", alias="NEWS_EDITOR_WORKFLOW_API_KEY")
+    priority_insight_workflow_api_key: str = Field(default="", alias="PRIORITY_INSIGHT_WORKFLOW_API_KEY")
 
     # Knowledge
     knowledge_api_key: str = Field(..., alias="KNOWLEDGE_API_KEY")

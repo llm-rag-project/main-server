@@ -5,7 +5,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 TRACKING_QUERY_KEYS = {
-    "cp", "from", "gclid", "fbclid", "medium", "ncid", "ocid", "ref",
+    "cp", "from", "gclid", "fbclid", "influxdiv", "medium", "ncid", "ocid", "ref",
     "source", "utm_campaign", "utm_content", "utm_medium", "utm_source", "utm_term",
 }
 ARTICLE_ID_KEYS = ("arcid", "idxno", "no", "article_id", "articleid", "aid", "id")

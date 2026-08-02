@@ -6,7 +6,7 @@ from app.core.config import settings
 #DB연결 객체(engine)을 만드는 코드
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.debug,
+    echo=settings.database_echo,
     future=True
 )
 #Session생성기(Factory)를 만드는 코드

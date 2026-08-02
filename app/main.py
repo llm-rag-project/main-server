@@ -2,16 +2,18 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.errors import AppError, ErrorCode
 from app.core.middleware import RequestIDMiddleware
 from app.core.response import error_response
+from app.core.transnews_client import TransNewsClient
 from app.db.base import Base
 from app.db.session import engine
 from app.services.crawl_scheduler_service import shutdown_scheduler, start_scheduler
@@ -25,10 +27,23 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS thumbnail_url TEXT"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS thumbnail_checked_at TIMESTAMP WITH TIME ZONE"))
         await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS canonical_url TEXT"))
         await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS content_fingerprint VARCHAR(64)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS collection_source VARCHAR(50)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS section VARCHAR(50)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS pool VARCHAR(80)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS category VARCHAR(80)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS trusted_source BOOLEAN"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS priority_boost DOUBLE PRECISION"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS board VARCHAR(80)"))
+        await conn.execute(text("ALTER TABLE articles ADD COLUMN IF NOT EXISTS board_name VARCHAR(255)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_articles_canonical_url ON articles(canonical_url)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_articles_content_fingerprint ON articles(content_fingerprint)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_articles_created_at ON articles(created_at)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_article_matches_keyword_matched_at ON article_matches(keyword_id, matched_at, article_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_email_user_status_sent_at ON email_deliveries(user_id, status, sent_at)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_email_user_status_subject ON email_deliveries(user_id, status, subject)"))
         await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS crawl_interval_minutes INTEGER NOT NULL DEFAULT 1440"))
         await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS crawl_limit INTEGER NOT NULL DEFAULT 10"))
         await conn.execute(text("ALTER TABLE keywords ADD COLUMN IF NOT EXISTS email_auto_send BOOLEAN NOT NULL DEFAULT false"))
@@ -67,8 +82,11 @@ async def lifespan(app: FastAPI):
         """))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_dongguk_trash_user_date ON dongguk_article_trash(user_id, mail_date)"))
     start_scheduler()
-    yield
-    shutdown_scheduler()
+    try:
+        yield
+    finally:
+        shutdown_scheduler()
+        await TransNewsClient.close_shared_client()
 
 
 app = FastAPI(
@@ -136,3 +154,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.get("/")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

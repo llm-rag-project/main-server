@@ -1,0 +1,214 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 120, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "News Intelligence API, crawler, and AI performance dashboard.",
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "선택한 기간 동안 처리한 전체 API 요청 수입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "sum(increase(news_http_requests_total{route=~\"$route\"}[$__range]))", "legendFormat": "요청", "range": true, "refId": "A" }],
+      "title": "선택 기간 API 요청",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "전체 API 응답 중 95%가 이 시간 안에 완료됩니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 750 }, { "color": "red", "value": 2000 }] }, "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le) (rate(news_http_request_duration_seconds_bucket{route=~\"$route\"}[$__rate_interval]))) * 1000", "legendFormat": "p95", "range": true, "refId": "A" }],
+      "title": "API p95 응답시간",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "전체 요청 중 서버 오류(5xx)의 비율입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 2, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] }, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "100 * sum(rate(news_http_requests_total{route=~\"$route\",status=~\"5..\"}[$__rate_interval])) / clamp_min(sum(rate(news_http_requests_total{route=~\"$route\"}[$__rate_interval])), 0.0001)", "legendFormat": "5xx", "range": true, "refId": "A" }],
+      "title": "서버 오류율",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "현재 처리 중인 API 요청 수입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 10 }, { "color": "red", "value": 30 }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "sum(news_http_requests_in_progress)", "legendFormat": "처리 중", "range": true, "refId": "A" }],
+      "title": "처리 중 요청",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "최근 15분 동안 750ms를 넘긴 요청 수입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 10 }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "sum(increase(news_http_slow_requests_total{route=~\"$route\"}[15m]))", "legendFormat": "느린 요청", "range": true, "refId": "A" }],
+      "title": "느린 요청 (15분)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "FastAPI 프로세스가 사용 중인 메모리입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 1, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 536870912 }, { "color": "red", "value": 1073741824 }] }, "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "process_resident_memory_bytes", "legendFormat": "메모리", "range": true, "refId": "A" }],
+      "title": "서버 메모리",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "성능 개선 전후 비교의 핵심 지표입니다. 경로 필터로 특정 API만 볼 수 있습니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 12, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 4 },
+      "id": 7,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "editorMode": "code", "expr": "histogram_quantile(0.50, sum by (le) (rate(news_http_request_duration_seconds_bucket{route=~\"$route\"}[$__rate_interval]))) * 1000", "legendFormat": "p50", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le) (rate(news_http_request_duration_seconds_bucket{route=~\"$route\"}[$__rate_interval]))) * 1000", "legendFormat": "p95", "range": true, "refId": "B" },
+        { "editorMode": "code", "expr": "histogram_quantile(0.99, sum by (le) (rate(news_http_request_duration_seconds_bucket{route=~\"$route\"}[$__rate_interval]))) * 1000", "legendFormat": "p99", "range": true, "refId": "C" }
+      ],
+      "title": "API 응답시간 추이",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "선택한 기간에 요청이 많았던 API 경로를 보여줍니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "continuous-BlYlRd" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 },
+      "id": 8,
+      "options": { "barRadius": 0, "barWidth": 0.8, "fullHighlight": false, "groupWidth": 0.7, "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false }, "orientation": "horizontal", "showValue": "always", "stacking": "none", "tooltip": { "mode": "single", "sort": "none" }, "xTickLabelRotation": 0, "xTickLabelSpacing": 0 },
+      "targets": [{ "editorMode": "code", "expr": "topk(10, sum by (route) (increase(news_http_requests_total[$__range])))", "instant": true, "legendFormat": "{{route}}", "range": false, "refId": "A" }],
+      "title": "경로별 요청 수 TOP 10",
+      "type": "barchart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "크롤링 서버와 AI 호출의 p95 응답시간입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "ms" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 12 },
+      "id": 9,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le, service, operation) (rate(news_external_request_duration_seconds_bucket[$__rate_interval]))) * 1000", "legendFormat": "{{service}} / {{operation}}", "range": true, "refId": "A" }],
+      "title": "외부 서비스 p95 응답시간",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "크롤링 서버와 AI 호출의 성공·타임아웃·오류 비율입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "id": 10,
+      "options": { "displayLabels": ["name", "percent"], "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "editorMode": "code", "expr": "sum by (service, status) (increase(news_external_requests_total[$__range]))", "legendFormat": "{{service}} / {{status}}", "range": true, "refId": "A" }],
+      "title": "외부 호출 결과",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "수동·정기·재수집 작업의 전체 처리시간입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 15, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "auto", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "id": 11,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [{ "editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le, trigger) (increase(news_crawl_run_duration_seconds_bucket[$__range])))", "legendFormat": "{{trigger}} p95", "range": true, "refId": "A" }],
+      "title": "크롤링 전체 처리시간",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "최근 24시간 크롤링 작업이 처리한 기사 수입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 20 },
+      "id": 12,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "sum(increase(news_crawl_articles_processed_total[24h]))", "legendFormat": "기사", "range": true, "refId": "A" }],
+      "title": "크롤링 처리 기사 (24시간)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "가장 최근 크롤링 1회의 처리 기사 수입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "decimals": 0, "mappings": [], "noValue": "0", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 20 },
+      "id": 13,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "targets": [{ "editorMode": "code", "expr": "sum(news_crawl_last_article_count)", "legendFormat": "기사", "range": true, "refId": "A" }],
+      "title": "최근 크롤링 처리 기사",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+      "description": "FastAPI 프로세스 CPU 사용률 추이입니다.",
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 12, "gradientMode": "none", "hideFrom": { "legend": false, "tooltip": false, "viz": false }, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": { "type": "linear" }, "showPoints": "never", "spanNulls": true, "stacking": { "group": "A", "mode": "none" }, "thresholdsStyle": { "mode": "off" } }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 24 },
+      "id": 14,
+      "options": { "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "targets": [{ "editorMode": "code", "expr": "rate(process_cpu_seconds_total[$__rate_interval]) * 100", "legendFormat": "CPU", "range": true, "refId": "A" }],
+      "title": "서버 CPU",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 40,
+  "tags": ["news-intelligence", "performance"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "전체 API", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "news-prometheus" },
+        "definition": "label_values(news_http_request_duration_seconds_count, route)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "API 경로",
+        "multi": true,
+        "name": "route",
+        "options": [],
+        "query": { "query": "label_values(news_http_request_duration_seconds_count, route)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"] },
+  "timezone": "browser",
+  "title": "News Intelligence 성능",
+  "uid": "news-performance",
+  "version": 1,
+  "weekStart": "monday"
+}

@@ -1,8 +1,8 @@
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import exists, func, select
 
 from app.core.dify_knowledge_client import DifyKnowledgeClient
 from app.core.errors import ErrorCode, build_error
@@ -31,16 +31,10 @@ from app.schemas.keyword import (
     PageInfo,
     UpdateKeywordStatusResponse,
 )
+from app.services.holiday_service import HolidayService, article_collection_window
+from app.services.article_identity import canonicalize_article_url
 
 KST = ZoneInfo("Asia/Seoul")
-
-
-def _parse_send_time(value: str | None) -> tuple[int, int]:
-    try:
-        hour_text, minute_text = (value or "08:30")[:5].split(":")
-        return max(0, min(23, int(hour_text))), max(0, min(59, int(minute_text)))
-    except Exception:
-        return 8, 30
 
 
 def _pack_recipients(recipients: list[str] | None) -> str | None:
@@ -162,6 +156,7 @@ async def get_my_keywords(
     language: str | None = None,
     q: str | None = None,
     dashboard_mode: str | None = None,
+    local_date: date | None = None,
 ) -> KeywordListResponse:
     items, total = await list_user_keywords(
         db=db,
@@ -176,16 +171,19 @@ async def get_my_keywords(
     keyword_ids = [item.id for item in items]
     article_counts: dict[int, int] = {}
     if keyword_ids:
-        today = datetime.now(KST).date()
+        today = local_date or datetime.now(KST).date()
         today_start = datetime.combine(today, time.min, tzinfo=KST)
         today_end = datetime.combine(today, time.max, tzinfo=KST)
         if dashboard_mode == "dongguk":
+            work_window = await HolidayService(db).work_window(current_user.id, today)
             for item in items:
-                hour, minute = _parse_send_time(item.email_send_time)
-                window_start = datetime.combine(today - timedelta(days=1), time(hour, minute), tzinfo=KST)
-                window_end = datetime.combine(today, time(hour, minute), tzinfo=KST)
+                published_from, published_to = article_collection_window(
+                    work_window["start_date"],
+                    work_window["end_date"],
+                    item.email_send_time,
+                )
                 result = await db.execute(
-                    select(func.count(func.distinct(Article.id)))
+                    select(Article.id, Article.url)
                     .select_from(ArticleMatch)
                     .join(Article, Article.id == ArticleMatch.article_id)
                     .where(ArticleMatch.keyword_id == item.id)
@@ -199,14 +197,13 @@ async def get_my_keywords(
                             )
                         )
                     )
-                    .where(
-                        or_(
-                            Article.published_at.between(window_start, window_end),
-                            ArticleMatch.matched_at.between(today_start, today_end),
-                        )
-                    )
+                    .where(Article.published_at.between(published_from, published_to))
                 )
-                article_counts[item.id] = int(result.scalar_one() or 0)
+                identities = {
+                    canonicalize_article_url(url) or f"id:{article_id}"
+                    for article_id, url in result.all()
+                }
+                article_counts[item.id] = len(identities)
         else:
             result = await db.execute(
                 select(ArticleMatch.keyword_id, func.count(func.distinct(ArticleMatch.article_id)))

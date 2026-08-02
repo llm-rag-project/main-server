@@ -53,7 +53,12 @@ export async function api(path, options = {}) {
 export const endpoints = {
   login: (email, password) => api("/auth/login", { method: "POST", body: { email, password } }),
   me: () => api("/users/me"),
-  keywords: (dashboardMode = null) => api(`/keywords?page=1&size=100${dashboardMode ? `&dashboard_mode=${dashboardMode}` : ""}`),
+  keywords: (dashboardMode = null, localDate = null) => {
+    const params = new URLSearchParams({ page: "1", size: "100" });
+    if (dashboardMode) params.set("dashboard_mode", dashboardMode);
+    if (localDate) params.set("local_date", localDate);
+    return api(`/keywords?${params}`);
+  },
   createKeyword: (keywordConfig) => api("/keywords", {
     method: "POST",
     body: {
@@ -102,9 +107,14 @@ export const endpoints = {
   deleteKeyword: (id) => api(`/keywords/${id}`, { method: "DELETE" }),
   articles: (params) => api(`/articles?${new URLSearchParams(params)}`),
   createArticleFromUrl: (body) => api("/articles/from-url", { method: "POST", body }),
+  workWindow: (date) => api(`/calendar/work-window?${new URLSearchParams({ date })}`),
+  calendarDays: (params) => api(`/calendar/days?${new URLSearchParams(params)}`),
+  schoolHolidays: (params) => api(`/calendar/school-holidays?${new URLSearchParams(params)}`),
+  createSchoolHoliday: (body) => api("/calendar/school-holidays", { method: "POST", body }),
+  updateSchoolHoliday: (id, body) => api(`/calendar/school-holidays/${id}`, { method: "PATCH", body }),
+  deleteSchoolHoliday: (id) => api(`/calendar/school-holidays/${id}`, { method: "DELETE" }),
   articleDetail: (id) => api(`/articles/${id}`),
   refreshArticleThumbnails: (articleIds) => api("/articles/thumbnails/refresh", { method: "POST", body: { article_ids: articleIds } }),
-  deleteArticle: (id) => api(`/articles/${id}`, { method: "DELETE" }),
   articleImportance: (id) => api(`/articles/${id}/importance`),
   summarize: (articleId, jobId) => api("/ai/summary", { method: "POST", body: { article_id: articleId, job_id: jobId } }),
   runCrawl: (keywordId) => api("/crawl-runs", {
@@ -123,6 +133,9 @@ export const endpoints = {
       keyword_ids: keywordIds?.length ? keywordIds : null,
     },
   }),
+  crawlHealth: (params) => api(`/crawl-runs/health?${new URLSearchParams(params)}`),
+  crawlAudit: (runId) => api(`/crawl-runs/${runId}/audit`),
+  replayCrawl: (body) => api("/crawl-runs/replay", { method: "POST", body }),
   runImportance: (keywordId, jobId) => api("/importance/run", { method: "POST", body: { keyword_id: keywordId, job_id: jobId } }),
   importance: (params) => api(`/importance?${new URLSearchParams(params)}`),
   scoringFeedback: (body) => api("/importance/feedback", { method: "POST", body }),
@@ -150,6 +163,11 @@ export const endpoints = {
   analysisStats: (days) => api(`/stats/analysis?days=${days}`),
   searchVolume: () => api("/stats/search-volume"),
   searchVolumeTrend: (hours = 48) => api(`/stats/search-volume/trend?hours=${hours}`),
+  priorityInsights: (params) => api(`/stats/priority-insights?${new URLSearchParams(params)}`),
+  priorityInsight: (id) => api(`/stats/priority-insights/${id}`),
+  runPriorityInsight: (body) => api("/stats/priority-insights/run", { method: "POST", body }),
+  deletePriorityInsight: (id) => api(`/stats/priority-insights/${id}`, { method: "DELETE" }),
+  recordPriorityAction: (body) => api("/stats/priority-actions", { method: "POST", body }),
   pendingAnalysis: () => api("/crawl-runs/analysis/pending"),
   runAnalysis: (jobId) => api("/crawl-runs/analysis", { method: "POST", body: { job_id: jobId } }),
   job: (jobId) => api(`/jobs/${jobId}`),
@@ -165,6 +183,6 @@ export const endpoints = {
   moveDonggukTrash: (body) => api("/reports/dongguk/trash", { method: "POST", body }),
   restoreDonggukTrash: (body) => api("/reports/dongguk/trash/restore", { method: "POST", body }),
   deleteDonggukTrash: (body) => api("/reports/dongguk/trash/delete", { method: "POST", body }),
-  donggukHistory: () => api("/reports/dongguk/history"),
+  donggukHistory: (summaryOnly = false) => api(`/reports/dongguk/history?summary_only=${summaryOnly ? "true" : "false"}`),
   donggukNotifications: () => api("/reports/dongguk/notifications"),
 };

@@ -24,6 +24,7 @@ class ArticleSort(str, Enum):
 class ArticleListQuery(BaseModel):
     page: int = Field(default=1, ge=1)
     size: int = Field(default=20, ge=1, le=100)
+    include_total: bool = True
     keyword_id: Optional[int] = Field(default=None, ge=1)
     q: Optional[str] = None
     language: Optional[ArticleLanguage] = None
@@ -76,17 +77,27 @@ class TransNewsArticleItem(BaseModel):
     original_url: Optional[str] = None
     source_name: Optional[str] = None
     source_url: Optional[str] = None
+    collection_source: Optional[str] = None
     language: str = "ko"
     published: Optional[str] = None
     content: Optional[str] = None
     thumbnail_url: Optional[str] = None
     image_url: Optional[str] = None
+    section: Optional[str] = None
+    pool: Optional[str] = None
+    source_type: Optional[str] = None
+    category: Optional[str] = None
+    trusted_source: Optional[bool] = None
+    priority_boost: Optional[float] = None
+    board: Optional[str] = None
+    board_name: Optional[str] = None
 
 
 class TransNewsSearchResponse(BaseModel):
     status: str
     message: str
     data: List[TransNewsArticleItem]
+    source_debug: dict[str, dict] = Field(default_factory=dict)
 
 class ArticleListItem(BaseModel):
     id: int
@@ -96,14 +107,25 @@ class ArticleListItem(BaseModel):
     original_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     source: Optional[str] = None
+    collection_source: Optional[str] = None
     language: str
     published_at: Optional[datetime]
+    collected_at: Optional[datetime] = None
+    matched_at: Optional[datetime] = None
     keyword_id: Optional[int]
     importance: Optional[float]
     is_liked: bool
     has_feedback: bool
     sentiment: Optional[str] = None       # 긍정 / 부정 / 중립 / 분석실패
     is_promotion: Optional[bool] = None   # True=홍보성, False=일반, None=미분석
+    section: Optional[str] = None
+    pool: Optional[str] = None
+    source_type: Optional[str] = None
+    category: Optional[str] = None
+    trusted_source: Optional[bool] = None
+    priority_boost: Optional[float] = None
+    board: Optional[str] = None
+    board_name: Optional[str] = None
 
 
 class ArticleDetailResponse(BaseModel):
@@ -133,6 +155,27 @@ class PageInfo(BaseModel):
 class ArticleListResponse(BaseModel):
     items: List[ArticleListItem]
     page_info: PageInfo
+
+
+class WebNewsSort(str, Enum):
+    relevance = "relevance"
+    latest = "latest"
+
+
+class WebNewsSearchItem(BaseModel):
+    title: str
+    source: Optional[str] = None
+    published_at: Optional[datetime] = None
+    summary: Optional[str] = None
+    url: str
+    thumbnail_url: Optional[str] = None
+
+
+class WebNewsSearchResponse(BaseModel):
+    items: List[WebNewsSearchItem]
+    page_info: PageInfo
+    query: str
+    sort: WebNewsSort
     
 class FeedbackAction(str, Enum):
     LIKE = "LIKE"

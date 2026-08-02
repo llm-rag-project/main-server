@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,6 +76,8 @@ async def create_keyword_api(
         user_id=current_user.id,
         keyword_ids=[data.id],
         force=False,
+        discovery_only=True,
+        enrich_for_relevance=True,
     )
     if crawl_result.get("crawl_run_id"):
         background_tasks.add_task(_run_auto_ai_bg, current_user.id, crawl_result["crawl_run_id"])
@@ -100,6 +103,7 @@ async def get_keyword_list_api(
     language: str | None = Query(None),
     q: str | None = Query(None),
     dashboard_mode: str | None = Query(None, pattern=r"^(general|dongguk)$"),
+    local_date: date | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
@@ -112,6 +116,7 @@ async def get_keyword_list_api(
         language=language,
         q=q,
         dashboard_mode=dashboard_mode,
+        local_date=local_date,
     )
     return success_response(request, data=data.model_dump())
 

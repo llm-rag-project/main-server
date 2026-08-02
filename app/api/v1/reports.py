@@ -25,6 +25,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user_or_dev_user, get_db
+from app.core.errors import ErrorCode, build_error
 from app.core.response import success_response
 from app.core.transnews_client import TransNewsClient
 from app.models.article import Article
@@ -49,6 +50,8 @@ from app.services.article_identity import (
 )
 from app.services.dify_service import DifyService
 from app.services.email_service import EmailService
+from app.services.holiday_service import HolidayService, article_collection_window
+from app.services.priority_insight_service import PriorityInsightService
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -63,17 +66,22 @@ GREEN = "16A34A"
 RED = "DC2626"
 AMBER = "D97706"
 KST = ZoneInfo("Asia/Seoul")
+DONGGUK_MAIL_POLICY_VERSION = 11
 DEFAULT_DONGGUK_PRIORITY_CRITERIA = """홍보처 AI 기사 선정 기준
 
 우선순위 기준:
 - 총장 또는 이사장의 공식 메시지가 포함된 기사를 가장 먼저 선정합니다.
 - 기부, 장학금, 발전기금처럼 학교 이미지와 직접 연결되는 기사를 우선 선정합니다.
 - 건학 120주년 등 현재 진행 중인 학교 캠페인 관련 기사를 우선 선정합니다.
+- 동국대 공식 홈페이지(dongguk.edu) 게시글, 공식 보도자료, 공식 행사, Dream Workshop, C포럼, 서울국제명상엑스포 등 홍보처가 직접 배포하는 성격의 기사를 우선 선정합니다.
+- 동문소식은 [동문소식] 형식이거나 동문 이름/학번/학과가 명확하고 사회적 성취가 드러나는 경우 우선 선정합니다.
 - 연구 성과, 기술 개발, 특허, AI 관련 성과 기사를 우선 선정합니다.
 - 공식 기관과의 협약, 사업 선정, 컨소시엄 참여 기사를 우선 선정합니다.
 - 학교, 교직원, 학생의 수상 및 공식 인증 획득 기사를 우선 선정합니다.
 - 학교가 주최하거나 공식적으로 참여한 주요 행사 기사를 우선 선정합니다.
 - 학술대회, 세미나, 입시, 교육 프로그램, 인사, 동문 및 교수 인터뷰 기사는 직접적인 학교 성과 기사보다 낮게 선정합니다.
+- 대학 [교육] 섹션은 개별 대학 홍보 기사보다 교육부, 대교협, 사총협, 고등교육법, 교육교부금, 등록금, 교원창업, AI 기본역량 등 고등교육 정책성 기사를 우선 선정합니다.
+- 불교 [종단] 섹션은 조계종, 종단, 포교, 출가, 성보, 불교문화유산, 불교중앙박물관, 불교신문/법보신문/BBS/BTN/현대불교 등 종단성과 불교계 파급력이 있는 기사를 우선 선정합니다.
 
 대표 기사 선정 기준:
 - 동일 주제, 동일 보도자료, 같은 사건의 반복 보도는 하나의 그룹으로 묶고 대표 기사 1건만 선정합니다.
@@ -134,6 +142,7 @@ class DonggukMailArticle(BaseModel):
     id: int | None = None
     title: str
     source: str | None = None
+    collection_source: str | None = None
     section: str | None = None
     category: str = "기타"
     summary: str | None = None
@@ -182,6 +191,7 @@ class DonggukDraftRequest(BaseModel):
     removed_article_keys: list[str] = []
     removed_articles: list[DonggukMailArticle] = []
     preview_data: dict | None = None
+    feedback_source: str | None = None
 
 
 class DonggukTrashRequest(BaseModel):
@@ -676,7 +686,7 @@ def _html_bar_chart(title: str, rows: list[tuple[str, int]], color: str = "#60a5
               </td>
               <td style="width:52px;padding:7px 8px;text-align:right;font-weight:700;color:#172033;">{value}</td>
             </tr>
-            """
+"""
         )
     return f"""
     <div style="border:1px solid #dbeafe;border-radius:8px;padding:14px;margin-bottom:12px;">
@@ -916,11 +926,358 @@ def _dongguk_email_text(subject: str, articles: list[DonggukMailArticle]) -> str
 
 def _dongguk_section_label(section: str | None) -> str:
     value = str(section or "")
+    if value in {"dongguk_core", "foundation"}:
+        return "동국대 [법인/건학위] 관련 기사"
     if "교육" in value:
         return "대학 [교육] 관련 기사"
-    if "종단" in value or "불교" in value:
+    if value == "education":
+        return "대학 [교육] 관련 기사"
+    if "종단" in value or "불교" in value or value == "buddhism":
         return "불교 [종단] 관련 기사"
     return "동국대 [법인/건학위] 관련 기사"
+
+
+def _dongguk_article_response(article: DonggukMailArticle) -> dict:
+    data = article.model_dump()
+    data["section_label"] = _dongguk_section_label(article.section)
+    return data
+
+
+def _dongguk_section_key(section: str | None) -> str:
+    label = _dongguk_section_label(section)
+    if "교육" in label:
+        return "education"
+    if "불교" in label or "종단" in label:
+        return "buddhism"
+    return "foundation"
+
+
+def _dongguk_article_qualification_text(article: DonggukMailArticle) -> str:
+    return f"{article.title or ''} {article.summary or ''} {article.source or ''} {article.category or ''}"
+
+
+def _has_hongbo_hard_exclusion(article: DonggukMailArticle, section: str) -> bool:
+    text = _dongguk_article_qualification_text(article)
+    title = article.title or ""
+    url = article.url or (article.links[0] if article.links else "")
+
+    if section == "foundation":
+        if re.search(r"대학\s*뉴스브리핑|뉴스브리핑", title, re.I):
+            return True
+        if re.search(r"불꽃야구|직관\s*경기|프로야구|연예\s*예능", text, re.I):
+            return True
+        if re.search(r"동국대.*(제압|대파|꺾고|패배|탈락)|상대.*동국대.*(승|제압)", text, re.I):
+            return True
+        if re.search(r"신정아|패소|소송", text, re.I):
+            return True
+        return False
+
+    if section == "education":
+        if re.search(r"\[[^\]]*수시|수시특집|입시특집|개별\s*대학|호서대|청주대|경복대|서울시립대|대구가톨릭대", title, re.I):
+            return True
+        if re.search(r"초등학교|중학교|고등학교|영유아|유치원|어린이집", text, re.I) and not re.search(
+            r"고등교육|대학|교부금|교육부|대교협|사총협", text, re.I
+        ):
+            return True
+        return False
+
+    if section == "buddhism":
+        if re.search(r"기자칼럼|맛집|여행|지역축제|기획전|합창단", title, re.I):
+            return True
+        if re.search(r"개별\s*사찰\s*행사", text, re.I) and not re.search(
+            r"조계종|종단|포교|출가|성보|불교문화유산|불교중앙박물관", text, re.I
+        ):
+            return True
+        return False
+
+    return False
+
+
+def _is_foundation_mail_eligible(article: DonggukMailArticle) -> bool:
+    if _has_hongbo_hard_exclusion(article, "foundation"):
+        return False
+    text = _dongguk_article_qualification_text(article)
+    title = article.title or ""
+    source = article.source or ""
+    has_direct_title_signal = bool(re.search(r"동국대|동국대학교|동국대WISE|WISE캠퍼스|동문소식", title, re.I))
+    has_official_source_signal = source.strip() == "동국대학교"
+    if not (has_direct_title_signal or has_official_source_signal):
+        return False
+    positive = (
+        r"총장|이사장|부총장|교수|학생|동문|학부|학과|대학원|캠퍼스|기술지주|"
+        r"연구소|학술원|종학연구소|불교학술원|기부|장학|발전기금|로터스관|"
+        r"협약|사업|선정|수상|인증|개최|성료|모집|임용|선임|취임|연구|개발|"
+        r"AI|C포럼|서울RISE|농구|MBC배|입시|교사연수|Dream"
+    )
+    if not re.search(positive, text, re.I):
+        return False
+    return True
+
+
+def _is_education_mail_eligible(article: DonggukMailArticle) -> bool:
+    if _has_hongbo_hard_exclusion(article, "education"):
+        return False
+    text = _dongguk_article_qualification_text(article)
+    return bool(
+        re.search(
+            r"대학|고등교육|교육부|대교협|수능|대입|입시|등록금|교부금|학사|"
+            r"정원|국공립대|사립대|전문대|의대|문·이과|AI\s*기본\s*역량|"
+            r"교육재정|고등교육법|지역인재|연구원|교원창업",
+            text,
+            re.I,
+        )
+    )
+
+
+def _is_buddhism_mail_eligible(article: DonggukMailArticle) -> bool:
+    if _has_hongbo_hard_exclusion(article, "buddhism"):
+        return False
+    text = _dongguk_article_qualification_text(article)
+    return bool(
+        re.search(
+            r"불교|조계종|종단|스님|사찰|성보|포교|선명상|수행|출가|법회|"
+            r"불상|불두|불교문화유산|불교중앙박물관|불교신문|법보신문|현대불교|BTN|BBS",
+            text,
+            re.I,
+        )
+    )
+
+
+def _is_dongguk_mail_section_eligible(article: DonggukMailArticle) -> bool:
+    section = _dongguk_section_key(article.section)
+    if section == "education":
+        return _is_education_mail_eligible(article)
+    if section == "buddhism":
+        return _is_buddhism_mail_eligible(article)
+    return _is_foundation_mail_eligible(article)
+
+
+def _dongguk_candidate_section_key(article: DonggukMailArticle) -> str | None:
+    if _is_foundation_mail_eligible(article):
+        title = article.title or ""
+        source = article.source or ""
+        url = article.url or (article.links[0] if article.links else "")
+        if re.search(r"동국대|동국대학교|동국대WISE|WISE캠퍼스|동문소식", title, re.I) or source.strip() == "동국대학교" or "dongguk.edu" in url:
+            return "foundation"
+    raw_section = str(article.section or "").strip()
+    if raw_section:
+        return _dongguk_section_key(raw_section)
+    if _is_education_mail_eligible(article):
+        return "education"
+    if _is_buddhism_mail_eligible(article):
+        return "buddhism"
+    if _is_foundation_mail_eligible(article):
+        return "foundation"
+    return None
+
+
+def _score_pattern(text: str, pattern: str, weight: int) -> int:
+    return weight if re.search(pattern, text, re.I) else 0
+
+
+def _source_contains(article: DonggukMailArticle, pattern: str) -> bool:
+    return bool(re.search(pattern, article.source or "", re.I))
+
+
+def _hongbo_recency_score(article: DonggukMailArticle, mail_date: str | None) -> int:
+    if not mail_date or not article.published_at:
+        return 0
+    try:
+        published_at = datetime.fromisoformat(str(article.published_at).replace("Z", "+00:00"))
+        if published_at.tzinfo is None:
+            published_at = published_at.replace(tzinfo=KST)
+        published_at = published_at.astimezone(KST)
+        window_start, window_end = _dongguk_report_window(mail_date, time(8, 30))
+        if window_start <= published_at <= window_end:
+            return 70
+        mail_day = datetime.fromisoformat(mail_date).date()
+        day_delta = (mail_day - published_at.date()).days
+        if day_delta == 0:
+            return 45
+        if day_delta == 1:
+            return 55
+        if day_delta == 2:
+            return 20
+        if day_delta >= 4:
+            return -85
+        if day_delta < 0:
+            return -20
+    except Exception:
+        return 0
+    return 0
+
+
+def _hongbo_selection_score(
+    article: DonggukMailArticle,
+    section: str,
+    editor_selected: bool = False,
+    mail_date: str | None = None,
+) -> float:
+    if _has_hongbo_hard_exclusion(article, section):
+        return -1000
+    text = _dongguk_article_qualification_text(article)
+    title = article.title or ""
+    url = article.url or (article.links[0] if article.links else "")
+    score = float(article.score or 0) * 0.25
+    score += 8 if editor_selected else 0
+    score += _hongbo_recency_score(article, mail_date)
+
+    if section == "foundation":
+        score += _score_pattern(title, r"동국대|동국대학교|동국대WISE|WISE캠퍼스", 35)
+        score += 30 if _source_contains(article, r"동국대학교") or "dongguk.edu" in url else 0
+        score += _score_pattern(title, r"C포럼|\[2026\s*C포럼\]|총장|이사장", 80)
+        score += _score_pattern(text, r"C포럼|총장|이사장|부총장|공식\s*메시지", 44)
+        score += _score_pattern(text, r"기부|장학|발전기금|로터스관|희사", 32)
+        score += _score_pattern(text, r"동문소식|동문|명예회장|대표이사|회장|본부장|배우|감독", 26)
+        score += _score_pattern(text, r"지능\s*IoT|공동학위", 68)
+        score += _score_pattern(text, r"대한민국학술원|학술원\s*신임회원|황훈성", 62)
+        score += _score_pattern(text, r"서울국제명상엑스포|명상엑스포", 62)
+        score += _score_pattern(text, r"중구불교협의회|하안거|선.?교\s*겸수", 50)
+        score += _score_pattern(text, r"간화선|선수행|집중수행", 34)
+        score += _score_pattern(text, r"기술지주|모태펀드|대학창업펀드|창업펀드|운용사|사업.*선정|과제.*선정|앵커|RISE", 24)
+        score += _score_pattern(text, r"연구|개발|학술원|종학연구소|불교학술원|명상엑스포|국제학술대회|학술원\s*신임회원", 22)
+        score += _score_pattern(text, r"핀테크|블록체인", 20)
+        score += _score_pattern(text, r"Dream Workshop|교사연수|공식행사|성료|개최", 14)
+        score += _score_pattern(text, r"MBC배|농구|결선|우승|역전승|한양대", 18)
+        score -= _score_pattern(text, r"대학\s*뉴스브리핑|뉴스브리핑|수시특집|입시특집|안전보건공시제|임상통계\s*소프트웨어|베트남\s*유학생", 36)
+        score -= _score_pattern(text, r"패소|신정아|불꽃야구|패배|탈락|부상|상대.*동국대.*제압|동국대에.*승|동국대.*대파", 80)
+    elif section == "education":
+        score += 28 if _source_contains(article, r"한국대학신문|뉴스1|파이낸셜뉴스|뉴시스|연합뉴스|중앙일보") else 0
+        score += _score_pattern(text, r"고등교육재정교부금법|교육교부금|교부금.*개편|고등교육.*투자|사총협", 36)
+        score += _score_pattern(text, r"교육부|대교협|고등교육법|시행령|국공립대|사립대|등록금|AI\s*기본\s*역량|문·이과|지역인재|입학\s*취소", 26)
+        score += _score_pattern(text, r"교원창업", 48)
+        score += _score_pattern(text, r"대입|수능|수시|개인정보.*전송|마이데이터", 12)
+        score -= _score_pattern(text, r"포토|\[[^\]]*수시|수시특집|개별\s*대학|호서대|청주대|경복대|서울시립대|대구가톨릭대|동국대\s*WISE", 42)
+        score -= _score_pattern(text, r"초중고|영유아|고등학교|중학교|초등", 12)
+    elif section == "buddhism":
+        score += 28 if _source_contains(article, r"불교신문|법보신문|BBS|불교방송|BTN|현대불교|대한불교조계종") else 0
+        score += _score_pattern(text, r"조계종|종단|포교|포교사단|출가|출가상담|정광고|종책|총무원장", 34)
+        score += _score_pattern(text, r"성보|불교문화유산|불교중앙박물관|탑비|벽화|불두|복장물|비파괴조사|보존처리|국보|보물", 30)
+        score += _score_pattern(text, r"부산불교박람회|불교박람회|부산.*벡스코|색즉시공|공놀이|청년|AI|종교.*AI|불교.*AI|만공|포산|근일\s*대종사|법맥", 30)
+        score += _score_pattern(text, r"스님|사찰|수행|선명상|법회", 8)
+        score -= _score_pattern(text, r"기자칼럼|여행|맛집|영화제|인터뷰|기획전|지역축제|합창단|개별\s*사찰\s*행사", 24)
+
+    return score
+
+
+def _article_with_mail_section(article: DonggukMailArticle, section: str) -> DonggukMailArticle:
+    desired = {
+        "foundation": "dongguk_core",
+        "education": "education",
+        "buddhism": "buddhism",
+    }[section]
+    if article.section == desired:
+        return article
+    data = article.model_dump()
+    data["section"] = desired
+    return DonggukMailArticle(**data)
+
+
+def _dongguk_mail_section_policy(
+    selected_articles: list[DonggukMailArticle],
+    excluded_articles: list[DonggukMailArticle],
+    all_candidates: list[DonggukMailArticle],
+    mail_date: str | None = None,
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    section_targets = {
+        "foundation": {"min": 4, "max": 6},
+        "education": {"min": 2, "max": 2},
+        "buddhism": {"min": 2, "max": 2},
+    }
+    selected_articles, selected_exact_duplicates = _dedupe_exact_dongguk_articles(selected_articles)
+    selected_articles, selected_topic_duplicates = _dedupe_representative_articles(selected_articles)
+    all_candidates, candidate_exact_duplicates = _dedupe_exact_dongguk_articles(all_candidates)
+    candidate_topic_duplicates: list[DonggukMailArticle] = []
+    selected_keys = {_dongguk_article_key(article) for article in selected_articles}
+    excluded_by_key = {_dongguk_article_key(article): article for article in excluded_articles}
+
+    qualified_pool: dict[str, list[DonggukMailArticle]] = {key: [] for key in section_targets}
+    disqualified_selected: list[DonggukMailArticle] = []
+    for article in all_candidates:
+        section = _dongguk_candidate_section_key(article)
+        if section not in qualified_pool:
+            continue
+        if (
+            (section == "foundation" and _is_foundation_mail_eligible(article))
+            or (section == "education" and _is_education_mail_eligible(article))
+            or (section == "buddhism" and _is_buddhism_mail_eligible(article))
+        ):
+            qualified_pool[section].append(article)
+
+    for section, articles in qualified_pool.items():
+        articles.sort(
+            key=lambda article: (
+                _hongbo_selection_score(article, section, _dongguk_article_key(article) in selected_keys, mail_date),
+                str(article.published_at or ""),
+            ),
+            reverse=True,
+        )
+
+    final_articles: list[DonggukMailArticle] = []
+    used_keys: set[str] = set()
+    for article in selected_articles:
+        if not _is_dongguk_mail_section_eligible(article):
+            data = article.model_dump()
+            data["selection_reason"] = "섹션 자격 필터를 통과하지 못해 메일 포함에서 제외되었습니다."
+            disqualified_selected.append(DonggukMailArticle(**data))
+
+    for section, target in section_targets.items():
+        current = 0
+        target_count = target["max"] if section == "foundation" else target["min"]
+        for candidate in qualified_pool[section]:
+            key = _dongguk_article_key(candidate)
+            if key in used_keys:
+                continue
+            if any(
+                _dongguk_section_key(selected.section) == section
+                and _is_similar_dongguk_article(candidate, selected)
+                for selected in final_articles
+            ):
+                data = candidate.model_dump()
+                data["selection_reason"] = "같은 주제의 더 높은 홍보처 적합도 기사로 묶여 제외되었습니다."
+                candidate_topic_duplicates.append(DonggukMailArticle(**data))
+                continue
+            final_articles.append(_article_with_mail_section(candidate, section))
+            used_keys.add(key)
+            current += 1
+            if current >= target_count:
+                break
+
+    capped_articles: list[DonggukMailArticle] = []
+    section_counts = {key: 0 for key in section_targets}
+    over_cap: list[DonggukMailArticle] = []
+    for article in final_articles:
+        section = _dongguk_section_key(article.section)
+        max_count = section_targets[section]["max"]
+        if section_counts[section] >= max_count:
+            data = article.model_dump()
+            data["selection_reason"] = "홍보처 메일 섹션별 최대 수량을 초과해 제외되었습니다."
+            over_cap.append(DonggukMailArticle(**data))
+            continue
+        capped_articles.append(article)
+        section_counts[section] += 1
+
+    excluded = [
+        *excluded_by_key.values(),
+        *selected_exact_duplicates,
+        *selected_topic_duplicates,
+        *candidate_exact_duplicates,
+        *candidate_topic_duplicates,
+        *disqualified_selected,
+        *over_cap,
+    ]
+    included_keys = {_dongguk_article_key(article) for article in capped_articles}
+    for article in all_candidates:
+        key = _dongguk_article_key(article)
+        if key in included_keys or key in excluded_by_key:
+            continue
+        if _is_dongguk_mail_section_eligible(article) and key not in selected_keys:
+            data = article.model_dump()
+            data["selection_reason"] = "섹션별 목표 수량 안에서 더 높은 우선순위 기사에 밀려 제외되었습니다."
+            excluded.append(DonggukMailArticle(**data))
+
+    deduped_excluded, _ = _dedupe_exact_dongguk_articles(excluded)
+    return capped_articles, deduped_excluded
 
 
 def _dongguk_section_grouped_articles(articles: list[DonggukMailArticle]) -> dict[str, list[DonggukMailArticle]]:
@@ -1131,13 +1488,15 @@ def _article_item_to_dongguk(item: dict) -> DonggukMailArticle:
         id=item.get("id"),
         title=item.get("title") or "제목 없음",
         source=item.get("source") or item.get("publisher") or "언론사 없음",
-        category="기타",
+        collection_source=item.get("collection_source"),
+        section=item.get("section"),
+        category=item.get("category") or "기타",
         summary=item.get("summary") or "요약문이 아직 없습니다.",
         url=url,
         thumbnail_url=item.get("thumbnail_url"),
         published_at=str(item.get("published_at") or ""),
         links=[url] if url else [],
-        score=item.get("importance"),
+        score=item.get("importance") or item.get("priority_boost"),
     )
 
 
@@ -1174,13 +1533,18 @@ async def _dongguk_articles_for_keyword_date(
     keyword_id: int,
     mail_date: str,
 ) -> list[DonggukMailArticle]:
-    keyword = await db.get(Keyword, keyword_id)
-    send_time = keyword.email_send_time if keyword else None
     try:
-        window_start, window_end = _dongguk_report_window(mail_date, send_time)
+        target_date = datetime.strptime(mail_date, "%Y-%m-%d").date()
     except ValueError:
-        window_start = datetime.combine(datetime.now(KST).date(), _parse_report_send_time(send_time), tzinfo=KST) - timedelta(days=1)
-        window_end = window_start + timedelta(days=1)
+        target_date = datetime.now(KST).date()
+    work_window = await HolidayService(db).work_window(user_id, target_date)
+    keyword = await db.get(Keyword, keyword_id)
+    send_time = keyword.email_send_time if keyword else "08:30"
+    published_from, published_to = article_collection_window(
+        work_window["start_date"],
+        work_window["end_date"],
+        send_time,
+    )
     service = ArticleService(db)
     page = 1
     items = []
@@ -1190,8 +1554,8 @@ async def _dongguk_articles_for_keyword_date(
             size=100,
             keyword_id=keyword_id,
             sort=app.schemas.articles.ArticleSort.importance_desc,
-            from_at=window_start,
-            to_at=window_end,
+            from_at=published_from,
+            to_at=published_to,
         )
         page_items, total = await service.get_article_list(user_id=user_id, query=query)
         items.extend(page_items)
@@ -1219,6 +1583,9 @@ def _articles_for_news_editor(articles: list[DonggukMailArticle]) -> str:
                 "content_excerpt": (article.summary or "")[:4000],
                 "thumbnail_url": article.thumbnail_url,
                 "published_at": article.published_at,
+                "section": article.section,
+                "section_label": _dongguk_section_label(article.section),
+                "category": article.category,
             }
         )
     return json.dumps(payload, ensure_ascii=False)
@@ -1252,7 +1619,7 @@ def _dongguk_preview_cache_key(
             }
         )
     payload = {
-        "version": 1,
+        "version": 2,
         "user_id": user_id,
         "keyword_id": keyword_id,
         "mail_date": mail_date,
@@ -1277,6 +1644,8 @@ async def _get_cached_dongguk_preview(db: AsyncSession, cache_key: str) -> dict 
     try:
         cached = json.loads(body)
     except json.JSONDecodeError:
+        return None
+    if cached.get("policy_version") != DONGGUK_MAIL_POLICY_VERSION:
         return None
     if cached.get("editor_used") is False:
         return None
@@ -1338,15 +1707,17 @@ def _draft_response(draft: DonggukMailDraft | None) -> dict:
         preview_data = json.loads(draft.preview_body) if draft.preview_body else None
     except json.JSONDecodeError:
         preview_data = None
+    if preview_data and preview_data.get("policy_version") != DONGGUK_MAIL_POLICY_VERSION:
+        preview_data = None
     # Old drafts can contain Google/Naver URL variants of the same publisher article.
     # Sanitize them on every read so every Hongbo screen uses the same representative list.
     selected_models = [DonggukMailArticle(**item) for item in selected_articles]
     selected_models, newly_removed = _dedupe_exact_dongguk_articles(selected_models)
-    selected_articles = [item.model_dump() for item in selected_models]
+    selected_articles = [_dongguk_article_response(item) for item in selected_models]
     if newly_removed:
         removed_models = [DonggukMailArticle(**item) for item in removed_articles]
         removed_models.extend(newly_removed)
-        removed_articles = [item.model_dump() for item in removed_models]
+        removed_articles = [_dongguk_article_response(item) for item in removed_models]
     selected_article_keys = [_dongguk_article_key(item, index) for index, item in enumerate(selected_models)]
     if preview_data:
         preview_data["articles"] = selected_articles
@@ -1399,8 +1770,21 @@ async def _save_dongguk_mail_draft(
     removed_article_keys: list[str] | None = None,
     removed_articles: list[DonggukMailArticle] | None = None,
     preview_data: dict | None = None,
+    record_feedback: bool = False,
+    feedback_source: str = "unknown",
 ) -> DonggukMailDraft:
     draft = await _get_dongguk_mail_draft(db, user_id=user_id, keyword_id=keyword_id, mail_date=mail_date)
+    before_selected_articles: list[dict] = []
+    before_preview_data: dict | None = None
+    if draft is not None and record_feedback:
+        try:
+            before_selected_articles = json.loads(draft.selected_articles or "[]")
+        except json.JSONDecodeError:
+            before_selected_articles = []
+        try:
+            before_preview_data = json.loads(draft.preview_body) if draft.preview_body else None
+        except json.JSONDecodeError:
+            before_preview_data = None
     if draft is None:
         draft = DonggukMailDraft(
             user_id=user_id,
@@ -1415,6 +1799,17 @@ async def _save_dongguk_mail_draft(
     draft.removed_article_keys = json.dumps(removed_article_keys or [], ensure_ascii=False)
     draft.removed_articles = json.dumps([article.model_dump() for article in (removed_articles or [])], ensure_ascii=False)
     draft.preview_body = json.dumps(preview_data, ensure_ascii=False) if preview_data is not None else None
+    if record_feedback and before_selected_articles:
+        await PriorityInsightService(db).record_draft_changes(
+            user_id=user_id,
+            keyword_id=keyword_id,
+            mail_date=mail_date,
+            source_screen=feedback_source,
+            before_selected_articles=before_selected_articles,
+            before_preview_data=before_preview_data,
+            after_selected_articles=[article.model_dump() for article in selected_articles],
+            after_preview_data=preview_data,
+        )
     await db.commit()
     await db.refresh(draft)
     return draft
@@ -1521,6 +1916,43 @@ def _article_similarity_text(article: DonggukMailArticle) -> str:
     return re.sub(r"\s+", " ", f"{article.title} {article.summary or ''}").strip().lower()
 
 
+def _article_topic_text(article: DonggukMailArticle) -> str:
+    text = f"{article.title or ''} {article.summary or ''}".lower()
+    text = re.sub(r"\[[^\]]+\]|\([^)]*\)", " ", text)
+    text = re.sub(r"\s*-\s*[^-]{2,20}$", " ", text)
+    text = re.sub(r"동국대학교|동국대|wise캠퍼스|wise", "동국", text)
+    text = re.sub(r"앵커\s*사업|앵커사업|앵커\s*과제|지역성장\s*인재양성체계", "앵커사업", text)
+    text = re.sub(r"업무\s*협약|mou|협약\s*체결", "협약", text)
+    return re.sub(r"[^가-힣a-z0-9]", "", text)
+
+
+def _hongbo_topic_bucket(article: DonggukMailArticle) -> str | None:
+    text = _dongguk_article_qualification_text(article)
+    topic_patterns = [
+        ("h안거", r"하안거|30일\s*수행|선.?교\s*겸수"),
+        ("lotus_donation", r"로터스관.*(기부|희사|발전기금)|기부.*로터스관|희사.*로터스관"),
+        ("iot_degree", r"지능\s*IoT|공동학위"),
+        ("meditation_expo", r"서울국제명상엑스포|명상,\s*함께\s*깨어나다|명상엑스포"),
+        ("c_forum", r"C포럼"),
+        ("anchor_goyang", r"경기앵커|앵커사업단|고양산업진흥원|지역성장\s*인재양성체계"),
+        ("oled_operando", r"OLED|오페란도|엑시톤|열화\s*메커니즘"),
+        ("dream_workshop", r"Dream\s*Workshop|교사연수"),
+        ("academic_member", r"대한민국학술원|학술원\s*신임회원|황훈성"),
+        ("mbc_basketball", r"MBC배|대학농구|결선\s*진출"),
+        ("education_grant", r"교육교부금|고등교육재정교부금|고등교육\s*투자|사총협"),
+        ("ai_basic_education", r"AI\s*기본\s*역량|문.?이과\s*불문\s*AI|신입생\s*AI"),
+        ("higher_ed_law", r"고등교육법|시행령|지역인재|입학\s*취소"),
+        ("temple_treasure", r"성보|불교문화유산|불교중앙박물관|탑비|벽화|불두|복장물|비파괴조사|보존처리"),
+        ("ordination_booth", r"출가상담|출가\s*상담|정광고"),
+        ("geunil", r"근일\s*대종사|현봉당\s*근일"),
+        ("buddhism_ai", r"AI\s*시대.*불교|불교.*AI|종교.*AI"),
+    ]
+    for key, pattern in topic_patterns:
+        if re.search(pattern, text, re.I):
+            return key
+    return None
+
+
 def _article_similarity_tokens(article: DonggukMailArticle) -> set[str]:
     text = _article_similarity_text(article)
     stopwords = {
@@ -1549,6 +1981,18 @@ def _article_similarity_tokens(article: DonggukMailArticle) -> set[str]:
     }
 
 
+def _article_title_topic_tokens(article: DonggukMailArticle) -> set[str]:
+    title = (article.title or "").lower()
+    title = re.sub(r"앵커\s*사업|앵커사업|앵커\s*과제|지역성장\s*인재양성체계", "앵커사업", title)
+    title = re.sub(r"업무\s*협약|mou|협약\s*체결", "협약", title)
+    stopwords = {"동국대", "동국대학교", "2026년", "신규", "관련", "기사", "보도", "외"}
+    return {
+        token
+        for token in re.findall(r"[가-힣A-Za-z0-9]{2,}", title)
+        if token not in stopwords
+    }
+
+
 def _published_minute_key(article: DonggukMailArticle) -> str:
     value = (article.published_at or "").strip()
     return value[:16] if len(value) >= 16 else value
@@ -1557,8 +2001,31 @@ def _published_minute_key(article: DonggukMailArticle) -> str:
 def _is_similar_dongguk_article(left: DonggukMailArticle, right: DonggukMailArticle) -> bool:
     left_title = re.sub(r"\s+", " ", (left.title or "")).strip().lower()
     right_title = re.sub(r"\s+", " ", (right.title or "")).strip().lower()
+    left_bucket = _hongbo_topic_bucket(left)
+    right_bucket = _hongbo_topic_bucket(right)
+    if left_bucket and left_bucket == right_bucket:
+        return True
     if left_title and right_title and SequenceMatcher(None, left_title, right_title).ratio() >= 0.55:
         return True
+    if "서울시" in left_title and "서울시" in right_title and "앵커" in left_title and "앵커" in right_title:
+        return True
+    left_topic = _article_topic_text(left)
+    right_topic = _article_topic_text(right)
+    if left_topic and right_topic:
+        if left_topic in right_topic or right_topic in left_topic:
+            return True
+        if SequenceMatcher(None, left_topic, right_topic).ratio() >= 0.46:
+            return True
+    left_title_tokens = _article_title_topic_tokens(left)
+    right_title_tokens = _article_title_topic_tokens(right)
+    if left_title_tokens and right_title_tokens:
+        shared_title_tokens = left_title_tokens & right_title_tokens
+        if {"서울시", "앵커사업"} <= shared_title_tokens:
+            return True
+        if "서울시" in shared_title_tokens and "앵커" in shared_title_tokens:
+            return True
+        if len(shared_title_tokens) >= 3 and len(shared_title_tokens) / max(1, min(len(left_title_tokens), len(right_title_tokens))) >= 0.5:
+            return True
     left_text = _article_similarity_text(left)
     right_text = _article_similarity_text(right)
     if left_text and right_text and SequenceMatcher(None, left_text, right_text).ratio() >= 0.68:
@@ -1624,6 +2091,11 @@ async def _build_dongguk_preview_result(
 ) -> dict:
     articles, exact_duplicate_excluded = _dedupe_exact_dongguk_articles(articles)
     normalized_priority_criteria = _normalize_dongguk_priority_criteria(priority_criteria)
+    normalized_priority_criteria = await PriorityInsightService(db).effective_criteria(
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        base_criteria=normalized_priority_criteria,
+    )
     cache_key = _dongguk_preview_cache_key(
         user_id=current_user.id,
         keyword_id=keyword_id,
@@ -1646,10 +2118,17 @@ async def _build_dongguk_preview_result(
     )
     sent_titles = await _sent_dongguk_titles(db, current_user.id, before_mail_date=mail_date) if exclude_similar_sent else set()
     included_articles, previously_sent_excluded = _filter_previously_sent_articles(edited_articles, sent_titles)
-    excluded_articles = [*editor_excluded_articles, *exact_duplicate_excluded, *previously_sent_excluded]
+    included_articles, policy_excluded_articles = _dongguk_mail_section_policy(
+        included_articles,
+        [*editor_excluded_articles, *exact_duplicate_excluded, *previously_sent_excluded],
+        articles,
+        mail_date,
+    )
+    excluded_articles = policy_excluded_articles
     data = {
-        "articles": [article.model_dump() for article in included_articles],
-        "excluded_articles": [article.model_dump() for article in excluded_articles],
+        "policy_version": DONGGUK_MAIL_POLICY_VERSION,
+        "articles": [_dongguk_article_response(article) for article in included_articles],
+        "excluded_articles": [_dongguk_article_response(article) for article in excluded_articles],
         "article_count": len(included_articles),
         "excluded_count": len(excluded_articles),
         "editor_used": editor_result is not None,
@@ -1752,6 +2231,8 @@ async def save_dongguk_draft(
         removed_article_keys=body.removed_article_keys,
         removed_articles=body.removed_articles,
         preview_data=body.preview_data,
+        record_feedback=bool(body.feedback_source),
+        feedback_source=body.feedback_source or "unknown",
     )
     return success_response(request=request, data=_draft_response(draft))
 
@@ -1760,21 +2241,24 @@ async def save_dongguk_draft(
 async def get_dongguk_trash(
     request: Request,
     keyword_id: int | None = Query(None),
-    mail_date: str = Query(...),
+    mail_date: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    conditions = [DonggukArticleTrash.user_id == current_user.id]
+    if keyword_id is not None:
+        conditions.append(DonggukArticleTrash.keyword_id == keyword_id)
     result = await db.execute(
         select(DonggukArticleTrash)
-        .where(
-            DonggukArticleTrash.user_id == current_user.id,
-            DonggukArticleTrash.keyword_id == keyword_id,
-            DonggukArticleTrash.mail_date == mail_date,
-        )
+        .where(*conditions)
         .order_by(DonggukArticleTrash.created_at.desc())
     )
     items = []
+    seen_article_ids: set[int] = set()
     for row in result.scalars().all():
+        if row.article_id in seen_article_ids:
+            continue
+        seen_article_ids.add(row.article_id)
         try:
             article = json.loads(row.article_body or "{}")
         except json.JSONDecodeError:
@@ -1784,6 +2268,7 @@ async def get_dongguk_trash(
                 "id": row.id,
                 "article_id": row.article_id,
                 "article": article,
+                "mail_date": row.mail_date,
                 "trashed_at": _fmt_dt(row.created_at),
             }
         )
@@ -1800,12 +2285,13 @@ async def move_dongguk_article_to_trash(
     article_id = body.article.id
     if article_id is None:
         return success_response(request=request, data={"item": None})
+    service = ArticleService(db)
+    await service.get_article_detail(user_id=current_user.id, article_id=article_id)
     existing = await db.execute(
         select(DonggukArticleTrash)
         .where(
             DonggukArticleTrash.user_id == current_user.id,
             DonggukArticleTrash.keyword_id == body.keyword_id,
-            DonggukArticleTrash.mail_date == body.mail_date,
             DonggukArticleTrash.article_id == article_id,
         )
         .limit(1)
@@ -1821,7 +2307,19 @@ async def move_dongguk_article_to_trash(
         )
         db.add(row)
     else:
+        row.mail_date = body.mail_date
         row.article_body = json.dumps(body.article.model_dump(), ensure_ascii=False)
+    await PriorityInsightService(db).record_action(
+        user_id=current_user.id,
+        keyword_id=body.keyword_id,
+        mail_date=body.mail_date,
+        action_type="trash",
+        source_screen="today",
+        article=body.article.model_dump(),
+        before={"trashed": False},
+        after={"trashed": True},
+        reason="관리자가 기사를 휴지통으로 이동했습니다.",
+    )
     await db.commit()
     await db.refresh(row)
     return success_response(request=request, data={"item": {"id": row.id, "article_id": row.article_id, "article": body.article.model_dump(), "trashed_at": _fmt_dt(row.created_at)}})
@@ -1834,13 +2332,36 @@ async def restore_dongguk_article_from_trash(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    existing = await db.scalar(
+        select(DonggukArticleTrash)
+        .where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == body.keyword_id,
+            DonggukArticleTrash.article_id == body.article_id,
+        )
+        .limit(1)
+    )
+    try:
+        article_body = json.loads(existing.article_body or "{}") if existing else {"id": body.article_id}
+    except json.JSONDecodeError:
+        article_body = {"id": body.article_id}
     await db.execute(
         delete(DonggukArticleTrash).where(
             DonggukArticleTrash.user_id == current_user.id,
             DonggukArticleTrash.keyword_id == body.keyword_id,
-            DonggukArticleTrash.mail_date == body.mail_date,
             DonggukArticleTrash.article_id == body.article_id,
         )
+    )
+    await PriorityInsightService(db).record_action(
+        user_id=current_user.id,
+        keyword_id=body.keyword_id,
+        mail_date=body.mail_date,
+        action_type="trash_restore",
+        source_screen="trash",
+        article=article_body,
+        before={"trashed": True},
+        after={"trashed": False},
+        reason="관리자가 휴지통의 기사를 복구했습니다.",
     )
     await db.commit()
     return success_response(request=request, data={"restored": True, "article_id": body.article_id})
@@ -1853,11 +2374,21 @@ async def permanently_delete_dongguk_trashed_article(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    existing = await db.execute(
+        select(DonggukArticleTrash)
+        .where(
+            DonggukArticleTrash.user_id == current_user.id,
+            DonggukArticleTrash.keyword_id == body.keyword_id,
+            DonggukArticleTrash.article_id == body.article_id,
+        )
+        .limit(1)
+    )
+    if existing.scalar_one_or_none() is None:
+        raise build_error(ErrorCode.NOT_FOUND, "휴지통에 있는 기사만 영구 삭제할 수 있습니다.")
     await db.execute(
         delete(DonggukArticleTrash).where(
             DonggukArticleTrash.user_id == current_user.id,
             DonggukArticleTrash.keyword_id == body.keyword_id,
-            DonggukArticleTrash.mail_date == body.mail_date,
             DonggukArticleTrash.article_id == body.article_id,
         )
     )
@@ -2116,6 +2647,7 @@ async def prebuild_dongguk_mail_drafts_for_scheduler(
     mail_date: str | None = None,
     user_id: int | None = None,
     keyword_ids: list[int] | None = None,
+    force_rebuild: bool = False,
 ) -> dict:
     target_date = mail_date or datetime.now(KST).date().isoformat()
     stmt = (
@@ -2147,7 +2679,7 @@ async def prebuild_dongguk_mail_drafts_for_scheduler(
                 keyword_id=keyword.id,
                 mail_date=target_date,
             )
-            if existing_draft and existing_draft.preview_body:
+            if existing_draft and existing_draft.preview_body and not force_rebuild:
                 skipped_count += 1
                 continue
 
@@ -2161,7 +2693,7 @@ async def prebuild_dongguk_mail_drafts_for_scheduler(
                 skipped_count += 1
                 continue
 
-            if existing_draft:
+            if existing_draft and not force_rebuild:
                 try:
                     removed_keys = set(json.loads(existing_draft.removed_article_keys or "[]"))
                 except json.JSONDecodeError:
@@ -2241,22 +2773,79 @@ async def prebuild_dongguk_mail_drafts_for_scheduler(
 async def dongguk_history(
     request: Request,
     limit: int = Query(30, ge=1, le=100),
+    summary_only: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
-    result = await db.execute(
-        select(EmailDelivery)
-        .where(EmailDelivery.user_id == current_user.id)
-        .where(EmailDelivery.status == "SENT")
-        .order_by(EmailDelivery.sent_at.desc().nullslast(), EmailDelivery.created_at.desc())
-        .limit(limit * 5)
+    delivery_filters = (
+        EmailDelivery.user_id == current_user.id,
+        EmailDelivery.status == "SENT",
+        EmailDelivery.subject.startswith("오늘의 주요 뉴스 "),
     )
-    deliveries = result.scalars().all()
-    grouped: dict[str, dict] = {}
+    if summary_only:
+        recipient_result = await db.execute(
+            select(EmailDelivery.to_email)
+            .where(*delivery_filters)
+            .order_by(EmailDelivery.sent_at.desc().nullslast(), EmailDelivery.created_at.desc())
+            .limit(limit * 10)
+        )
+        recent_recipients: list[str] = []
+        for (email,) in recipient_result.all():
+            if email not in recent_recipients:
+                recent_recipients.append(email)
+        return success_response(
+            request=request,
+            data={"items": [], "recent_recipients": recent_recipients[:12]},
+        )
+
+    distinct_deliveries = (
+        select(
+            EmailDelivery.id,
+            EmailDelivery.subject,
+            EmailDelivery.sent_at,
+            EmailDelivery.created_at,
+            EmailDelivery.body,
+        )
+        .where(*delivery_filters)
+        .distinct(EmailDelivery.subject, EmailDelivery.sent_at)
+        .order_by(
+            EmailDelivery.subject,
+            EmailDelivery.sent_at,
+            EmailDelivery.created_at.desc(),
+        )
+        .subquery()
+    )
+    result = await db.execute(
+        select(distinct_deliveries)
+        .order_by(
+            distinct_deliveries.c.sent_at.desc().nullslast(),
+            distinct_deliveries.c.created_at.desc(),
+        )
+        .limit(limit)
+    )
+    deliveries = result.mappings().all()
+    subjects = [row["subject"] for row in deliveries]
+    recipients_by_subject: dict[str, list[str]] = {}
     recent_recipients: list[str] = []
+    if subjects:
+        recipient_result = await db.execute(
+            select(EmailDelivery.subject, EmailDelivery.to_email)
+            .where(EmailDelivery.user_id == current_user.id)
+            .where(EmailDelivery.status == "SENT")
+            .where(EmailDelivery.subject.in_(subjects))
+            .order_by(EmailDelivery.sent_at.desc().nullslast(), EmailDelivery.created_at.desc())
+        )
+        for subject, email in recipient_result.all():
+            recipients = recipients_by_subject.setdefault(subject, [])
+            if email not in recipients:
+                recipients.append(email)
+            if email not in recent_recipients:
+                recent_recipients.append(email)
+
+    items: list[dict] = []
     for delivery in deliveries:
         try:
-            payload = json.loads(delivery.body or "{}")
+            payload = json.loads(delivery["body"] or "{}")
         except json.JSONDecodeError:
             payload = {}
         if payload.get("type") != "DONGGUK_PR_DAILY":
@@ -2265,24 +2854,17 @@ async def dongguk_history(
         history_articles, history_duplicates = _dedupe_exact_dongguk_articles(history_articles)
         history_excluded = [DonggukMailArticle(**article) for article in (payload.get("excluded_articles") or [])]
         history_excluded.extend(history_duplicates)
-        key = f"{delivery.subject}|{delivery.sent_at or delivery.created_at}"
-        item = grouped.setdefault(
-            key,
+        items.append(
             {
-                "id": delivery.id,
-                "subject": delivery.subject,
-                "sent_at": delivery.sent_at or delivery.created_at,
-                "recipients": [],
+                "id": delivery["id"],
+                "subject": delivery["subject"],
+                "sent_at": delivery["sent_at"] or delivery["created_at"],
+                "recipients": recipients_by_subject.get(delivery["subject"], []),
                 "article_count": len(history_articles),
                 "excluded_count": len(history_excluded),
-                "articles": [article.model_dump() for article in history_articles],
-                "excluded_articles": [article.model_dump() for article in history_excluded],
-            },
+                "articles": [{"title": article.title} for article in history_articles[:5]],
+            }
         )
-        item["recipients"].append(delivery.to_email)
-        if delivery.to_email not in recent_recipients:
-            recent_recipients.append(delivery.to_email)
-    items = list(grouped.values())[:limit]
     return success_response(
         request=request,
         data={

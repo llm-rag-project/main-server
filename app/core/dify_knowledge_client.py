@@ -32,6 +32,35 @@ class DifyKnowledgeClient:
             "Content-Type": "application/json",
         }
 
+    def _extract_document_payload(self, result: dict[str, Any]) -> tuple[str | None, dict[str, Any], str | None]:
+        containers = [
+            result,
+            result.get("data") if isinstance(result.get("data"), dict) else {},
+        ]
+        candidates: list[dict[str, Any]] = []
+        for container in containers:
+            if not isinstance(container, dict):
+                continue
+            candidates.append(container)
+            document = container.get("document")
+            if isinstance(document, dict):
+                candidates.append(document)
+
+        document_id = None
+        document_data: dict[str, Any] = {}
+        for candidate in candidates:
+            document_id = candidate.get("document_id") or candidate.get("id") or candidate.get("documentId")
+            if document_id:
+                document_data = candidate
+                break
+
+        batch = None
+        for container in containers:
+            if isinstance(container, dict):
+                batch = container.get("batch") or container.get("batch_id") or batch
+
+        return document_id, document_data, batch
+
     async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
 
@@ -53,6 +82,30 @@ class DifyKnowledgeClient:
                 result.get("error", {}).get("message")
                 or response.text
                 or "Failed to upload document to knowledge base"
+            )
+            raise DifyKnowledgeClientError(message)
+
+        return result
+
+    async def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            try:
+                response = await client.get(url, headers=self._headers(), params=params)
+            except httpx.HTTPError as e:
+                raise DifyKnowledgeClientError(f"Dify 요청 실패: {e}") from e
+
+        try:
+            result = response.json()
+        except Exception as e:
+            raise DifyKnowledgeClientError(f"Dify 응답 파싱 실패: {response.text}") from e
+
+        if response.status_code >= 400 or result.get("success") is False:
+            message = (
+                result.get("error", {}).get("message")
+                or response.text
+                or "Failed to fetch documents from knowledge base"
             )
             raise DifyKnowledgeClientError(message)
 
@@ -96,17 +149,44 @@ class DifyKnowledgeClient:
             payload,
         )
 
-        data = result.get("data", {})
-        document_id = data.get("document_id")
+        document_id, document_data, batch = self._extract_document_payload(result)
         if not document_id:
-            raise DifyKnowledgeClientError("Dify document_id가 응답에 없습니다.")
+            raise DifyKnowledgeClientError(f"Dify document_id가 응답에 없습니다. response={result}")
 
         return {
             "document_id": document_id,
-            "name": data.get("name"),
-            "indexing_status": data.get("indexing_status"),
-            "batch": data.get("batch"),
+            "name": document_data.get("name"),
+            "indexing_status": document_data.get("indexing_status"),
+            "batch": batch or document_data.get("batch"),
         }
+
+    async def search_documents(self, *, keyword: str, page: int = 1, limit: int = 10) -> list[dict[str, Any]]:
+        result = await self._get(
+            f"/datasets/{self.dataset_id}/documents",
+            params={"keyword": keyword, "page": page, "limit": limit},
+        )
+        data = result.get("data")
+        return data if isinstance(data, list) else []
+
+    def _normalize_document_name(self, value: str | None) -> str:
+        return " ".join(str(value or "").split()).casefold()
+
+    async def find_document_by_title(self, *, title: str) -> dict[str, Any] | None:
+        title_key = self._normalize_document_name(title)
+        if not title_key:
+            return None
+
+        documents = await self.search_documents(keyword=title, limit=10)
+        for document in documents:
+            name_key = self._normalize_document_name(document.get("name"))
+            if name_key == title_key:
+                return document
+
+        for document in documents:
+            name_key = self._normalize_document_name(document.get("name"))
+            if title_key in name_key or name_key in title_key:
+                return document
+        return None
 
     async def attach_article_id_metadata(self, *, document_id: str, article_id: int) -> None:
         await self.attach_article_keyword_metadata(document_id=document_id, article_id=article_id)

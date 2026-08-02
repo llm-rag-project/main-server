@@ -313,14 +313,19 @@ class StatsService:
 
         end_at = datetime.now(timezone.utc)
         start_at = end_at - timedelta(hours=hours)
-        # Search volume should be an independent market signal, not capped by
-        # the number of articles the user wants to save in one crawl run.
-        limit = 1000
+        # Search-volume sampling needs result counts, not 1,000 article bodies.
+        # A lightweight 100-item discovery window avoids exhausting the shared
+        # Naver/Google search capacity used by interactive searches.
+        limit = 100
         result = await self.transnews_client.search_news(
             keyword.keyword_text,
             published_after=start_at.isoformat(),
             published_before=end_at.isoformat(),
             limit=limit,
+            include_empty_content=True,
+            timeout_seconds=10,
+            discovery_only=True,
+            search_sort="latest",
         )
         items = result.get("data") or []
         return {

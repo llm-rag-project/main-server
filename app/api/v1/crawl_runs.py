@@ -2,7 +2,7 @@
 from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +17,7 @@ from app.api.v1.reports import prebuild_dongguk_mail_drafts_for_scheduler
 from app.services.analysis_service import AnalysisService
 from app.services.auto_ai_service import AutoAiService
 from app.services.crawl_run_service import CrawlRunService
+from app.services.crawl_health_service import CrawlHealthService
 
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
@@ -30,6 +31,12 @@ class CreateCrawlRunRequest(BaseModel):
     today_only: bool = False
     from_date: date | None = None
     to_date: date | None = None
+
+
+class ReplayCrawlRunRequest(BaseModel):
+    keyword_id: int
+    from_date: date
+    to_date: date
 
 
 @router.post("")
@@ -57,6 +64,8 @@ async def create_crawl_run(
             today_only=body.today_only,
             custom_start_at=custom_start_at,
             custom_end_at=custom_end_at,
+            discovery_only=True,
+            enrich_for_relevance=True,
         )
     except TransNewsClientError as e:
         raise build_error(ErrorCode.UPSTREAM_ERROR, str(e))
@@ -64,6 +73,70 @@ async def create_crawl_run(
     if result.get("crawl_run_id"):
         background_tasks.add_task(_run_auto_ai_for_crawl_bg, current_user.id, result["crawl_run_id"])
 
+    return success_response(request, status_code=202, data=result)
+
+
+@router.get("/health")
+async def get_crawl_health(
+    request: Request,
+    keyword_id: int | None = Query(None),
+    days: int = Query(30, ge=1, le=180),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    data = await CrawlHealthService(db).summary(
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        days=days,
+        limit=limit,
+    )
+    return success_response(request, data=data)
+
+
+@router.get("/{run_id}/audit")
+async def get_crawl_run_audit(
+    run_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    data = await CrawlHealthService(db).run_detail(
+        user_id=current_user.id,
+        run_id=run_id,
+    )
+    if data is None:
+        raise build_error(ErrorCode.NOT_FOUND, "수집 실행 기록을 찾을 수 없습니다.")
+    return success_response(request, data=data)
+
+
+@router.post("/replay")
+async def replay_crawl_run(
+    request: Request,
+    body: ReplayCrawlRunRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    if body.from_date > body.to_date:
+        raise build_error(ErrorCode.VALIDATION_ERROR, "시작일은 종료일보다 늦을 수 없습니다.")
+    if (body.to_date - body.from_date).days > 31:
+        raise build_error(ErrorCode.VALIDATION_ERROR, "한 번에 다시 수집할 수 있는 기간은 최대 31일입니다.")
+    result = await CrawlRunService(db=db, transnews_client=TransNewsClient()).create_crawl_run(
+        user_id=current_user.id,
+        keyword_ids=[body.keyword_id],
+        force=True,
+        custom_start_at=datetime.combine(body.from_date, time.min, tzinfo=KST),
+        custom_end_at=datetime.combine(body.to_date, time.max, tzinfo=KST),
+        trigger_type="replay",
+        enrich_for_relevance=True,
+    )
+    if result.get("crawl_run_id"):
+        background_tasks.add_task(
+            _run_auto_ai_for_crawl_bg,
+            current_user.id,
+            result["crawl_run_id"],
+        )
     return success_response(request, status_code=202, data=result)
 
 

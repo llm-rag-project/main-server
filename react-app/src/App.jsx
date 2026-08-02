@@ -5,7 +5,10 @@ import {
   Bell,
   Bot,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Calendar,
   Clock,
   Circle,
@@ -46,6 +49,7 @@ import {
   YAxis,
 } from "recharts";
 import { authStore, endpoints } from "./api";
+import CollectionStatusPanel from "./CollectionStatusPanel";
 import "./styles.css";
 
 const sortOptions = [
@@ -67,6 +71,19 @@ const donggukSections = {
   education: "대학 [교육]",
   buddhism: "불교 [종단]",
 };
+function normalizeDonggukSectionKey(section) {
+  const value = String(section || "").trim();
+  if (!value) return "";
+  if (value === "dongguk_core" || value === "foundation" || /동국대|법인|건학/.test(value)) return "foundation";
+  if (value === "education" || /대학\s*\[교육\]|고등교육|교육/.test(value)) return "education";
+  if (value === "buddhism" || /불교|종단|조계종/.test(value)) return "buddhism";
+  return "";
+}
+
+function normalizeDonggukSectionLabel(section, fallback = donggukSections.foundation) {
+  const key = normalizeDonggukSectionKey(section);
+  return key ? donggukSections[key] : fallback;
+}
 const donggukPriorityBands = [
   { label: "P1", name: "최우선", min: 80, tone: "p1" },
   { label: "P2", name: "주요", min: 64, tone: "p2" },
@@ -91,6 +108,23 @@ const donggukCategoryRules = [
   { key: "buddhist_general", label: "불교계/종단 일반", score: 28, priority: "P4", keywords: ["조계종", "사찰", "종정"] },
   { key: "other", label: "기타 개별 홍보 피처", score: 24, priority: "P5", keywords: [] },
 ];
+const donggukCategoryLabels = new Set(donggukCategoryRules.map((rule) => rule.label));
+const donggukCategoryAliases = {
+  chairperson_message: "총장/이사장 메시지",
+  donation: "기부/장학/발전기금",
+  buddhist_identity: "불교 정체성 상징 행사",
+  research_ai: "연구 성과/AI",
+  campaign: "건학 기념 캠페인",
+  partnership: "협약/사업 선정",
+  award: "수상/인증",
+  official_event: "학교 공식 행사",
+  academic: "학술활동",
+  admission: "입시/교육 프로그램",
+  personnel: "인사(임용/위촉)",
+  education_policy: "대학 정책/고등교육 이슈",
+  alumni_media: "동문/교수 인터뷰·칼럼",
+  buddhist_general: "불교계/종단 일반",
+};
 const defaultDonggukPriorityCriteria = `기본 홍보처 우선순위 기준
 
 최우선으로 올릴 기사:
@@ -358,17 +392,30 @@ function localDateKey(value = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+function shiftDateKey(dateKey, amount) {
+  const date = new Date(`${dateKey}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return dateKey;
+  date.setDate(date.getDate() + amount);
+  return localDateKey(date);
+}
+
+function calendarGridRange(monthKey) {
+  const firstDay = new Date(`${monthKey}-01T12:00:00`);
+  if (Number.isNaN(firstDay.getTime())) return null;
+  const lastDay = new Date(firstDay);
+  lastDay.setMonth(lastDay.getMonth() + 1, 0);
+  return {
+    start: shiftDateKey(localDateKey(firstDay), -firstDay.getDay()),
+    end: shiftDateKey(localDateKey(lastDay), 6 - lastDay.getDay()),
+  };
+}
+
 function articlePublishedDateKey(article) {
   const value = article?.published_at || article?.publishedAt || "";
   if (!value) return "";
   const text = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
   return localDateKey(text);
-}
-
-function isArticlePublishedOn(article, dateKey) {
-  const publishedKey = articlePublishedDateKey(article);
-  return Boolean(publishedKey && dateKey && publishedKey === dateKey);
 }
 
 function previousDateKey(dateKey) {
@@ -391,13 +438,16 @@ function reportWindowForDate(dateKey, sendTime = "08:30") {
   };
 }
 
-function isArticleInMailWindow(article, mailDateKey, sendTime = "08:30") {
-  const value = article?.published_at || article?.publishedAt || "";
-  if (!value || !mailDateKey) return false;
-  const publishedAt = new Date(value);
-  if (Number.isNaN(publishedAt.getTime())) return false;
-  const window = reportWindowForDate(mailDateKey, sendTime);
-  return publishedAt >= new Date(window.from_at) && publishedAt <= new Date(window.to_at);
+function reportWindowForRange(startDateKey, endDateKey, sendTime = "08:30") {
+  const startWindow = reportWindowForDate(startDateKey, sendTime);
+  const endWindow = reportWindowForDate(endDateKey, sendTime);
+  return {
+    startKey: startWindow.startKey,
+    endKey: endWindow.endKey,
+    from_at: startWindow.from_at,
+    to_at: endWindow.to_at,
+    label: `${startWindow.startKey} ${sendTime || "08:30"} ~ ${endWindow.endKey} ${sendTime || "08:30"}`,
+  };
 }
 
 function getArticleUrl(article) {
@@ -461,6 +511,28 @@ function donggukPriorityBandFromValue(value, score = 0) {
 
 function priorityDisplayName(articleOrBand) {
   return articleOrBand?.priorityName || articleOrBand?.name || "";
+}
+
+function formatInsightActionState(state = {}) {
+  const labels = {
+    position: "순서",
+    priority: "우선순위",
+    score: "점수",
+    category: "하위 분류",
+    section: "상위 분류",
+    sectionLabel: "상위 분류",
+    included: "메일 포함",
+    trashed: "휴지통",
+    title: "제목",
+    summary: "요약",
+  };
+  return Object.entries(state)
+    .map(([key, value]) => {
+      if (key === "priority_criteria") return "AI 선정 기준 문안";
+      const displayValue = typeof value === "boolean" ? (value ? "예" : "아니오") : String(value ?? "-");
+      return `${labels[key] || key} ${displayValue}`;
+    })
+    .join(" · ");
 }
 
 function articlePriorityReason(article = {}) {
@@ -543,7 +615,7 @@ async function loadAllArticlePages(params = {}) {
   const size = 100;
   const first = await endpoints.articles({ ...params, page: 1, size });
   const items = [...(first?.items || [])];
-  const total = Number(first?.total || items.length);
+  const total = Number(first?.page_info?.total ?? first?.total ?? items.length);
   const pageCount = Math.ceil(total / size);
 
   // Keep concurrent requests bounded so large archives do not overload the API.
@@ -553,7 +625,12 @@ async function loadAllArticlePages(params = {}) {
       (_, offset) => start + offset
     );
     const results = await Promise.all(
-      pages.map((page) => endpoints.articles({ ...params, page, size }))
+      pages.map((page) => endpoints.articles({
+        ...params,
+        page,
+        size,
+        include_total: false,
+      }))
     );
     results.forEach((result) => items.push(...(result?.items || [])));
   }
@@ -579,8 +656,24 @@ function scoreDonggukArticle(article) {
     priorityTone: band.tone,
     isSyndicated,
     isCampaign,
-    sectionLabel: donggukSections[article.section] || article.section,
+    sectionLabel: normalizeDonggukSectionLabel(article.section),
   };
+}
+
+function articleCollectedDateKey(article) {
+  const value = article?.matched_at || article?.matchedAt || article?.collected_at || article?.collectedAt || "";
+  if (!value) return "";
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  return localDateKey(text);
+}
+
+function articleReviewDateKey(article) {
+  return articleCollectedDateKey(article) || articlePublishedDateKey(article);
+}
+
+function isDateWithinRange(value, startDate, endDate) {
+  return Boolean(value && startDate && endDate && value >= startDate && value <= endDate);
 }
 
 function inferDonggukArticle(article) {
@@ -592,11 +685,12 @@ function inferDonggukArticle(article) {
         item.key !== "other" && item.keywords.some((keyword) => text.includes(keyword.toLowerCase()))
       ) || getDonggukRule("other");
   const section =
-    rule.key === "education_policy" || rule.key === "admission"
+    normalizeDonggukSectionKey(article.section)
+    || (rule.key === "education_policy" || rule.key === "admission"
       ? "education"
       : rule.key === "buddhist_general"
         ? "buddhism"
-        : "foundation";
+        : "foundation");
   return scoreDonggukArticle({
     id: article.id,
     title: article.title || "제목 없음",
@@ -607,6 +701,8 @@ function inferDonggukArticle(article) {
     links: [getArticleUrl(article)].filter(Boolean),
     summary: article.summary || "요약문이 아직 없습니다.",
     published_at: article.published_at,
+    collected_at: article.collected_at || article.created_at || null,
+    matched_at: article.matched_at || null,
     matchedType: rule.key,
   });
 }
@@ -721,7 +817,7 @@ function canonicalArticleUrl(value = "") {
       url.searchParams.set(stableKey, stableValue);
     } else {
       [...url.searchParams.keys()].forEach((key) => {
-        if (/^utm_/i.test(key) || ["cp", "from", "gclid", "fbclid", "medium", "ncid", "ocid", "ref", "source"].includes(key.toLowerCase())) {
+        if (/^utm_/i.test(key) || ["cp", "from", "gclid", "fbclid", "influxdiv", "medium", "ncid", "ocid", "ref", "source"].includes(key.toLowerCase())) {
           url.searchParams.delete(key);
         }
       });
@@ -806,6 +902,8 @@ function donggukArticlePayload(article) {
     url: article.url,
     thumbnail_url: getArticleThumbnail(article),
     published_at: article.published_at,
+    collected_at: article.collected_at || null,
+    matched_at: article.matched_at || null,
     links: realArticleLinks(article),
     priority: article.priority,
     priority_name: article.priorityName || article.priority_name,
@@ -818,9 +916,17 @@ function donggukArticlePayload(article) {
 function normalizeDonggukPreviewArticle(article) {
   const score = Math.max(0, Math.min(100, Number(article.score ?? 0)));
   const band = donggukPriorityBandFromValue(article.priority || article.priority_name || article.priorityName, score);
+  const sectionLabel = normalizeDonggukSectionLabel(article.section || article.sectionLabel);
+  const rawCategory = String(article.category || "").trim();
+  const inferredCategory = inferDonggukArticle({ ...article, section: sectionLabel }).category;
+  const category = donggukCategoryLabels.has(rawCategory)
+    ? rawCategory
+    : donggukCategoryAliases[rawCategory] || inferredCategory;
   return {
     ...article,
-    sectionLabel: article.section || article.sectionLabel || donggukSections.foundation,
+    section: sectionLabel,
+    sectionLabel,
+    category,
     priority: band.label,
     priorityName: article.priority_name || article.priorityName || band.name,
     priorityTone: band.tone,
@@ -885,8 +991,8 @@ function Sidebar({
   onDeleteKeyword,
   loading,
   collapsed,
-  setCollapsed,
   keywordArticleCountOverrides = {},
+  donggukArticleSummary = {},
 }) {
   const defaultForm = {
     keyword: "",
@@ -1014,14 +1120,6 @@ function Sidebar({
               <span>AI 기사 모니터링</span>
             </div>
           )}
-          <button
-            className="sidebar-collapse-button"
-            onClick={() => setCollapsed((value) => !value)}
-            title={collapsed ? "왼쪽 사이드바 열기" : "왼쪽 사이드바 닫기"}
-            type="button"
-          >
-            {collapsed ? <ChevronRight size={16} /> : <X size={16} />}
-          </button>
         </div>
 
         <div className="mode-switch" role="tablist" aria-label="대시보드 모드">
@@ -1040,7 +1138,7 @@ function Sidebar({
             onClick={() => {
               setDashboardMode("dongguk");
               setActiveTab("dongguk");
-              setDonggukViewMode("home");
+              setDonggukViewMode("priority");
             }}
             type="button"
           >
@@ -1071,7 +1169,7 @@ function Sidebar({
           </button>
           <button
             className={
-              (dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "priority")
+              (dashboardMode === "dongguk" && activeTab === "dongguk" && ["priority", "edit", "mail"].includes(donggukViewMode))
               || (dashboardMode === "general" && activeTab === "articles")
                 ? "active"
                 : ""
@@ -1089,38 +1187,44 @@ function Sidebar({
             <FileText size={18} />
             {!collapsed && <span>{dashboardMode === "dongguk" ? "오늘 수집된 기사" : "기사 모니터링"}</span>}
           </button>
-          <button onClick={() => setActiveTab(dashboardMode === "dongguk" ? "dongguk" : "stats")} type="button">
-            <Hash size={18} />
-            {!collapsed && <span>키워드 관리</span>}
-          </button>
           {dashboardMode === "dongguk" && (
             <button
-              className={activeTab === "dongguk" && donggukViewMode === "edit" ? "active" : ""}
+              className={activeTab === "dongguk" && donggukViewMode === "collection" ? "active" : ""}
               onClick={() => {
                 setActiveTab("dongguk");
-                setDonggukViewMode("edit");
+                setDonggukViewMode("collection");
               }}
               type="button"
             >
-              <Pencil size={18} />
-              {!collapsed && <span>편집</span>}
+              <RefreshCw size={18} />
+              {!collapsed && <span>수집 상태</span>}
             </button>
           )}
-          <button
-            className={dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "mail" ? "active" : ""}
-            onClick={() => {
-              if (dashboardMode === "dongguk") {
+          {dashboardMode === "dongguk" && (
+            <button
+              className={activeTab === "dongguk" && donggukViewMode === "calendar" ? "active" : ""}
+              onClick={() => {
                 setActiveTab("dongguk");
-                setDonggukViewMode("mail");
-              } else {
-                setActiveTab("stats");
-              }
-            }}
-            type="button"
-          >
-            <Mail size={18} />
-            {!collapsed && <span>{dashboardMode === "dongguk" ? "메일 미리보기" : "발송 관리"}</span>}
-          </button>
+                setDonggukViewMode("calendar");
+              }}
+              type="button"
+            >
+              <Calendar size={18} />
+              {!collapsed && <span>캘린더</span>}
+            </button>
+          )}
+          {dashboardMode === "general" && (
+            <button onClick={() => setActiveTab("stats")} type="button">
+              <Hash size={18} />
+              {!collapsed && <span>키워드 관리</span>}
+            </button>
+          )}
+          {dashboardMode === "general" && (
+            <button onClick={() => setActiveTab("stats")} type="button">
+              <Mail size={18} />
+              {!collapsed && <span>발송 관리</span>}
+            </button>
+          )}
           {dashboardMode === "dongguk" && (
             <button
               className={activeTab === "dongguk" && donggukViewMode === "history" ? "active" : ""}
@@ -1173,60 +1277,96 @@ function Sidebar({
           </button>
         </nav>
 
-        <section className="side-section keyword-admin">
-          {!collapsed && (
-            <>
-              <div className="keyword-group-head">
-                <span>키워드 목록</span>
-                <button className="secondary compact" onClick={openCreateModal} type="button">
-                  <Plus size={14} /> 추가
-                </button>
+        {dashboardMode === "dongguk" && !collapsed && (
+          <section className="side-section dongguk-today-summary">
+            <div className="dongguk-today-summary-head">
+              <div>
+                <FileText size={16} />
+                <strong>오늘 수집 기사 현황</strong>
               </div>
+              <span>{String(donggukArticleSummary.date || "").replaceAll("-", ".")}</span>
+            </div>
+            <div className="dongguk-today-summary-total">
+              <span>전체 수집</span>
+              <strong>{Number(donggukArticleSummary.total || 0).toLocaleString()}건</strong>
+            </div>
+            <div className="dongguk-today-summary-rows">
+              <div>
+                <span>동국대·건학위</span>
+                <b>{Number(donggukArticleSummary.sections?.[donggukSections.foundation] || 0).toLocaleString()}건</b>
+              </div>
+              <div>
+                <span>대학·교육</span>
+                <b>{Number(donggukArticleSummary.sections?.[donggukSections.education] || 0).toLocaleString()}건</b>
+              </div>
+              <div>
+                <span>불교·종단</span>
+                <b>{Number(donggukArticleSummary.sections?.[donggukSections.buddhism] || 0).toLocaleString()}건</b>
+              </div>
+            </div>
+            <div className="dongguk-today-summary-mail">
+              <CheckCircle2 size={15} />
+              <span>메일 포함</span>
+              <strong>{Number(donggukArticleSummary.mailIncluded || 0).toLocaleString()}건</strong>
+            </div>
+          </section>
+        )}
 
-              <div className="keyword-checklist">
-                {shownKeywords.length === 0 && (
-                  <div className="toc-empty">
-                    <strong>저장된 키워드가 없습니다</strong>
-                    <span>키워드를 추가하면 기사 목록과 함께 이곳에 표시됩니다.</span>
-                  </div>
-                )}
-                {shownKeywords.map((keyword) => {
-                  const selected = keyword.id === selectedKeywordId;
-                  const todayArticleCount = Number(keywordArticleCountOverrides[keyword.id] ?? keyword.article_count ?? 0);
-                  return (
-                    <div className={`toc-row ${selected ? "selected" : ""}`} key={keyword.id}>
-                      <button className="toc-select" onClick={() => setSelectedKeywordId(keyword.id)} type="button">
-                        <Circle className="toc-dot" size={12} />
-                        <span className="toc-title">{keywordName(keyword)}</span>
-                        <span className="toc-summary">오늘 {todayArticleCount.toLocaleString()}건 · {keyword.is_active ? "활성" : "비활성"}</span>
-                      </button>
-                      <div className="toc-actions">
-                        <button className="ghost" title="설정 수정" onClick={() => openEditModal(keyword)} type="button">
-                          <Pencil size={14} />
-                        </button>
-                        <button className="ghost danger" title="삭제" onClick={() => setDeleteTarget(keyword)} type="button">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {keywordPageCount > 1 && (
-                <div className="keyword-pager">
-                  <button className="secondary compact" disabled={keywordPage <= 1} onClick={() => setKeywordPage((page) => Math.max(1, page - 1))} type="button">
-                    이전
-                  </button>
-                  <span>{keywordPage} / {keywordPageCount}</span>
-                  <button className="secondary compact" disabled={keywordPage >= keywordPageCount} onClick={() => setKeywordPage((page) => Math.min(keywordPageCount, page + 1))} type="button">
-                    다음
+        {dashboardMode === "general" && (
+          <section className="side-section keyword-admin">
+            {!collapsed && (
+              <>
+                <div className="keyword-group-head">
+                  <span>키워드 목록</span>
+                  <button className="secondary compact" onClick={openCreateModal} type="button">
+                    <Plus size={14} /> 추가
                   </button>
                 </div>
-              )}
-            </>
-          )}
 
-        </section>
+                <div className="keyword-checklist">
+                  {shownKeywords.length === 0 && (
+                    <div className="toc-empty">
+                      <strong>저장된 키워드가 없습니다</strong>
+                      <span>키워드를 추가하면 기사 목록과 함께 이곳에 표시됩니다.</span>
+                    </div>
+                  )}
+                  {shownKeywords.map((keyword) => {
+                    const selected = keyword.id === selectedKeywordId;
+                    const todayArticleCount = Number(keywordArticleCountOverrides[keyword.id] ?? keyword.article_count ?? 0);
+                    return (
+                      <div className={`toc-row ${selected ? "selected" : ""}`} key={keyword.id}>
+                        <button className="toc-select" onClick={() => setSelectedKeywordId(keyword.id)} type="button">
+                          <Circle className="toc-dot" size={12} />
+                          <span className="toc-title">{keywordName(keyword)}</span>
+                          <span className="toc-summary">오늘 {todayArticleCount.toLocaleString()}건 · {keyword.is_active ? "활성" : "비활성"}</span>
+                        </button>
+                        <div className="toc-actions">
+                          <button className="ghost" title="설정 수정" onClick={() => openEditModal(keyword)} type="button">
+                            <Pencil size={14} />
+                          </button>
+                          <button className="ghost danger" title="삭제" onClick={() => setDeleteTarget(keyword)} type="button">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {keywordPageCount > 1 && (
+                  <div className="keyword-pager">
+                    <button className="secondary compact" disabled={keywordPage <= 1} onClick={() => setKeywordPage((page) => Math.max(1, page - 1))} type="button">
+                      이전
+                    </button>
+                    <span>{keywordPage} / {keywordPageCount}</span>
+                    <button className="secondary compact" disabled={keywordPage >= keywordPageCount} onClick={() => setKeywordPage((page) => Math.min(keywordPageCount, page + 1))} type="button">
+                      다음
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
         {!collapsed && (
           <div className="sidebar-guide">
             <button className="secondary" onClick={() => setGuideOpen(true)} type="button">
@@ -1272,7 +1412,13 @@ function Sidebar({
                 <h3>왼쪽 사이드바</h3>
                 <ul>
                   <li><strong>일반 / 홍보처</strong>: 일반 모니터링과 홍보처 전용 대시보드를 전환합니다.</li>
-                  <li><strong>키워드 목록</strong>: 등록된 키워드와 오늘 수집된 기사 수를 확인합니다. 4개 이상이면 페이지로 넘겨 볼 수 있습니다.</li>
+                  {dashboardMode === "general" && (
+                    <li><strong>키워드 목록</strong>: 등록된 키워드와 오늘 수집된 기사 수를 확인합니다. 4개 이상이면 페이지로 넘겨 볼 수 있습니다.</li>
+                  )}
+                  {dashboardMode === "dongguk" && (
+                    <li><strong>홍보처 메뉴</strong>: 별도의 키워드를 선택하지 않고 설정, 수집 기사, 수집 상태, 캘린더, 발송 기록과 통계로 바로 이동합니다.</li>
+                  )}
+                  <li><strong>사이드바 열기·닫기</strong>: 상단 아이콘으로 사이드바를 숨겨 작업 공간을 넓히거나 다시 열 수 있습니다.</li>
                   <li><strong>AI 채팅</strong>: 오른쪽 채팅 패널을 열어 현재 서비스 사용 중 궁금한 점을 물어볼 수 있습니다.</li>
                   <li><strong>휴지통</strong>: 홍보처 모드에서 제외 후 휴지통으로 보낸 기사를 복구하거나 완전 삭제합니다.</li>
                 </ul>
@@ -1284,9 +1430,11 @@ function Sidebar({
                     <h3>홍보처 작업 순서</h3>
                     <ol>
                       <li><strong>설정</strong>에서 기준일, 카테고리별 최대 기사 수, 수신인, 자동 발송 여부, 우선순위 기준을 정합니다.</li>
-                      <li><strong>오늘 수집된 기사</strong>에서 기준일과 전날 기사 후보를 확인합니다. 상위 카테고리와 하위 카테고리별로 볼 수 있습니다.</li>
-                      <li><strong>편집</strong>에서 메일에 들어갈 기사 제목, 요약, 순서, 카테고리, 우선순위를 조정합니다. URL을 넣어 수동 기사 추가도 할 수 있습니다.</li>
-                      <li><strong>메일 미리보기</strong>에서 실제 발송 문안을 확인하고 테스트 수신인을 따로 지정해 테스트 전송합니다.</li>
+                      <li><strong>캘린더</strong>에서 학교 휴일과 개인 휴가를 등록합니다. 휴일 중에도 기사는 수집되며 다음 업무일 아침 메일에 함께 들어갑니다.</li>
+                      <li><strong>오늘 수집된 기사</strong>에서 후보를 검색하고 페이지별로 확인한 뒤 메일 포함 여부를 선택합니다.</li>
+                      <li><strong>수집 상태</strong>에서 분야별 기사 수집 여부를 확인하고, 누락이 의심되는 기간을 다시 수집합니다.</li>
+                      <li>같은 화면 아래의 <strong>메일 미리보기</strong>에서 선택된 기사와 실제 발송 문안을 확인합니다.</li>
+                      <li>미리보기의 <strong>편집</strong> 버튼으로 제목, 요약, 순서, 카테고리, 우선순위를 조정하고 URL 기사도 추가합니다.</li>
                       <li><strong>발송 기록</strong>에서 보낸 메일과 제외된 기사 수를 확인합니다. 메일 발송 시 한글 파일도 함께 첨부됩니다.</li>
                     </ol>
                   </section>
@@ -1650,6 +1798,7 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
   const [articles, setArticles] = useState([]);
   const [pageInfo, setPageInfo] = useState(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [articleDate, setArticleDate] = useState("");
   const [sort, setSort] = useState(sortOptions[0][1]);
   const [page, setPage] = useState(1);
@@ -1670,7 +1819,7 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
       const nextSize = overrides.size ?? size;
       const nextSort = overrides.sort ?? sort;
       const nextDate = Object.prototype.hasOwnProperty.call(overrides, "articleDate") ? overrides.articleDate : articleDate;
-      const nextQuery = Object.prototype.hasOwnProperty.call(overrides, "query") ? overrides.query : query;
+      const nextQuery = Object.prototype.hasOwnProperty.call(overrides, "query") ? overrides.query : debouncedQuery;
       const dateWindow = nextDate ? reportWindowForDate(nextDate, selectedSendTime) : null;
       const data = await endpoints.articles({
         keyword_id: selectedKeywordId,
@@ -1691,15 +1840,15 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
 
   useEffect(() => {
     loadArticles();
-  }, [selectedKeywordId, page, size, sort, articleDate, selectedSendTime]);
+  }, [selectedKeywordId, page, size, sort, articleDate, selectedSendTime, debouncedQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
-      loadArticles();
+      setDebouncedQuery(query.trim());
     }, 350);
     return () => clearTimeout(timer);
-  }, [query, articleDate]);
+  }, [query]);
 
   async function runCrawl() {
     setRunning("crawl");
@@ -1768,8 +1917,12 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
     if (!deleteArticleTarget) return;
     setRunning("delete");
     try {
-      await endpoints.deleteArticle(deleteArticleTarget.id);
-      showToast("기사와 관련 분석 데이터를 삭제했습니다.", "success");
+      await endpoints.moveDonggukTrash({
+        keyword_id: selectedKeywordId,
+        mail_date: articleDate || localDateKey(),
+        article: donggukArticlePayload(deleteArticleTarget),
+      });
+      showToast("기사를 휴지통으로 이동했습니다.", "success");
       setDeleteArticleTarget(null);
       await loadArticles();
       refreshSummary?.();
@@ -1914,9 +2067,9 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
                       원문
                     </a>
                   )}
-                  <button className="danger ghost-action" title="기사 삭제" onClick={() => setDeleteArticleTarget(article)} type="button">
+                  <button className="danger ghost-action" title="휴지통으로 이동" onClick={() => setDeleteArticleTarget(article)} type="button">
                     <Trash2 size={15} />
-                    삭제
+                    휴지통
                   </button>
                 </div>
 
@@ -1950,8 +2103,8 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
           <div className="keyword-modal delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-article-title">
             <div className="modal-heading">
               <div>
-                <strong id="delete-article-title">기사 삭제 확인</strong>
-                <span>삭제하면 기사 목록과 관련 분석 결과에서 제거됩니다.</span>
+                <strong id="delete-article-title">휴지통으로 이동</strong>
+                <span>기사는 일반 목록에서 숨겨지고 휴지통에서 복구할 수 있습니다.</span>
               </div>
               <button className="ghost" onClick={() => setDeleteArticleTarget(null)} title="닫기" type="button">
                 <X size={18} />
@@ -1962,15 +2115,15 @@ function Articles({ selectedKeywordId, selectedKeyword, topItems, showToast, ref
               <span>{deleteArticleTarget.source || "출처 없음"} · {formatDate(deleteArticleTarget.published_at)}</span>
             </div>
             <div className="delete-notice">
-              <strong>삭제 범위</strong>
-              <p>기사 원문, 키워드 연결, 요약, 중요도, 감성/홍보성 분석, 피드백 데이터가 함께 정리됩니다.</p>
-              <p>삭제 후에는 현재 목록과 통계에서 제외됩니다.</p>
+              <strong>이동 후 처리</strong>
+              <p>기사와 관련 분석 데이터는 삭제되지 않고 그대로 보관됩니다.</p>
+              <p>데이터베이스에서 완전히 지우려면 휴지통 화면에서 영구 삭제를 선택해야 합니다.</p>
             </div>
             <div className="modal-actions">
               <button className="secondary" disabled={running === "delete"} onClick={() => setDeleteArticleTarget(null)} type="button">취소</button>
               <button className="danger solid" disabled={running === "delete"} onClick={confirmDeleteArticle} type="button">
                 {running === "delete" ? <Loader2 className="spin" size={16} /> : <Trash2 size={16} />}
-                삭제
+                휴지통으로 이동
               </button>
             </div>
           </div>
@@ -2106,9 +2259,11 @@ function Stats({ selectedKeywordId, selectedKeyword, selectedKeywordName, showTo
   const [busy, setBusy] = useState(false);
   const [emails, setEmails] = useState("");
   const [expandedChart, setExpandedChart] = useState(null);
+  const statsLoadRequestRef = useRef(0);
   const selectedSendTime = selectedKeyword?.email_send_time || "08:30";
 
   async function load() {
+    const requestId = ++statsLoadRequestRef.current;
     setBusy(true);
     try {
       const reportDateKey = localDateKey();
@@ -2121,34 +2276,43 @@ function Stats({ selectedKeywordId, selectedKeyword, selectedKeywordName, showTo
         to_at: reportWindow.to_at,
       };
       if (selectedKeywordId) dailyArticleParams.keyword_id = selectedKeywordId;
-      const [articles, analysis, searchVolume, searchTrend, pendingData, priorityData, dailyData, dailyHourlyData, dailySocialData] = await Promise.all([
-        endpoints.articleStats(days),
-        endpoints.analysisStats(days),
-        endpoints.searchVolume(),
-        endpoints.searchVolumeTrend(days * 24),
-        endpoints.pendingAnalysis(),
+      const [priorityData, dailyData, dailyHourlyData] = await Promise.all([
         selectedKeywordId
-          ? endpoints.articles({ keyword_id: selectedKeywordId, page: 1, size: 8, sort: "importance_desc" })
+          ? endpoints.articles({ keyword_id: selectedKeywordId, page: 1, size: 8, sort: "importance_desc", include_total: false })
           : Promise.resolve({ items: [] }),
         endpoints.articles(dailyArticleParams),
         endpoints.articleHourlyStats(reportDateKey, selectedKeywordId, reportWindow),
-        endpoints.dailySocialStats(reportDateKey, selectedKeywordId, reportWindow),
       ]);
-      setArticleStats(articles || {});
-      setAnalysisStats(analysis || {});
-      setVolume(searchVolume || []);
-      setVolumeTrend(searchTrend || []);
-      setDailyHourlyArticles(dailyHourlyData || []);
-      setDailySocialMetrics(dailySocialData || []);
-      setPending(pendingData?.pending_count || 0);
+      if (requestId !== statsLoadRequestRef.current) return;
       setPriorityArticles(priorityData.items || []);
       setDailyArticles(dailyData.items || []);
       setDailyPage(dailyData.page_info || null);
+      setDailyHourlyArticles(dailyHourlyData || []);
       setExpandedDailyArticleId(null);
+
+      const [articles, analysis, searchVolume] = await Promise.all([
+        endpoints.articleStats(days),
+        endpoints.analysisStats(days),
+        endpoints.searchVolume(),
+      ]);
+      if (requestId !== statsLoadRequestRef.current) return;
+      setArticleStats(articles || {});
+      setAnalysisStats(analysis || {});
+      setVolume(searchVolume || []);
+
+      const [searchTrend, pendingData, dailySocialData] = await Promise.all([
+        endpoints.searchVolumeTrend(days * 24),
+        endpoints.pendingAnalysis(),
+        endpoints.dailySocialStats(reportDateKey, selectedKeywordId, reportWindow),
+      ]);
+      if (requestId !== statsLoadRequestRef.current) return;
+      setVolumeTrend(searchTrend || []);
+      setDailySocialMetrics(dailySocialData || []);
+      setPending(pendingData?.pending_count || 0);
     } catch (err) {
-      showToast(err.message, "error");
+      if (requestId === statsLoadRequestRef.current) showToast(err.message, "error");
     } finally {
-      setBusy(false);
+      if (requestId === statsLoadRequestRef.current) setBusy(false);
     }
   }
 
@@ -2570,7 +2734,19 @@ function Stats({ selectedKeywordId, selectedKeyword, selectedKeywordName, showTo
   );
 }
 
-function ChartVisual({ data, xKey, yKey, type = "bar", color = "#2563eb", height = 220 }) {
+function ChartVisual({
+  data,
+  xKey,
+  yKey,
+  type = "bar",
+  color = "#2563eb",
+  height = 220,
+  seriesName = "",
+  valueSuffix = "",
+}) {
+  const tooltipFormatter = seriesName
+    ? (value) => [`${value}${valueSuffix}`, seriesName]
+    : undefined;
   return (
     <ResponsiveContainer height={height} width="100%">
       {type === "line" ? (
@@ -2578,38 +2754,65 @@ function ChartVisual({ data, xKey, yKey, type = "bar", color = "#2563eb", height
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Line dataKey={yKey} stroke={color} strokeWidth={2.5} type="monotone" />
+          <Tooltip formatter={tooltipFormatter} />
+          <Line dataKey={yKey} name={seriesName || yKey} stroke={color} strokeWidth={2.5} type="monotone" />
         </LineChart>
       ) : (
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Bar dataKey={yKey} fill={color} radius={[4, 4, 0, 0]} />
+          <Tooltip formatter={tooltipFormatter} />
+          <Bar dataKey={yKey} name={seriesName || yKey} fill={color} radius={[4, 4, 0, 0]} />
         </BarChart>
       )}
     </ResponsiveContainer>
   );
 }
 
-function ChartCard({ title, data, xKey, yKey, type = "bar", color = "#2563eb", note = "", onExpand }) {
+function hasChartValues(data, yKey) {
+  return Boolean(data?.length && data.some((item) => {
+    const value = Number(item?.[yKey]);
+    return Number.isFinite(value) && value !== 0;
+  }));
+}
+
+function ChartCard({
+  title,
+  data,
+  xKey,
+  yKey,
+  type = "bar",
+  color = "#2563eb",
+  note = "",
+  onExpand,
+  seriesName = "",
+  valueSuffix = "",
+}) {
+  const hasData = hasChartValues(data, yKey);
   return (
-    <div className="chart-card">
+    <div className={`chart-card ${hasData ? "" : "chart-card-empty"}`}>
       <div className="panel-heading">
         <div>
           <strong>{title}</strong>
           <span>{note || `${data?.length || 0}개 항목`}</span>
         </div>
-        <button className="icon-button" disabled={!data?.length} title="그래프 크게 보기" onClick={onExpand}>
+        <button className="icon-button" disabled={!hasData || !onExpand} title="그래프 크게 보기" onClick={onExpand}>
           <Maximize2 size={15} />
         </button>
       </div>
-      {!data?.length ? (
-        <EmptyState title="데이터 없음" body="수집 또는 분석 후 확인할 수 있습니다." />
+      {!hasData ? (
+        <EmptyState title="집계된 기사가 없습니다" body="기사가 수집되면 이곳에 통계가 표시됩니다." />
       ) : (
-        <ChartVisual data={data} xKey={xKey} yKey={yKey} type={type} color={color} />
+        <ChartVisual
+          data={data}
+          xKey={xKey}
+          yKey={yKey}
+          type={type}
+          color={color}
+          seriesName={seriesName}
+          valueSuffix={valueSuffix}
+        />
       )}
     </div>
   );
@@ -2644,12 +2847,34 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   const [autoSendEnabled, setAutoSendEnabled] = useState(false);
   const [autoSendTime, setAutoSendTime] = useState("08:30");
   const [mailDate, setMailDate] = useState(localDateKey());
+  const [dateRangeMode, setDateRangeMode] = useState("business");
+  const [rangeStartDate, setRangeStartDate] = useState(localDateKey());
+  const [rangeEndDate, setRangeEndDate] = useState(localDateKey());
+  const [customDateRange, setCustomDateRange] = useState({
+    start_date: localDateKey(),
+    end_date: localDateKey(),
+  });
+  const [workWindow, setWorkWindow] = useState(null);
+  const [rangeError, setRangeError] = useState("");
+  const [loadingWorkWindow, setLoadingWorkWindow] = useState(false);
+  const [schoolHolidays, setSchoolHolidays] = useState([]);
+  const [schoolHolidayForm, setSchoolHolidayForm] = useState({
+    name: "",
+    holiday_type: "personal",
+    start_date: localDateKey(),
+    end_date: localDateKey(),
+  });
+  const [savingSchoolHoliday, setSavingSchoolHoliday] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(localDateKey().slice(0, 7));
+  const [calendarDays, setCalendarDays] = useState([]);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
   const [sending, setSending] = useState(false);
   const [savingAuto, setSavingAuto] = useState(false);
   const [savingPriorityCriteria, setSavingPriorityCriteria] = useState(false);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [runningCandidateCrawl, setRunningCandidateCrawl] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [workspaceMailPreviewOpen, setWorkspaceMailPreviewOpen] = useState(false);
   const [previewArticles, setPreviewArticles] = useState([]);
   const [previewExcludedArticles, setPreviewExcludedArticles] = useState([]);
   const [previewExcludedCount, setPreviewExcludedCount] = useState(0);
@@ -2658,6 +2883,9 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   const [aiProcessedArticleCount, setAiProcessedArticleCount] = useState(0);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [candidateArticles, setCandidateArticles] = useState([]);
+  const [candidateSortIncludedKeys, setCandidateSortIncludedKeys] = useState(new Set());
+  const [candidateSortSnapshotReady, setCandidateSortSnapshotReady] = useState(false);
+  const [exactLinkDuplicateCount, setExactLinkDuplicateCount] = useState(0);
   const [trashArticles, setTrashArticles] = useState([]);
   const [selectedArticleKeys, setSelectedArticleKeys] = useState(new Set());
   const [history, setHistory] = useState([]);
@@ -2665,12 +2893,20 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   const [activeDonggukCategory, setActiveDonggukCategory] = useState("전체");
   const [activeDonggukSubcategory, setActiveDonggukSubcategory] = useState("전체");
   const [categoryArticleLimits, setCategoryArticleLimits] = useState(defaultDonggukSectionLimits);
-  const [maxVisibleCandidates, setMaxVisibleCandidates] = useState(10000);
+  const [maxVisibleCandidates, setMaxVisibleCandidates] = useState(10);
+  const [candidateSearchQuery, setCandidateSearchQuery] = useState("");
+  const [candidatePage, setCandidatePage] = useState(1);
   const [duplicateExcludedKeys, setDuplicateExcludedKeys] = useState(new Set());
   const [duplicateFilterNeedsRefresh, setDuplicateFilterNeedsRefresh] = useState(false);
   const [manualArticleUrl, setManualArticleUrl] = useState("");
   const [addingManualArticle, setAddingManualArticle] = useState(false);
+  const [inlineEditingArticleKey, setInlineEditingArticleKey] = useState("");
+  const [inlineArticleDraft, setInlineArticleDraft] = useState(null);
+  const [savingInlineArticle, setSavingInlineArticle] = useState(false);
+  const [editDirty, setEditDirty] = useState(false);
+  const editBaselineArticles = useRef([]);
   const [priorityCriteria, setPriorityCriteria] = useState("");
+  const criteriaBaselineRef = useRef("");
   const [priorityRuleItems, setPriorityRuleItems] = useState(defaultPriorityRuleItems);
   const [representativeRuleItems, setRepresentativeRuleItems] = useState(defaultRepresentativeRuleItems);
   const [exclusionRuleItems, setExclusionRuleItems] = useState(defaultExclusionRuleItems);
@@ -2680,7 +2916,17 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   const [draggedPriorityIndex, setDraggedPriorityIndex] = useState(null);
   const [recipientContextMenu, setRecipientContextMenu] = useState(null);
   const [priorityContextMenu, setPriorityContextMenu] = useState(null);
+  const [priorityInsights, setPriorityInsights] = useState([]);
+  const [activeInsightRules, setActiveInsightRules] = useState([]);
+  const [priorityInsightCadence, setPriorityInsightCadence] = useState({});
+  const [selectedPriorityInsightId, setSelectedPriorityInsightId] = useState(null);
+  const [priorityInsightDetail, setPriorityInsightDetail] = useState(null);
+  const [loadingPriorityInsights, setLoadingPriorityInsights] = useState(false);
+  const [generatingPriorityInsight, setGeneratingPriorityInsight] = useState(false);
   const autoPreviewRequestKey = useRef("");
+  const candidateLoadRequestId = useRef(0);
+  const thumbnailRefreshAttemptedIds = useRef(new Set());
+  const historySummaryLoadedRef = useRef(false);
   const scoredArticles = useMemo(
     () => scoredFallbackDonggukArticles(),
     []
@@ -2721,6 +2967,26 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     });
     return keys;
   }, [effectiveMailArticles, candidateArticles]);
+  useEffect(() => {
+    if (candidateSortSnapshotReady || loadingCandidates || loadingPreview || !draftLoaded) return;
+    const eligibleCount = candidateArticles.filter(
+      (article) => !article.isTrashed && realArticleLinks(article).length > 0
+    ).length;
+    const aiSelectionReady = !eligibleCount
+      || aiProcessedArticleCount >= eligibleCount
+      || Boolean(autoPreviewRequestKey.current);
+    if (!aiSelectionReady) return;
+    setCandidateSortIncludedKeys(new Set(mailArticleKeySet));
+    setCandidateSortSnapshotReady(true);
+  }, [
+    candidateSortSnapshotReady,
+    loadingCandidates,
+    loadingPreview,
+    draftLoaded,
+    candidateArticles,
+    aiProcessedArticleCount,
+    mailArticleKeySet,
+  ]);
   const candidateRows = useMemo(
     () => candidateArticles.map((article, index) => ({ article, index, key: articleKey(article, index) })),
     [candidateArticles]
@@ -2761,18 +3027,18 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     [aiSelectedCandidateRows]
   );
   const candidateCategoryTabs = useMemo(() => {
-    const counts = countBy(aiSelectedCandidateArticles, (item) => item.sectionLabel || "미분류");
+    const counts = countBy(candidateArticles, (item) => item.sectionLabel || "미분류");
     const orderedLabels = Object.values(donggukSections);
     const extraLabels = Object.keys(counts).filter((label) => !orderedLabels.includes(label));
     return [
-      { label: "전체", count: aiSelectedCandidateArticles.length },
+      { label: "전체", count: candidateArticles.length },
       ...orderedLabels.map((label) => ({ label, count: counts[label] || 0 })),
       ...extraLabels.map((label) => ({ label, count: counts[label] || 0 })),
     ];
-  }, [aiSelectedCandidateArticles]);
+  }, [candidateArticles]);
   const candidateSubcategoryTabs = useMemo(() => {
     if (activeDonggukCategory === "전체") return [];
-    const scoped = aiSelectedCandidateArticles.filter((article) => article.sectionLabel === activeDonggukCategory);
+    const scoped = candidateArticles.filter((article) => article.sectionLabel === activeDonggukCategory);
     const counts = countBy(scoped, (item) => item.category || "미분류");
     const orderedLabels = donggukCategoryRules.map((rule) => rule.label);
     const usedLabels = [
@@ -2783,18 +3049,44 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       { label: "전체", count: scoped.length },
       ...usedLabels.map((label) => ({ label, count: counts[label] || 0 })),
     ];
-  }, [aiSelectedCandidateArticles, activeDonggukCategory]);
+  }, [candidateArticles, activeDonggukCategory]);
   const filteredCandidateRows = useMemo(
-    () => aiSelectedCandidateRows.filter(({ article }) => {
+    () => candidateRows.filter(({ article }) => {
       const sectionMatched = activeDonggukCategory === "전체" || article.sectionLabel === activeDonggukCategory;
       const subcategoryMatched = activeDonggukSubcategory === "전체" || article.category === activeDonggukSubcategory;
-      return sectionMatched && subcategoryMatched;
+      const searchText = candidateSearchQuery.trim().toLocaleLowerCase("ko");
+      const searchMatched = !searchText || [
+        article.title,
+        article.summary,
+        article.source,
+        article.category,
+        article.sectionLabel,
+      ].some((value) => String(value || "").toLocaleLowerCase("ko").includes(searchText));
+      return sectionMatched && subcategoryMatched && searchMatched;
     }),
-    [aiSelectedCandidateRows, activeDonggukCategory, activeDonggukSubcategory]
+    [candidateRows, activeDonggukCategory, activeDonggukSubcategory, candidateSearchQuery]
   );
+  const sortedCandidateRows = useMemo(
+    () => [...filteredCandidateRows].sort((left, right) => {
+      const sortIncludedKeys = candidateSortSnapshotReady ? candidateSortIncludedKeys : mailArticleKeySet;
+      const leftIncluded = sortIncludedKeys.has(left.key) ? 1 : 0;
+      const rightIncluded = sortIncludedKeys.has(right.key) ? 1 : 0;
+      if (leftIncluded !== rightIncluded) return rightIncluded - leftIncluded;
+      const scoreDifference = Number(right.article.score || 0) - Number(left.article.score || 0);
+      if (scoreDifference) return scoreDifference;
+      return String(articleReviewDateKey(right.article) || "").localeCompare(String(articleReviewDateKey(left.article) || ""));
+    }),
+    [filteredCandidateRows, candidateSortSnapshotReady, candidateSortIncludedKeys, mailArticleKeySet]
+  );
+  const candidatePageSize = Math.max(1, maxVisibleCandidates);
+  const candidateTotalPages = Math.max(1, Math.ceil(sortedCandidateRows.length / candidatePageSize));
+  const normalizedCandidatePage = Math.min(candidatePage, candidateTotalPages);
   const visibleCandidateRows = useMemo(
-    () => filteredCandidateRows.slice(0, maxVisibleCandidates),
-    [filteredCandidateRows, maxVisibleCandidates]
+    () => {
+      const start = (normalizedCandidatePage - 1) * candidatePageSize;
+      return sortedCandidateRows.slice(start, start + candidatePageSize);
+    },
+    [sortedCandidateRows, normalizedCandidatePage, candidatePageSize]
   );
   const duplicateExcludedCount = useMemo(
     () => candidateRows.filter(({ key }) => duplicateExcludedKeys.has(key)).length,
@@ -2802,57 +3094,50 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   );
   const aiSelectedCount = aiSelectedCandidateRows.length;
   const aiExcludedCount = Math.max(0, candidateArticles.length - aiSelectedCount);
-  const visibleTopicGroups = useMemo(() => {
-    const byTopic = new Map();
-    visibleCandidateRows.forEach((row) => {
-      const topic = row.article.sectionLabel || "미분류";
-      if (!byTopic.has(topic)) byTopic.set(topic, []);
-      byTopic.get(topic).push(row);
-    });
-    const topicOrder = Object.values(donggukSections);
-    return [...byTopic.entries()]
-      .sort(([left], [right]) => {
-        const leftIndex = topicOrder.indexOf(left);
-        const rightIndex = topicOrder.indexOf(right);
-        if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right, "ko");
-        if (leftIndex === -1) return 1;
-        if (rightIndex === -1) return -1;
-        return leftIndex - rightIndex;
-      })
-      .map(([topic, rows]) => ({
-        topic,
-        rows: rows.sort((a, b) => b.article.score - a.article.score),
-      }));
-  }, [visibleCandidateRows]);
 
-  async function loadDonggukHistory() {
+  async function loadDonggukHistory(summaryOnly = viewMode !== "history", force = false) {
+    if (summaryOnly && historySummaryLoadedRef.current && !force) return;
     try {
-      const data = await endpoints.donggukHistory();
-      setHistory(data.items || []);
+      const data = await endpoints.donggukHistory(summaryOnly);
+      if (!summaryOnly) setHistory(data.items || []);
       setRecentRecipients(data.recent_recipients || []);
+      historySummaryLoadedRef.current = true;
     } catch (err) {
       showToast?.(err.message, "error");
     }
   }
 
   useEffect(() => {
-    loadDonggukHistory();
-  }, []);
+    loadDonggukHistory(viewMode !== "history");
+  }, [viewMode]);
 
   useEffect(() => {
     if (!selectedKeywordId || !onCandidateCountChange) return undefined;
     if (!draftLoaded) return undefined;
-    onCandidateCountChange(selectedKeywordId, candidateArticles.length);
-    return () => onCandidateCountChange(selectedKeywordId, null);
-  }, [selectedKeywordId, candidateArticles.length, draftLoaded]);
+    const sections = Object.values(donggukSections).reduce((counts, label) => {
+      counts[label] = candidateArticles.filter((article) => article.sectionLabel === label && !article.isTrashed).length;
+      return counts;
+    }, {});
+    onCandidateCountChange(selectedKeywordId, {
+      date: mailDate,
+      total: candidateArticles.filter((article) => !article.isTrashed).length,
+      sections,
+      mailIncluded: effectiveMailArticles.length,
+    });
+    return undefined;
+  }, [selectedKeywordId, candidateArticles, draftLoaded, effectiveMailArticles.length, mailDate]);
 
   useEffect(() => {
     setActiveDonggukSubcategory("전체");
   }, [activeDonggukCategory]);
 
-  async function loadDonggukTrash(targetMailDate = mailDate, keywordId = selectedKeywordId) {
+  useEffect(() => {
+    if (candidatePage > candidateTotalPages) setCandidatePage(candidateTotalPages);
+  }, [candidatePage, candidateTotalPages]);
+
+  async function loadDonggukTrash(targetMailDate = mailDate, keywordId = selectedKeywordId, requestId = null) {
     if (!targetMailDate || !keywordId) {
-      setTrashArticles([]);
+      if (requestId == null || requestId === candidateLoadRequestId.current) setTrashArticles([]);
       return [];
     }
     try {
@@ -2864,11 +3149,13 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         ...item,
         article: normalizeDonggukPreviewArticle(item.article || {}),
       }));
-      setTrashArticles(rows);
+      if (requestId == null || requestId === candidateLoadRequestId.current) setTrashArticles(rows);
       return rows;
     } catch (err) {
-      showToast?.(err.message, "error");
-      setTrashArticles([]);
+      if (requestId == null || requestId === candidateLoadRequestId.current) {
+        showToast?.(err.message, "error");
+        setTrashArticles([]);
+      }
       return [];
     }
   }
@@ -2884,8 +3171,92 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     setPriorityRuleItems(nextPriorityRules);
     setRepresentativeRuleItems(nextRepresentativeRules);
     setExclusionRuleItems(nextExclusionRules);
-    setPriorityCriteria(criteriaFromRuleGroups(nextPriorityRules, nextRepresentativeRules, nextExclusionRules));
+    const normalizedCriteria = criteriaFromRuleGroups(nextPriorityRules, nextRepresentativeRules, nextExclusionRules);
+    setPriorityCriteria(normalizedCriteria);
+    criteriaBaselineRef.current = normalizedCriteria;
   }, [selectedKeywordId, selectedKeyword]);
+
+  async function loadPriorityInsights(selectId = selectedPriorityInsightId) {
+    if (!selectedKeywordId) {
+      setPriorityInsights([]);
+      setActiveInsightRules([]);
+      setPriorityInsightDetail(null);
+      return;
+    }
+    setLoadingPriorityInsights(true);
+    try {
+      const data = await endpoints.priorityInsights({ keyword_id: selectedKeywordId, limit: 24 });
+      const items = data.items || [];
+      setPriorityInsights(items);
+      setActiveInsightRules(data.active_rules || []);
+      setPriorityInsightCadence(data.cadence || {});
+      const nextId = selectId || items[0]?.id || null;
+      setSelectedPriorityInsightId(nextId);
+      if (nextId) {
+        const detail = await endpoints.priorityInsight(nextId);
+        setPriorityInsightDetail(detail);
+      } else {
+        setPriorityInsightDetail(null);
+      }
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setLoadingPriorityInsights(false);
+    }
+  }
+
+  async function openPriorityInsight(insightId) {
+    setSelectedPriorityInsightId(insightId);
+    setLoadingPriorityInsights(true);
+    try {
+      setPriorityInsightDetail(await endpoints.priorityInsight(insightId));
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setLoadingPriorityInsights(false);
+    }
+  }
+
+  async function generatePriorityInsight() {
+    if (!selectedKeywordId) return;
+    setGeneratingPriorityInsight(true);
+    try {
+      const result = await endpoints.runPriorityInsight({
+        keyword_id: selectedKeywordId,
+        cadence: "monthly",
+        force: true,
+      });
+      await loadPriorityInsights(result.id);
+      showToast?.(
+        result.changes?.length
+          ? `지난달 행동을 분석해 우선순위 기준 ${result.changes.length}개를 소폭 반영했습니다.`
+          : "지난달 행동을 분석했지만 반복 근거가 충분하지 않아 기준은 유지했습니다.",
+        "success"
+      );
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setGeneratingPriorityInsight(false);
+    }
+  }
+
+  async function deletePriorityInsight(insight) {
+    const confirmed = window.confirm(
+      `${insight.period_key} 인사이트의 기준 반영을 삭제할까요?\n근거가 된 사용자 행동 로그는 감사 기록으로 남습니다.`
+    );
+    if (!confirmed) return;
+    try {
+      await endpoints.deletePriorityInsight(insight.id);
+      await loadPriorityInsights(insight.id);
+      showToast?.("AI 인사이트의 기준 반영을 취소했습니다. 근거 로그는 보존됩니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  useEffect(() => {
+    if (viewMode === "stats") loadPriorityInsights();
+  }, [viewMode, selectedKeywordId]);
 
   useEffect(() => {
     function closeMenus() {
@@ -2900,9 +3271,271 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     };
   }, []);
 
+  const activeRangeStart = dateRangeMode === "custom"
+    ? customDateRange.start_date
+    : workWindow?.start_date || mailDate;
+  const activeRangeEnd = dateRangeMode === "custom"
+    ? customDateRange.end_date
+    : workWindow?.end_date || mailDate;
+  const activeArticleWindow = useMemo(
+    () => reportWindowForRange(activeRangeStart, activeRangeEnd, autoSendTime),
+    [activeRangeStart, activeRangeEnd, autoSendTime]
+  );
+  const monthCalendarRange = useMemo(() => calendarGridRange(calendarMonth), [calendarMonth]);
+  const calendarDayMap = useMemo(
+    () => new Map(calendarDays.map((item) => [item.date, item])),
+    [calendarDays]
+  );
+  const calendarCells = useMemo(() => {
+    if (!monthCalendarRange) return [];
+    const cells = [];
+    let cursor = monthCalendarRange.start;
+    while (cursor <= monthCalendarRange.end && cells.length < 42) {
+      const day = calendarDayMap.get(cursor) || {
+        date: cursor,
+        is_business_day: true,
+        is_weekend: [0, 6].includes(new Date(`${cursor}T12:00:00`).getDay()),
+        school_holiday_names: [],
+        personal_holiday_names: [],
+      };
+      cells.push({
+        ...day,
+        isCurrentMonth: cursor.startsWith(calendarMonth),
+        isToday: cursor === localDateKey(),
+      });
+      cursor = shiftDateKey(cursor, 1);
+    }
+    return cells;
+  }, [monthCalendarRange, calendarDayMap, calendarMonth]);
+  const calendarMonthLabel = useMemo(() => {
+    const [year, month] = calendarMonth.split("-");
+    return `${year}년 ${Number(month)}월`;
+  }, [calendarMonth]);
+
+  useEffect(() => {
+    setCandidatePage(1);
+  }, [
+    activeDonggukCategory,
+    activeDonggukSubcategory,
+    candidateSearchQuery,
+    maxVisibleCandidates,
+    activeRangeStart,
+    activeRangeEnd,
+  ]);
+
+  function isArticleInActiveRange(article) {
+    const value = article?.published_at || article?.publishedAt || article?.collected_at || article?.collectedAt;
+    if (!value) return false;
+    const timestamp = new Date(value).getTime();
+    const start = new Date(activeArticleWindow.from_at).getTime();
+    const end = new Date(activeArticleWindow.to_at).getTime();
+    return Number.isFinite(timestamp) && timestamp >= start && timestamp <= end;
+  }
+
+  async function loadWorkWindow(targetDate = mailDate) {
+    if (!targetDate) return null;
+    setLoadingWorkWindow(true);
+    try {
+      const data = await endpoints.workWindow(targetDate);
+      setWorkWindow(data);
+      if (dateRangeMode === "business") {
+        setRangeStartDate(data.start_date);
+        setRangeEndDate(data.end_date);
+        setRangeError("");
+      }
+      return data;
+    } catch (err) {
+      setWorkWindow({
+        target_date: targetDate,
+        start_date: targetDate,
+        end_date: targetDate,
+        is_target_business_day: true,
+        days: [],
+      });
+      showToast?.(`업무일 범위를 불러오지 못했습니다: ${err.message}`, "error");
+      return null;
+    } finally {
+      setLoadingWorkWindow(false);
+    }
+  }
+
+  async function loadSchoolHolidays(targetDate = mailDate) {
+    const year = Number(String(targetDate || localDateKey()).slice(0, 4));
+    if (!year) return;
+    try {
+      const data = await endpoints.schoolHolidays({
+        from: `${year}-01-01`,
+        to: `${year}-12-31`,
+      });
+      setSchoolHolidays(data.items || []);
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function loadCalendarDays(targetMonth = calendarMonth) {
+    const range = calendarGridRange(targetMonth);
+    if (!range) return;
+    setLoadingCalendar(true);
+    try {
+      const data = await endpoints.calendarDays({ from: range.start, to: range.end });
+      setCalendarDays(data.items || []);
+    } catch (err) {
+      setCalendarDays([]);
+      showToast?.(`캘린더를 불러오지 못했습니다: ${err.message}`, "error");
+    } finally {
+      setLoadingCalendar(false);
+    }
+  }
+
+  useEffect(() => {
+    loadWorkWindow(mailDate);
+    loadSchoolHolidays(mailDate);
+  }, [mailDate]);
+
+  useEffect(() => {
+    if (viewMode !== "calendar") return;
+    loadCalendarDays(calendarMonth);
+    loadSchoolHolidays(`${calendarMonth}-01`);
+  }, [viewMode, calendarMonth]);
+
+  function applyCustomDateRange() {
+    if (!rangeStartDate || !rangeEndDate) {
+      setRangeError("시작일과 종료일을 모두 선택해 주세요.");
+      return;
+    }
+    if (rangeStartDate > rangeEndDate) {
+      setRangeError("시작일은 종료일보다 늦을 수 없습니다.");
+      return;
+    }
+    const days = Math.floor((new Date(`${rangeEndDate}T12:00:00`) - new Date(`${rangeStartDate}T12:00:00`)) / 86400000) + 1;
+    if (days > 31) {
+      setRangeError("조회 기간은 최대 31일까지 선택할 수 있습니다.");
+      return;
+    }
+    setRangeError("");
+    setCustomDateRange({ start_date: rangeStartDate, end_date: rangeEndDate });
+    setDateRangeMode("custom");
+  }
+
+  async function resetToBusinessRange() {
+    setDateRangeMode("business");
+    const data = await loadWorkWindow(mailDate);
+    if (data) {
+      setRangeStartDate(data.start_date);
+      setRangeEndDate(data.end_date);
+    }
+  }
+
+  async function createSchoolHoliday() {
+    const { name, holiday_type, start_date, end_date } = schoolHolidayForm;
+    if (!name.trim() || !start_date || !end_date) {
+      showToast?.("휴일 이름과 기간을 입력해 주세요.", "error");
+      return;
+    }
+    if (start_date > end_date) {
+      showToast?.("휴일 시작일은 종료일보다 늦을 수 없습니다.", "error");
+      return;
+    }
+    setSavingSchoolHoliday(true);
+    try {
+      await endpoints.createSchoolHoliday({
+        name: name.trim(),
+        holiday_type,
+        start_date,
+        end_date,
+      });
+      setSchoolHolidayForm({
+        name: "",
+        holiday_type: "personal",
+        start_date: end_date,
+        end_date,
+      });
+      await Promise.all([
+        loadSchoolHolidays(`${calendarMonth}-01`),
+        loadCalendarDays(calendarMonth),
+        loadWorkWindow(mailDate),
+      ]);
+      showToast?.(
+        holiday_type === "personal"
+          ? "개인 휴가를 등록했습니다. 다음 업무일 아침 메일에 휴가 기간 기사가 포함됩니다."
+          : "학교 휴일을 등록했습니다.",
+        "success"
+      );
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setSavingSchoolHoliday(false);
+    }
+  }
+
+  async function removeSchoolHoliday(id) {
+    if (!window.confirm("이 휴일을 삭제할까요?")) return;
+    try {
+      await endpoints.deleteSchoolHoliday(id);
+      await Promise.all([
+        loadSchoolHolidays(`${calendarMonth}-01`),
+        loadCalendarDays(calendarMonth),
+        loadWorkWindow(mailDate),
+      ]);
+      showToast?.("휴일을 삭제했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  async function editSchoolHoliday(item) {
+    const name = window.prompt("휴일 이름", item.name);
+    if (name === null) return;
+    const startDate = window.prompt("시작일 (YYYY-MM-DD)", item.start_date);
+    if (startDate === null) return;
+    const endDate = window.prompt("종료일 (YYYY-MM-DD)", item.end_date);
+    if (endDate === null) return;
+    if (!name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || startDate > endDate) {
+      showToast?.("휴일 이름과 기간을 확인해 주세요.", "error");
+      return;
+    }
+    try {
+      await endpoints.updateSchoolHoliday(item.id, {
+        name: name.trim(),
+        holiday_type: item.holiday_type || "school",
+        start_date: startDate,
+        end_date: endDate,
+      });
+      await Promise.all([
+        loadSchoolHolidays(`${calendarMonth}-01`),
+        loadCalendarDays(calendarMonth),
+        loadWorkWindow(mailDate),
+      ]);
+      showToast?.("휴일을 수정했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    }
+  }
+
+  function moveCalendarMonth(amount) {
+    const date = new Date(`${calendarMonth}-01T12:00:00`);
+    date.setMonth(date.getMonth() + amount);
+    setCalendarMonth(localDateKey(date).slice(0, 7));
+  }
+
+  function selectCalendarDate(dateKey) {
+    setSchoolHolidayForm((prev) => ({
+      ...prev,
+      start_date: dateKey,
+      end_date: dateKey,
+    }));
+  }
+
   async function loadCandidateArticles() {
+    const requestId = ++candidateLoadRequestId.current;
+    setCandidateSortSnapshotReady(false);
+    setCandidateSortIncludedKeys(new Set());
+    autoPreviewRequestKey.current = "";
     if (!selectedKeywordId || !mailDate) {
+      setLoadingCandidates(false);
       setCandidateArticles([]);
+      setExactLinkDuplicateCount(0);
       setSelectedArticleKeys(new Set());
       setPreviewArticles([]);
       setPreviewExcludedArticles([]);
@@ -2917,28 +3550,22 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     }
     setLoadingCandidates(true);
     try {
-      const mailWindow = reportWindowForDate(mailDate, autoSendTime || "08:30");
-      const [publishedItems, collectedItems] = await Promise.all([
-        loadAllArticlePages({
-          keyword_id: selectedKeywordId,
-          sort: "importance_desc",
-          from_at: mailWindow.from_at,
-          to_at: mailWindow.to_at,
-        }),
-        loadAllArticlePages({
-          keyword_id: selectedKeywordId,
-          sort: "importance_desc",
-          matched_from: mailDate,
-          matched_to: mailDate,
-        }),
-      ]);
+      const collectedItems = await loadAllArticlePages({
+        keyword_id: selectedKeywordId,
+        sort: "importance_desc",
+        from_at: activeArticleWindow.from_at,
+        to_at: activeArticleWindow.to_at,
+      });
+      if (requestId !== candidateLoadRequestId.current) return [];
       const byArticleKey = new Map();
-      [...publishedItems, ...collectedItems].forEach((item) => {
+      collectedItems.forEach((item) => {
         const article = inferDonggukArticle(item);
         byArticleKey.set(exactArticleIdentity(article), article);
       });
+      setExactLinkDuplicateCount(Math.max(0, collectedItems.length - byArticleKey.size));
       const rawRows = [...byArticleKey.values()].sort((a, b) => b.score - a.score);
-      const trashRows = await loadDonggukTrash(mailDate, selectedKeywordId);
+      const trashRows = await loadDonggukTrash(mailDate, selectedKeywordId, requestId);
+      if (requestId !== candidateLoadRequestId.current) return [];
       const trashedIds = new Set(trashRows.map((item) => String(item.article_id || item.article?.id)));
       const rows = rawRows.map((article) => ({
         ...article,
@@ -2947,7 +3574,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       const mailableKeySet = new Set(
         rows
           .map((article, index) => ({ article, key: articleKey(article, index) }))
-          .filter(({ article }) => !article.isTrashed && isArticleInMailWindow(article, mailDate, autoSendTime))
+          .filter(({ article }) => !article.isTrashed && isArticleInActiveRange(article))
           .map(({ key }) => key)
       );
       let restoredRows = rows;
@@ -2962,6 +3589,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           keyword_id: selectedKeywordId,
           mail_date: mailDate,
         });
+        if (requestId !== candidateLoadRequestId.current) return [];
         if (draft?.found) {
           const currentArticleIds = new Set(rows.map((article) => String(article.id)).filter(Boolean));
           const savedArticles = [
@@ -2969,7 +3597,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
             ...(draft.removed_articles || []),
           ].map(normalizeDonggukPreviewArticle)
             .filter((article) => currentArticleIds.has(String(article.id)))
-            .filter((article) => !articlePublishedDateKey(article) || isArticleInMailWindow(article, mailDate, autoSendTime));
+            .filter((article) => isArticleInActiveRange(article));
           const byKey = new Map();
           rows.forEach((article, index) => byKey.set(articleKey(article, index), article));
           savedArticles.forEach((article, index) => {
@@ -2984,7 +3612,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           const restoredMailableKeySet = new Set(
               restoredRows
                 .map((article, index) => ({ article, key: articleKey(article, index) }))
-              .filter(({ article }) => !article.isTrashed && isArticleInMailWindow(article, mailDate, autoSendTime))
+              .filter(({ article }) => !article.isTrashed && isArticleInActiveRange(article))
                 .map(({ key }) => key)
           );
           const restoredKeys = draftSelectedKeys.filter((key) => availableKeys.has(key) && restoredMailableKeySet.has(key));
@@ -3003,7 +3631,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           setDuplicateExcludedKeys(aiDuplicateExcludedKeys(aiExcluded, restoredRows));
           setAiProcessedArticleCount(aiSelected.length + aiExcluded.length);
           if (preview?.articles?.length && nextKeys.length && preview.editor_used !== false) {
-            setPreviewArticles(dedupeExactArticles((preview.articles || []).map(normalizeDonggukPreviewArticle).filter((article) => isArticleInMailWindow(article, mailDate, autoSendTime))).slice(0, maxMailArticleTotal));
+            setPreviewArticles(dedupeExactArticles((preview.articles || []).map(normalizeDonggukPreviewArticle).filter((article) => isArticleInActiveRange(article))).slice(0, maxMailArticleTotal));
             if (aiSelectedKeys.size) setSelectedArticleKeys(aiSelectedKeys);
             setPreviewExcludedCount(Number(preview.excluded_count || 0));
             setPreviewEditorUsed(Boolean(preview.editor_used));
@@ -3024,6 +3652,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           setDraftLoaded(true);
         }
       } catch (err) {
+        if (requestId !== candidateLoadRequestId.current) return [];
         setCandidateArticles(restoredRows);
         setSelectedArticleKeys(mailableKeySet);
         setPreviewExcludedArticles([]);
@@ -3036,10 +3665,13 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       refreshMissingThumbnails(restoredRows);
       return restoredRows;
     } catch (err) {
-      showToast?.(err.message, "error");
+      if (requestId === candidateLoadRequestId.current) {
+        setExactLinkDuplicateCount(0);
+        showToast?.(err.message, "error");
+      }
       return [];
     } finally {
-      setLoadingCandidates(false);
+      if (requestId === candidateLoadRequestId.current) setLoadingCandidates(false);
     }
   }
 
@@ -3063,9 +3695,11 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   async function refreshMissingThumbnails(rows) {
     const missingIds = rows
       .filter((article) => article.id && realArticleLinks(article).length && !getArticleThumbnail(article))
-      .slice(0, 12)
-      .map((article) => Number(article.id));
+      .map((article) => Number(article.id))
+      .filter((articleId) => !thumbnailRefreshAttemptedIds.current.has(articleId))
+      .slice(0, 12);
     if (!missingIds.length) return;
+    missingIds.forEach((articleId) => thumbnailRefreshAttemptedIds.current.add(articleId));
     try {
       const result = await endpoints.refreshArticleThumbnails(missingIds);
       const refreshed = result.items || {};
@@ -3085,13 +3719,13 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
 
   useEffect(() => {
     loadCandidateArticles();
-  }, [selectedKeywordId, mailDate, autoSendTime]);
+  }, [selectedKeywordId, mailDate, activeRangeStart, activeRangeEnd]);
 
   useEffect(() => {
     if (previewArticles.length <= maxMailArticleTotal) return;
     const next = previewArticles.slice(0, maxMailArticleTotal);
     setPreviewArticles(next);
-    saveEditedPreview(next);
+    saveEditedPreview(next, "settings-limit");
   }, [maxMailArticleTotal]);
 
   function addRecipient(email) {
@@ -3247,11 +3881,12 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   function copyMailPreview() {
-    if (!editedMailArticles.length) {
-      showToast?.("복사할 AI 편집 미리보기가 없습니다. 메일 미리보기에서 편집 미리보기를 먼저 생성해 주세요.", "error");
+    const articles = effectiveMailArticles;
+    if (!articles.length) {
+      showToast?.("복사할 메일 기사가 없습니다.", "error");
       return;
     }
-    const body = buildDonggukMailText(mailSubject, editedMailArticles);
+    const body = buildDonggukMailText(mailSubject, articles);
     navigator.clipboard?.writeText(body);
     showToast?.("제목, 요약, URL이 포함된 홍보처 메일 문안을 복사했습니다.", "success");
   }
@@ -3269,38 +3904,107 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     setPreviewCached(false);
   }
 
-  async function deleteCandidateArticle(article, index) {
-    if (!article?.id || String(article.id).startsWith("manual-")) {
-      showToast?.("직접 추가 기사는 메일 미리보기에서 삭제해 주세요.", "error");
-      return;
-    }
-    const confirmed = window.confirm("이 기사를 DB에서 삭제하고 후보 목록에서 더 이상 보이지 않게 할까요?");
-    if (!confirmed) return;
+  function beginInlineArticleEdit(article, index) {
+    setInlineEditingArticleKey(articleKey(article, index));
+    setInlineArticleDraft(cloneArticles([article])[0]);
+  }
+
+  function cancelInlineArticleEdit() {
+    setInlineEditingArticleKey("");
+    setInlineArticleDraft(null);
+  }
+
+  async function saveInlineArticleEdit(article, index) {
+    if (!inlineArticleDraft) return;
+    setSavingInlineArticle(true);
     try {
-      await endpoints.deleteArticle(article.id);
+      const previousKey = articleKey(article, index);
+      const updatedArticle = normalizeDonggukPreviewArticle({
+        ...article,
+        ...inlineArticleDraft,
+        section: inlineArticleDraft.sectionLabel || inlineArticleDraft.section,
+      });
+      const nextCandidates = candidateArticles.map((item, itemIndex) => (
+        itemIndex === index ? updatedArticle : item
+      ));
+      const nextKey = articleKey(updatedArticle, index);
+      const nextSelectedKeys = new Set(selectedArticleKeys);
+      if (nextSelectedKeys.delete(previousKey)) nextSelectedKeys.add(nextKey);
+
+      const matchesEditedArticle = (item) => {
+        if (article.id && item.id) return String(article.id) === String(item.id);
+        const itemLinks = realArticleLinks(item);
+        return realArticleLinks(article).some((link) => itemLinks.includes(link))
+          || (article.title && item.title && article.title === item.title);
+      };
+      const nextPreviewArticles = previewArticles.map((item) => (
+        matchesEditedArticle(item) ? updatedArticle : item
+      ));
+      const previewData = nextPreviewArticles.length
+        ? {
+            articles: nextPreviewArticles.map(donggukArticlePayload),
+            excluded_articles: previewExcludedArticles,
+            article_count: nextPreviewArticles.length,
+            excluded_count: previewExcludedCount,
+            editor_used: previewEditorUsed,
+            cached: true,
+            manually_edited: true,
+          }
+        : null;
+
+      setCandidateArticles(nextCandidates);
+      setSelectedArticleKeys(nextSelectedKeys);
+      if (nextPreviewArticles.length) setPreviewArticles(nextPreviewArticles);
+      await saveDraftSelection(nextSelectedKeys, previewData, nextCandidates, "single-article-edit");
+      cancelInlineArticleEdit();
+      showToast?.("기사 수정사항을 저장했습니다.", "success");
+    } catch (err) {
+      showToast?.(err.message, "error");
+    } finally {
+      setSavingInlineArticle(false);
+    }
+  }
+
+  async function setCandidateMailIncluded(article, index, included) {
+    try {
+      if (!candidateSortSnapshotReady) {
+        setCandidateSortIncludedKeys(new Set(mailArticleKeySet));
+        setCandidateSortSnapshotReady(true);
+      }
       const key = articleKey(article, index);
+      if (included) {
+        await restoreExcludedArticle(article, index);
+        return;
+      }
       const nextKeys = new Set([...selectedArticleKeys].filter((item) => item !== key));
-      const nextArticles = candidateArticles.filter((_, idx) => idx !== index);
       setSelectedArticleKeys(nextKeys);
-      setCandidateArticles(nextArticles);
       setPreviewArticles([]);
       setPreviewExcludedCount(0);
       setPreviewEditorUsed(false);
       setPreviewCached(false);
-      await saveDraftSelection(nextKeys, null, nextArticles);
-      showToast?.("기사를 삭제했습니다.", "success");
+      await saveDraftSelection(nextKeys, null, candidateArticles, "today");
+      showToast?.("이번 메일에서 기사를 제외했습니다.", "success");
     } catch (err) {
       showToast?.(err.message, "error");
     }
   }
 
+  async function deleteCandidateArticle(article, index) {
+    if (!article?.id || String(article.id).startsWith("manual-")) {
+      showToast?.("데이터베이스에 저장되지 않은 임시 기사는 휴지통으로 이동할 수 없습니다.", "error");
+      return;
+    }
+    const confirmed = window.confirm("이 기사를 휴지통으로 이동할까요? 휴지통에서 다시 복구할 수 있습니다.");
+    if (!confirmed) return;
+    await moveExcludedArticleToTrash(article, index);
+  }
+
   function excludedArticleReason(article, key) {
-    if (!isArticleInMailWindow(article, mailDate, autoSendTime)) {
-      const publishedKey = articlePublishedDateKey(article);
-      const mailWindow = reportWindowForDate(mailDate, autoSendTime);
-      return publishedKey
-        ? `발행일이 ${publishedKey}라 발송 대상 기간(${mailWindow.label})에서 제외되었습니다.`
-        : `발행일을 확인할 수 없어 발송 대상 기간(${mailWindow.label})에서 제외되었습니다.`;
+    if (!isArticleInActiveRange(article)) {
+      const articleDate = articleReviewDateKey(article);
+      return articleDate
+        ? `기사 확인일이 ${articleDate}라 현재 조회 기간(${activeRangeStart} ~ ${activeRangeEnd})에서 제외되었습니다.`
+        : `기사 날짜를 확인할 수 없어 현재 조회 기간(${activeRangeStart} ~ ${activeRangeEnd})에서 제외되었습니다.`;
     }
     if (!selectedArticleKeys.has(key)) {
       const representative = effectiveMailArticles.find((item) => isSimilarDonggukArticle(item, article));
@@ -3317,8 +4021,8 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   async function restoreExcludedArticle(article, index) {
-    if (!isArticleInMailWindow(article, mailDate, autoSendTime)) {
-      showToast?.("발송 대상 기간 밖의 기사는 메일에 추가하지 않습니다. 해당 발행일에 맞춰 기준일을 바꿔 주세요.", "error");
+    if (!isArticleInActiveRange(article)) {
+      showToast?.("현재 조회 기간 밖의 기사입니다. 기사 날짜를 포함하도록 조회 기간을 바꿔 주세요.", "error");
       return;
     }
     const key = articleKey(article, index);
@@ -3336,13 +4040,13 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     setPreviewExcludedCount(0);
     setPreviewEditorUsed(false);
     setPreviewCached(false);
-    await saveDraftSelection(nextKeys, null, candidateArticles);
+    await saveDraftSelection(nextKeys, null, candidateArticles, "today");
     showToast?.("제외된 기사를 메일 포함 목록에 다시 추가했습니다.", "success");
   }
 
   async function moveExcludedArticleToTrash(article, index) {
     if (!article?.id || String(article.id).startsWith("manual-")) {
-      showToast?.("직접 추가 기사는 휴지통으로 이동할 수 없습니다.", "error");
+      showToast?.("데이터베이스에 저장되지 않은 임시 기사는 휴지통으로 이동할 수 없습니다.", "error");
       return;
     }
     const key = articleKey(article, index);
@@ -3410,7 +4114,12 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     }
   }
 
-  async function saveDraftSelection(nextKeys = selectedArticleKeys, previewData = null, articleSource = candidateArticles) {
+  async function saveDraftSelection(
+    nextKeys = selectedArticleKeys,
+    previewData = null,
+    articleSource = candidateArticles,
+    feedbackSource = null
+  ) {
     if (!selectedKeywordId || !mailDate || !articleSource.length) return;
     const keySet = new Set([...nextKeys].map(String));
     const selectedForDraft = articleSource.filter((article, index) => keySet.has(articleKey(article, index)));
@@ -3428,6 +4137,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         removed_article_keys: removedKeys,
         removed_articles: removedForDraft.map(donggukArticlePayload),
         preview_data: previewData,
+        feedback_source: feedbackSource,
       });
       setDraftLoaded(true);
     } catch (err) {
@@ -3435,7 +4145,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     }
   }
 
-  async function saveEditedPreview(nextArticles = previewArticles) {
+  async function saveEditedPreview(nextArticles = previewArticles, feedbackSource = "edit") {
     if (!selectedKeywordId || !mailDate) return;
     const previewData = {
       articles: nextArticles.map(donggukArticlePayload),
@@ -3446,7 +4156,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       cached: true,
       manually_edited: true,
     };
-    await saveDraftSelection(selectedArticleKeys, previewData);
+    await saveDraftSelection(selectedArticleKeys, previewData, candidateArticles, feedbackSource);
   }
 
   function updatePreviewArticle(index, patch) {
@@ -3464,9 +4174,9 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         if (patch.sectionLabel) updated.section = patch.sectionLabel;
         return normalizeDonggukPreviewArticle(updated);
       });
-      saveEditedPreview(next);
       return next;
     });
+    setEditDirty(true);
   }
 
   function movePreviewArticle(index, direction) {
@@ -3475,17 +4185,70 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       if (target < 0 || target >= prev.length) return prev;
       const next = [...prev];
       [next[index], next[target]] = [next[target], next[index]];
-      saveEditedPreview(next);
       return next;
     });
+    setEditDirty(true);
   }
 
   function removePreviewArticle(index) {
     setPreviewArticles((prev) => {
       const next = prev.filter((_, idx) => idx !== index);
-      saveEditedPreview(next);
       return next;
     });
+    setEditDirty(true);
+  }
+
+  async function addArticlesFromUrls(urls) {
+    if (!selectedKeywordId) {
+      showToast?.("키워드를 먼저 선택해 주세요.", "error");
+      return { added: 0, failed: 0 };
+    }
+    const existingUrls = new Set(
+      candidateArticles.flatMap(realArticleLinks).map(canonicalArticleUrl)
+    );
+    const uniqueUrls = [...new Set(
+      urls
+        .map((url) => String(url || "").trim())
+        .filter((url) => /^https?:\/\//i.test(url))
+        .filter((url) => !existingUrls.has(canonicalArticleUrl(url)))
+    )];
+    const skipped = urls.length - uniqueUrls.length;
+    if (!uniqueUrls.length) {
+      showToast?.(skipped ? "이미 등록된 기사 URL입니다." : "유효한 기사 URL을 선택해 주세요.", "error");
+      return { added: 0, failed: 0 };
+    }
+
+    const results = await Promise.allSettled(
+      uniqueUrls.map((url) => endpoints.createArticleFromUrl({
+        keyword_id: selectedKeywordId,
+        url,
+      }))
+    );
+    const addedArticles = results
+      .filter((result) => result.status === "fulfilled" && result.value?.article)
+      .map((result) => normalizeDonggukPreviewArticle(inferDonggukArticle(result.value.article)));
+    const failed = results.length - addedArticles.length;
+
+    if (addedArticles.length) {
+      setCandidateArticles((prev) => dedupeExactArticles([...prev, ...addedArticles]));
+      setPreviewArticles((prev) => dedupeExactArticles([...prev, ...addedArticles]));
+      setSelectedArticleKeys((prev) => {
+        const next = new Set(prev);
+        addedArticles.forEach((article, index) => next.add(articleKey(article, candidateArticles.length + index)));
+        return next;
+      });
+      setDuplicateFilterNeedsRefresh(true);
+      setEditDirty(true);
+    }
+    if (addedArticles.length) {
+      showToast?.(
+        `${addedArticles.length}건을 편집 목록에 추가했습니다.${skipped ? ` 중복 URL ${skipped}건은 건너뛰었습니다.` : ""}${failed ? ` ${failed}건은 불러오지 못했습니다.` : ""}`,
+        failed ? "info" : "success"
+      );
+    } else {
+      showToast?.("선택한 기사를 불러오지 못했습니다. 원문 URL과 검색 서버 상태를 확인해 주세요.", "error");
+    }
+    return { added: addedArticles.length, failed };
   }
 
   async function addManualArticleFromLink() {
@@ -3496,36 +4259,8 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     }
     setAddingManualArticle(true);
     try {
-      const hostname = new URL(url).hostname.replace(/^www\./, "");
-      let preview = null;
-      try {
-        preview = await endpoints.donggukLinkPreview({ url });
-      } catch {
-        preview = null;
-      }
-      const article = normalizeDonggukPreviewArticle({
-        id: `manual-${Date.now()}`,
-        title: preview?.title || `${hostname} 추가 기사`,
-        source: preview?.source || hostname,
-        section: donggukSections.foundation,
-        category: "기타 개별 홍보 피처",
-        summary: preview?.summary || "추가한 링크입니다. 제목과 요약을 확인 후 수정해 주세요.",
-        url,
-        links: preview?.links?.length ? preview.links : [url],
-        priority: "P4",
-        priority_name: "참고",
-        score: 35,
-        is_syndicated: false,
-      });
-      const next = [...previewArticles, article].slice(0, maxMailArticleTotal);
-      setPreviewArticles(next);
-      setCandidateArticles((prev) => [...prev, article]);
-      setDuplicateFilterNeedsRefresh(true);
-      setManualArticleUrl("");
-      saveEditedPreview(next);
-      showToast?.("메일 편집본에 기사를 추가했습니다.", "success");
-    } catch {
-      showToast?.("기사 URL을 확인해 주세요.", "error");
+      const result = await addArticlesFromUrls([url]);
+      if (result.added) setManualArticleUrl("");
     } finally {
       setAddingManualArticle(false);
     }
@@ -3540,7 +4275,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   async function downloadDonggukHwp() {
-    const articles = editedMailArticles.length ? editedMailArticles : mailArticles;
+    const articles = effectiveMailArticles;
     if (!articles.length) {
       showToast?.("다운로드할 기사가 없습니다.", "error");
       return;
@@ -3609,12 +4344,6 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       setPreviewCached(Boolean(result.cached));
       return true;
     } catch (err) {
-      setPreviewArticles([]);
-      setPreviewExcludedArticles([]);
-      setAiProcessedArticleCount(0);
-      setPreviewExcludedCount(0);
-      setPreviewEditorUsed(false);
-      setPreviewCached(false);
       showToast?.(err.message, "error");
       return false;
     } finally {
@@ -3625,6 +4354,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   useEffect(() => {
     if (loadingCandidates || loadingPreview) return;
     if (!draftLoaded) return;
+    if (editDirty) return;
     if (duplicateFilterNeedsRefresh) return;
     const eligibleCount = candidateArticles.filter((article) => !article.isTrashed && realArticleLinks(article).length > 0).length;
     if (!eligibleCount) return;
@@ -3655,6 +4385,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     duplicateFilterNeedsRefresh,
     loadingCandidates,
     loadingPreview,
+    editDirty,
   ]);
 
   async function saveAutoSendSettings(nextEnabled = autoSendEnabled) {
@@ -3689,9 +4420,27 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     }
     setSavingPriorityCriteria(true);
     try {
+      const nextCriteria = normalizeDonggukCriteria(priorityCriteria);
+      const previousCriteria = criteriaBaselineRef.current;
       await onUpdateKeyword(selectedKeywordId, {
-        importance_criteria: normalizeDonggukCriteria(priorityCriteria),
+        importance_criteria: nextCriteria,
       });
+      if (previousCriteria !== nextCriteria) {
+        try {
+          await endpoints.recordPriorityAction({
+            keyword_id: selectedKeywordId,
+            action_type: "criteria_edit",
+            source_screen: "settings",
+            mail_date: mailDate,
+            before: { priority_criteria: previousCriteria },
+            after: { priority_criteria: nextCriteria },
+            reason: "관리자가 AI 기사 선정 기준을 직접 수정했습니다.",
+          });
+        } catch (err) {
+          console.warn("priority criteria action log failed", err);
+        }
+      }
+      criteriaBaselineRef.current = nextCriteria;
       setPreviewArticles([]);
       setPreviewExcludedCount(0);
       setPreviewEditorUsed(false);
@@ -3743,12 +4492,205 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           "success"
         );
       }
-      await loadDonggukHistory();
+      await loadDonggukHistory(viewMode !== "history", true);
     } catch (err) {
       showToast?.(err.message, "error");
     } finally {
       setSending(false);
     }
+  }
+
+  function cloneArticles(articles) {
+    return JSON.parse(JSON.stringify(articles || []));
+  }
+
+  function navigateDonggukView(nextView) {
+    const resolvedView = nextView;
+    if (viewMode === "edit" && resolvedView !== "edit" && editDirty) {
+      const discard = window.confirm("저장하지 않은 기사 편집 내용이 있습니다. 변경사항을 버리고 이동할까요?");
+      if (!discard) return;
+      setPreviewArticles(cloneArticles(editBaselineArticles.current));
+      setEditDirty(false);
+    }
+    if (resolvedView === "edit" && viewMode !== "edit") {
+      editBaselineArticles.current = cloneArticles(previewArticles);
+      setEditDirty(false);
+    }
+    setViewMode(resolvedView);
+  }
+
+  useEffect(() => {
+    function warnUnsaved(event) {
+      if (!editDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warnUnsaved);
+    return () => window.removeEventListener("beforeunload", warnUnsaved);
+  }, [editDirty]);
+
+  function renderManualArticleImportPanel() {
+    return (
+      <details className="workspace-accordion manual-import-accordion">
+        <summary>
+          <div>
+            <ExternalLink size={18} />
+            <span className="workspace-summary-copy">
+              <strong>링크로 기사 가져오기</strong>
+              <small>수집되지 않은 기사 URL을 분석해 같은 형식으로 추가합니다.</small>
+            </span>
+          </div>
+          <ChevronDown size={16} />
+        </summary>
+        <div className="workspace-accordion-body">
+          <div className="manual-article-add">
+            <input
+              aria-label="추가할 기사 URL"
+              value={manualArticleUrl}
+              onChange={(event) => setManualArticleUrl(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addManualArticleFromLink();
+                }
+              }}
+              placeholder="https://news.example.com/article"
+            />
+            <button className="secondary" disabled={addingManualArticle || !manualArticleUrl.trim()} onClick={addManualArticleFromLink} type="button">
+              {addingManualArticle ? <Loader2 className="spin" size={15} /> : <Plus size={15} />}
+              기사 가져오기
+            </button>
+          </div>
+        </div>
+      </details>
+    );
+  }
+
+  function renderUnifiedTestSendPanel() {
+    const previewRows = effectiveMailArticles;
+    return (
+      <details className="workspace-accordion unified-test-send">
+        <summary>
+          <div>
+            <Send size={18} />
+            <span className="workspace-summary-copy">
+              <strong>테스트 전송</strong>
+              <small>현재 선택된 기사 {previewRows.length}건을 지정한 주소로 확인용 전송합니다.</small>
+            </span>
+          </div>
+          <span className="workspace-summary-meta">수신인 {testRecipientList.length}명 <ChevronDown size={16} /></span>
+        </summary>
+        <div className="workspace-accordion-body">
+          <div className="test-send-panel compact-test-send">
+            <div>
+              <strong>{mailSubject}</strong>
+              <span>지정한 주소로만 현재 문안을 보내며 정식 발송 기록에는 반영하지 않습니다.</span>
+              <textarea
+                className="test-send-input"
+                value={testEmails}
+                onChange={(event) => setTestEmails(event.target.value)}
+                placeholder="테스트로 받을 이메일 주소"
+              />
+              {recentRecipients.length > 0 && (
+                <div className="test-recipient-chips" aria-label="최근 수신인">
+                  {recentRecipients.slice(0, 4).map((email) => (
+                    <button
+                      className="chip-button"
+                      key={`workspace-test-${email}`}
+                      onClick={() => {
+                        const current = testEmails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
+                        setTestEmails([...new Set([...current, email])].join("\n"));
+                      }}
+                      type="button"
+                    >
+                      {email}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="test-send-meta">
+              <span>수신인 {testRecipientList.length}명</span>
+              <button className="primary compact" disabled={sending || !testRecipientList.length || !previewRows.length} onClick={() => sendDonggukEmail(true)} type="button">
+                {sending ? <Loader2 className="spin" size={15} /> : <Send size={15} />}
+                테스트 전송
+              </button>
+            </div>
+          </div>
+          <button
+            aria-expanded={workspaceMailPreviewOpen}
+            className="secondary workspace-mail-preview-button"
+            onClick={() => setWorkspaceMailPreviewOpen((open) => !open)}
+            type="button"
+          >
+            {workspaceMailPreviewOpen ? <ChevronUp size={16} /> : <Eye size={16} />}
+            {workspaceMailPreviewOpen ? "미리보기 접기" : "메일 미리보기"}
+          </button>
+          {workspaceMailPreviewOpen && (
+            <section className="workspace-inline-mail-preview" aria-label="메일 미리보기">
+              <div className="preview-workspace-heading">
+                <div>
+                  <span className="preview-section-label">선택 기사 메일 미리보기</span>
+                  <strong>{mailSubject}</strong>
+                  <span>현재 메일 포함 기사 {previewRows.length}건을 실제 발송 순서로 표시합니다.</span>
+                </div>
+                <button
+                  className="secondary compact"
+                  disabled={loadingPreview || !mailArticles.length}
+                  onClick={() => loadDifyPreview(true)}
+                  type="button"
+                >
+                  {loadingPreview ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
+                  AI 미리보기 갱신
+                </button>
+              </div>
+              {loadingPreview && (
+                <div className="loading-line">
+                  <Loader2 className="spin" size={17} /> AI가 대표 기사와 메일 문안을 정리하는 중
+                </div>
+              )}
+              <div className="unified-preview-content">
+                {Object.values(donggukSections).map((section) => {
+                  const rows = previewRows.filter((article) => article.sectionLabel === section);
+                  if (!rows.length) return null;
+                  return (
+                    <div className="mail-section" key={`workspace-preview-${section}`}>
+                      <h3>{section}</h3>
+                      {rows.map((article, index) => (
+                        <article className="mail-editor-card" key={`workspace-preview-${article.id || article.title}-${index}`}>
+                          <div className="mail-editor-main">
+                            <div className="mail-editor-title-row">
+                              <strong>{index + 1}. {article.title} [{article.source}]</strong>
+                            </div>
+                            <p>{article.summary || "요약문이 아직 없습니다."}</p>
+                            {realArticleLinks(article).length > 0 && (
+                              <div className="mail-preview-links">
+                                {realArticleLinks(article).map((link) => (
+                                  <a href={link} target="_blank" rel="noreferrer" key={link}>{link}</a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  );
+                })}
+                {!loadingPreview && !previewRows.length && (
+                  <EmptyState
+                    title="메일에 포함된 기사가 없습니다"
+                    body="아래 기사 목록에서 메일에 포함할 기사를 선택하면 이곳에 미리보기가 표시됩니다."
+                  />
+                )}
+              </div>
+              <button className="secondary workspace-preview-collapse-button" onClick={() => setWorkspaceMailPreviewOpen(false)} type="button">
+                <ChevronUp size={16} /> 미리보기 접기
+              </button>
+            </section>
+          )}
+        </div>
+      </details>
+    );
   }
 
   const isMailEditView = viewMode === "edit";
@@ -3761,7 +4703,23 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
             <div className="brief-head">
               <div>
                 <span className="eyebrow">Dongguk PR Desk</span>
-                <h2>설정</h2>
+                <h2>
+                  {viewMode === "mail"
+                    ? "메일 미리보기"
+                    : viewMode === "edit"
+                      ? "기사 편집"
+                      : viewMode === "priority"
+                        ? "오늘 수집된 기사"
+                      : viewMode === "collection"
+                        ? "수집 상태"
+                      : viewMode === "stats"
+                        ? "통계"
+                        : viewMode === "calendar"
+                          ? "휴일 캘린더"
+                        : viewMode === "history"
+                          ? "발송 기록"
+                          : "설정"}
+                </h2>
               </div>
               <div className="daily-date">
                 <span>기준일 선택</span>
@@ -3773,24 +4731,27 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
 
           <div className="toolbar full dongguk-toolbar">
             <div className="brief-tabs" role="tablist" aria-label="홍보처 맞춤 화면">
-              <button className={viewMode === "home" ? "active" : ""} onClick={() => setViewMode("home")} type="button"><Settings size={18} /> 설정</button>
-              <button className={viewMode === "priority" ? "active" : ""} onClick={() => setViewMode("priority")} type="button"><FileText size={18} /> 오늘 수집된 기사</button>
-              <button className={viewMode === "stats" ? "active" : ""} onClick={() => setViewMode("stats")} type="button"><BarChart3 size={18} /> 통계</button>
-              <button className={viewMode === "edit" ? "active" : ""} onClick={() => setViewMode("edit")} type="button"><Pencil size={18} /> 편집</button>
-              <button className={viewMode === "mail" ? "active" : ""} onClick={() => setViewMode("mail")} type="button"><Mail size={18} /> 메일 미리보기</button>
-              <button className={viewMode === "history" ? "active" : ""} onClick={() => setViewMode("history")} type="button"><Send size={18} /> 발송 기록</button>
+              <button className={viewMode === "home" ? "active" : ""} onClick={() => navigateDonggukView("home")} type="button">
+                <Settings size={18} /> 설정
+              </button>
+              <button className={["priority", "edit", "mail"].includes(viewMode) ? "active" : ""} onClick={() => navigateDonggukView("priority")} type="button">
+                <FileText size={18} /> 오늘 수집된 기사
+              </button>
+              <button className={viewMode === "collection" ? "active" : ""} onClick={() => navigateDonggukView("collection")} type="button">
+                <RefreshCw size={18} /> 수집 상태
+              </button>
+              <button className={viewMode === "calendar" ? "active" : ""} onClick={() => navigateDonggukView("calendar")} type="button">
+                <Calendar size={18} /> 캘린더
+              </button>
+              <button className={viewMode === "stats" ? "active" : ""} onClick={() => navigateDonggukView("stats")} type="button">
+                <BarChart3 size={18} /> 통계
+              </button>
+              <button className={viewMode === "history" ? "active" : ""} onClick={() => navigateDonggukView("history")} type="button">
+                <Send size={18} /> 발송 기록
+              </button>
             </div>
-            {["priority", "stats", "edit", "mail", "history"].includes(viewMode) && (
-              <div className="dongguk-toolbar-actions">
-                <button className="secondary" onClick={copyMailPreview} type="button">
-                  <Mail size={16} /> 복사
-                </button>
-                <button className="secondary" onClick={downloadDonggukHwp} type="button">
-                  <Download size={16} /> HWP
-                </button>
-              </div>
-            )}
           </div>
+
         </>
       )}
 
@@ -4128,6 +5089,167 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         </div>
       )}
 
+      {viewMode === "collection" && (
+        <CollectionStatusPanel
+          keywordId={selectedKeywordId}
+          keywordName={selectedKeywordName}
+          showToast={showToast}
+        />
+      )}
+
+      {viewMode === "calendar" && (
+        <div className="holiday-calendar-layout">
+          <section className="holiday-calendar-card">
+            <div className="holiday-calendar-header">
+              <div>
+                <strong>휴일 캘린더</strong>
+                <span>휴일에도 기사 수집은 계속되며, 다음 업무일 메일에 누적 기사가 포함됩니다.</span>
+              </div>
+              <div className="calendar-month-controls">
+                <button className="icon-button" aria-label="이전 달" onClick={() => moveCalendarMonth(-1)} type="button">
+                  <ChevronLeft size={18} />
+                </button>
+                <b>{calendarMonthLabel}</b>
+                <button className="icon-button" aria-label="다음 달" onClick={() => moveCalendarMonth(1)} type="button">
+                  <ChevronRight size={18} />
+                </button>
+                <button className="secondary compact" onClick={() => setCalendarMonth(localDateKey().slice(0, 7))} type="button">
+                  오늘
+                </button>
+              </div>
+            </div>
+
+            <div className="calendar-legend" aria-label="캘린더 표시 안내">
+              <span><i className="public" /> 공휴일</span>
+              <span><i className="school" /> 학교 휴일</span>
+              <span><i className="personal" /> 개인 휴가</span>
+              <span><i className="weekend" /> 주말</span>
+            </div>
+
+            <div className="holiday-calendar-grid">
+              {["일", "월", "화", "수", "목", "금", "토"].map((weekday) => (
+                <strong className="calendar-weekday" key={weekday}>{weekday}</strong>
+              ))}
+              {loadingCalendar ? (
+                <div className="calendar-loading"><Loader2 className="spin" size={22} /> 캘린더를 불러오는 중입니다.</div>
+              ) : calendarCells.map((day) => {
+                const hasPublicHoliday = Boolean(day.public_holiday_name);
+                const hasSchoolHoliday = Boolean(day.school_holiday_names?.length);
+                const hasPersonalHoliday = Boolean(day.personal_holiday_names?.length);
+                const selected = schoolHolidayForm.start_date <= day.date && day.date <= schoolHolidayForm.end_date;
+                return (
+                  <button
+                    aria-label={`${day.date}${day.public_holiday_name ? ` ${day.public_holiday_name}` : ""}${day.school_holiday_names?.length ? ` 학교 휴일 ${day.school_holiday_names.join(", ")}` : ""}${day.personal_holiday_names?.length ? ` 개인 휴가 ${day.personal_holiday_names.join(", ")}` : ""}`}
+                    className={[
+                      "holiday-calendar-day",
+                      day.isCurrentMonth ? "" : "outside-month",
+                      day.isToday ? "today" : "",
+                      !day.is_business_day ? "holiday" : "",
+                      selected ? "selected" : "",
+                    ].filter(Boolean).join(" ")}
+                    key={day.date}
+                    onClick={() => selectCalendarDate(day.date)}
+                    type="button"
+                  >
+                    <span className="calendar-day-number">{Number(day.date.slice(-2))}</span>
+                    <div className="calendar-day-events">
+                      {hasPublicHoliday && <em className="public">{day.public_holiday_name}</em>}
+                      {day.school_holiday_names?.map((name) => <em className="school" key={`school-${day.date}-${name}`}>{name}</em>)}
+                      {day.personal_holiday_names?.map((name) => <em className="personal" key={`personal-${day.date}-${name}`}>{name}</em>)}
+                      {day.is_weekend && !hasPublicHoliday && !hasSchoolHoliday && !hasPersonalHoliday && <small>주말</small>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <aside className="holiday-calendar-side">
+            <section className="holiday-register-card">
+              <div className="panel-heading clean">
+                <Calendar className="panel-heading-icon" size={22} />
+                <strong>휴일 등록</strong>
+                <span>날짜를 누르면 자동 입력됩니다.</span>
+              </div>
+              <label className="holiday-form-field">
+                <span>구분</span>
+                <select
+                  value={schoolHolidayForm.holiday_type}
+                  onChange={(event) => setSchoolHolidayForm((prev) => ({ ...prev, holiday_type: event.target.value }))}
+                >
+                  <option value="personal">개인 휴가</option>
+                  <option value="school">학교 휴일</option>
+                </select>
+              </label>
+              <label className="holiday-form-field">
+                <span>이름</span>
+                <input
+                  value={schoolHolidayForm.name}
+                  onChange={(event) => setSchoolHolidayForm((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder={schoolHolidayForm.holiday_type === "personal" ? "예: 여름 휴가" : "예: 개교기념일"}
+                />
+              </label>
+              <div className="holiday-date-fields">
+                <label className="holiday-form-field">
+                  <span>시작일</span>
+                  <input
+                    type="date"
+                    value={schoolHolidayForm.start_date}
+                    onChange={(event) => setSchoolHolidayForm((prev) => ({ ...prev, start_date: event.target.value }))}
+                  />
+                </label>
+                <label className="holiday-form-field">
+                  <span>마지막 휴일</span>
+                  <input
+                    type="date"
+                    min={schoolHolidayForm.start_date}
+                    value={schoolHolidayForm.end_date}
+                    onChange={(event) => setSchoolHolidayForm((prev) => ({ ...prev, end_date: event.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className="holiday-mail-notice">
+                <Clock size={17} />
+                <span>
+                  등록 기간에는 자동 메일을 보내지 않습니다. 수집된 기사는 휴일이 끝난 다음 업무일
+                  <strong> {autoSendTime}</strong> 메일에 함께 포함됩니다.
+                </span>
+              </div>
+              <button className="primary holiday-register-button" disabled={savingSchoolHoliday} onClick={createSchoolHoliday} type="button">
+                {savingSchoolHoliday ? <Loader2 className="spin" size={16} /> : <Plus size={16} />}
+                휴일 등록
+              </button>
+            </section>
+
+            <section className="registered-holiday-card">
+              <div className="panel-heading">
+                <div>
+                  <strong>등록된 휴일</strong>
+                  <span>{calendarMonth.slice(0, 4)}년 기준</span>
+                </div>
+                <b>{schoolHolidays.length}개</b>
+              </div>
+              <div className="school-holiday-list">
+                {schoolHolidays.map((item) => (
+                  <div className="school-holiday-item" key={item.id}>
+                    <span>
+                      <strong>
+                        <i className={`holiday-type-dot ${item.holiday_type || "school"}`} />
+                        {item.name}
+                      </strong>
+                      <small>{item.start_date} ~ {item.end_date} · {item.holiday_type === "personal" ? "개인 휴가" : "학교 휴일"}</small>
+                    </span>
+                    <button className="icon-button" title="수정" onClick={() => editSchoolHoliday(item)} type="button"><Pencil size={14} /></button>
+                    <button className="icon-button danger-text" title="삭제" onClick={() => removeSchoolHoliday(item.id)} type="button"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {!schoolHolidays.length && <span className="muted-copy">등록된 학교 휴일이나 개인 휴가가 없습니다.</span>}
+              </div>
+            </section>
+          </aside>
+        </div>
+      )}
+
       {viewMode === "trash" && (
         <section className="dongguk-panel">
           <div className="panel-heading">
@@ -4165,11 +5287,12 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                         <span className="pill muted">휴지통</span>
                         <span>{article.source || "언론사 없음"}</span>
                         {item.trashed_at && <span>{item.trashed_at}</span>}
+                        {item.mail_date && <span>이동 기준일 {item.mail_date}</span>}
                       </div>
                       <h3>{article.title || "제목 없음"}</h3>
                       <p>{article.summary || "요약문이 아직 없습니다."}</p>
                       <div className="excluded-reason">
-                        <span>복구하면 다시 해당 기준일의 기사 후보로 돌아갑니다.</span>
+                        <span>복구하면 다시 기사 목록과 메일 후보에서 확인할 수 있습니다.</span>
                         <button className="secondary compact" onClick={() => restoreTrashArticle(item)} type="button">
                           <RotateCcw size={14} /> 복구
                         </button>
@@ -4193,7 +5316,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           <div className="dongguk-category-panel">
             <div className="panel-heading">
               <strong>상위 분류</strong>
-              <span>{mailDate}</span>
+              <span>{activeRangeStart === activeRangeEnd ? activeRangeEnd : `${activeRangeStart} ~ ${activeRangeEnd}`}</span>
             </div>
             <div className="dongguk-category-tabs" role="tablist" aria-label="홍보처 상위 분류">
               {candidateCategoryTabs.map((tab) => (
@@ -4232,9 +5355,65 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 </div>
               </div>
             )}
+            <div className="workspace-sidebar-actions">
+              <button className="secondary" onClick={copyMailPreview} type="button">
+                <Mail size={15} /> 문안 복사
+              </button>
+              <button className="secondary" onClick={downloadDonggukHwp} type="button">
+                <Download size={15} /> HWP 저장
+              </button>
+              <button className="secondary scroll-top-button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} type="button">
+                <ChevronUp size={15} /> 맨 위로
+              </button>
+            </div>
           </div>
 
           <div className="dongguk-article-list">
+            {renderManualArticleImportPanel()}
+            {renderUnifiedTestSendPanel()}
+            <div className="article-date-range-toolbar">
+              <div className="date-range-fields">
+                <label>
+                  <span>시작일</span>
+                  <input type="date" value={rangeStartDate} onChange={(event) => setRangeStartDate(event.target.value)} />
+                </label>
+                <label>
+                  <span>종료일</span>
+                  <input type="date" value={rangeEndDate} onChange={(event) => setRangeEndDate(event.target.value)} />
+                </label>
+                <button className="secondary compact" onClick={applyCustomDateRange} type="button">
+                  기간 조회
+                </button>
+                <button className="secondary compact" disabled={loadingWorkWindow} onClick={resetToBusinessRange} type="button">
+                  {loadingWorkWindow ? <Loader2 className="spin" size={14} /> : <Calendar size={14} />}
+                  업무일 기준
+                </button>
+                <button
+                  className="secondary compact"
+                  onClick={() => {
+                    const today = localDateKey();
+                    setMailDate(today);
+                    setDateRangeMode("business");
+                  }}
+                  type="button"
+                >
+                  오늘
+                </button>
+              </div>
+              <div className="date-range-summary">
+                <strong>{dateRangeMode === "custom" ? "사용자 지정 기간" : "휴일 포함 업무일 범위"}</strong>
+                <span>{activeRangeStart} ~ {activeRangeEnd}</span>
+                {workWindow?.days?.some((day) => !day.is_business_day) && (
+                  <span>
+                    {workWindow.days
+                      .filter((day) => !day.is_business_day)
+                      .map((day) => `${day.date} ${day.public_holiday_name || day.personal_holiday_names?.join(", ") || day.school_holiday_names?.join(", ") || "주말"}`)
+                      .join(" · ")}
+                  </span>
+                )}
+              </div>
+              {rangeError && <span className="field-error">{rangeError}</span>}
+            </div>
             <div className="candidate-heading">
               <div>
                 <strong>
@@ -4245,10 +5424,24 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 <span>
                   {loadingCandidates
                     ? "불러오는 중"
-                    : `전체 수집 ${candidateArticles.length}건 · AI 제외 ${aiExcludedCount}건${duplicateExcludedCount ? ` (중복 주제 ${duplicateExcludedCount}건)` : ""} · ${aiSelectedCount}건 표시`}
+                    : `오늘 기사 ${candidateArticles.length}건${exactLinkDuplicateCount ? ` · 동일 원문 링크 ${exactLinkDuplicateCount}건 통합` : ""} · 검색 결과 ${filteredCandidateRows.length}건 · 메일 포함 ${effectiveMailArticles.length}건${duplicateExcludedCount ? ` · 중복 주제 ${duplicateExcludedCount}건` : ""} · ${normalizedCandidatePage}/${candidateTotalPages}페이지`}
                 </span>
               </div>
               <div className="candidate-actions">
+                <label className="candidate-search-field">
+                  <Search size={15} />
+                  <input
+                    aria-label="수집 기사 검색"
+                    value={candidateSearchQuery}
+                    onChange={(event) => setCandidateSearchQuery(event.target.value)}
+                    placeholder="제목, 언론사, 요약 검색"
+                  />
+                  {candidateSearchQuery && (
+                    <button aria-label="검색어 지우기" onClick={() => setCandidateSearchQuery("")} type="button">
+                      <X size={14} />
+                    </button>
+                  )}
+                </label>
                 <button
                   aria-label="중복 주제 제외: 기사 제목과 요약의 핵심 단어, 원문 URL, 언론사와 발행 시각을 비교해 같은 주제를 묶고 우선순위가 가장 높은 기사 1개만 남깁니다."
                   className="secondary compact duplicate-filter-toggle active"
@@ -4263,13 +5456,11 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                   AI로 중복 주제 확인
                 </button>
                 <label className="candidate-limit-field">
-                  <span>화면 표시</span>
+                  <span>페이지당</span>
                   <select value={maxVisibleCandidates} onChange={(event) => setMaxVisibleCandidates(Number(event.target.value))}>
                     <option value={10}>10건</option>
                     <option value={20}>20건</option>
                     <option value={50}>50건</option>
-                    <option value={100}>100건</option>
-                    <option value={10000}>전체</option>
                   </select>
                 </label>
                 <button className="secondary compact" disabled={runningCandidateCrawl} onClick={runDonggukCandidateCrawl} type="button">
@@ -4289,114 +5480,276 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
               />
             )}
             {!loadingCandidates && candidateArticles.length > 0 && visibleCandidateRows.length === 0 && (
-              <EmptyState title="이 카테고리의 기사 후보가 없습니다" body="다른 카테고리 탭을 선택해 주세요." />
+              <EmptyState
+                title={candidateSearchQuery ? "검색 결과가 없습니다" : "이 카테고리의 기사 후보가 없습니다"}
+                body={candidateSearchQuery ? "검색어를 바꾸거나 지운 뒤 다시 확인해 주세요." : "다른 카테고리 탭을 선택해 주세요."}
+              />
             )}
-            {visibleTopicGroups.map(({ topic, rows }) => {
-              return (
-                <div className="priority-article-group" key={topic}>
-                  <div className="priority-group-heading">
-                    <span className="topic-group-title">{topic}</span>
-                    <strong>{rows.length}건</strong>
-                  </div>
-                  {rows.map(({ article, index, key }) => {
+            <div className="flat-candidate-list">
+              {visibleCandidateRows.map(({ article, index, key }, visibleIndex) => {
                     const links = realArticleLinks(article);
                     const thumbnailUrl = getArticleThumbnail(article);
                     const includedInMail = mailArticleKeySet.has(key);
                     const isTrashed = Boolean(article.isTrashed);
+                    const isInlineEditing = inlineEditingArticleKey === key && inlineArticleDraft;
+                    const displayRank = ((normalizedCandidatePage - 1) * candidatePageSize) + visibleIndex + 1;
                     return (
-                      <article className={`dongguk-article-card ${includedInMail ? "included-in-mail" : "excluded-from-mail"} ${isTrashed ? "trashed-article" : ""}`} key={key}>
-                        {thumbnailUrl && (
-                          <img
-                            className="dongguk-article-thumb"
-                            src={thumbnailUrl}
-                            alt=""
-                            loading="lazy"
-                            onError={(event) => {
-                              event.currentTarget.style.display = "none";
-                            }}
-                          />
-                        )}
-                        <div>
-                          <div className="meta">
-                            <span className={`pill ${includedInMail ? "include" : "muted"}`}>{isTrashed ? "휴지통" : includedInMail ? "메일 포함" : "메일 제외"}</span>
-                            <span className={`priority-pill ${article.priorityTone}`}>{priorityDisplayName(article)}</span>
-                            <span>{article.score}점</span>
-                            <span>{article.category}</span>
-                            {article.isSyndicated && <span className="pill warning">중복 보도</span>}
-                            {article.isCampaign && <span className="pill">캠페인 +8</span>}
+                      <details className={`dongguk-article-card collapsible-article-card ${includedInMail ? "included-in-mail" : "excluded-from-mail"} ${isTrashed ? "trashed-article" : ""}`} key={key}>
+                        <summary className="article-card-summary">
+                          <span className={`article-summary-rank ${includedInMail ? "is-included" : ""}`}>{displayRank}</span>
+                          <span className="article-summary-media" aria-hidden="true">
+                            <span className="article-summary-media-mark">D</span>
+                            <span className="article-summary-media-name">dongguk</span>
+                            {thumbnailUrl && (
+                              <img
+                                src={thumbnailUrl}
+                                alt=""
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                }}
+                              />
+                            )}
+                          </span>
+                          <span className="article-card-summary-copy">
+                            <span className="article-summary-preview-topline">
+                              <span className="article-card-summary-meta">
+                                <span className={`article-major-category ${normalizeDonggukSectionKey(article.sectionLabel) || "foundation"}`}>
+                                  {article.sectionLabel || donggukSections.foundation}
+                                </span>
+                                <span>{article.category}</span>
+                                <span className={`priority-pill ${article.priorityTone}`}>{priorityDisplayName(article)}</span>
+                                {article.isSyndicated && <span className="pill warning">중복 보도</span>}
+                              </span>
+                              <span className="article-summary-published">{formatDate(article.published_at)}</span>
+                            </span>
+                            <strong className="article-summary-title">{article.title}</strong>
+                            <span className="article-summary-preview-text">{article.summary || "요약문이 아직 없습니다."}</span>
+                            <span className="article-summary-preview-reason">{articlePriorityReason(article)}</span>
+                          </span>
+                          <span className="article-summary-actions">
+                              <label
+                                className={`mail-inclusion-status ${includedInMail ? "is-included" : "is-excluded"}`}
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => event.stopPropagation()}
+                              >
+                                <input
+                                  aria-label={`${article.title} 메일 포함 여부`}
+                                  checked={includedInMail}
+                                  disabled={isTrashed || !isArticleInActiveRange(article)}
+                                  onChange={(event) => setCandidateMailIncluded(article, index, event.target.checked)}
+                                  onClick={(event) => event.stopPropagation()}
+                                  type="checkbox"
+                                />
+                                <span>{includedInMail ? "메일 포함" : "메일 제외"}</span>
+                              </label>
+                            <ChevronDown className="article-card-summary-chevron" size={17} />
+                          </span>
+                        </summary>
+                        <div className="article-card-expanded">
+                          <div>
+                          <div className="candidate-card-topline">
+                            {!isTrashed && !isInlineEditing && (
+                              <button className="secondary compact" onClick={() => beginInlineArticleEdit(article, index)} type="button">
+                                <Pencil size={14} /> 편집
+                              </button>
+                            )}
                           </div>
-                          <h3>{article.title}</h3>
-                          <p>{article.summary}</p>
-                          <div className="priority-reason">
-                            <span>{articlePriorityReason(article)}</span>
-                          </div>
-                          <div className="dongguk-link-row">
-                            <span>{article.source}</span>
-                            <span>원문 링크 {links.length}개</span>
-                          </div>
-                          {links.length > 0 && (
-                            <div className="article-url-list">
-                              {links.map((link) => (
-                                <a href={link} target="_blank" rel="noreferrer" key={link}>
-                                  <ExternalLink size={14} /> 원문 보기
-                                </a>
-                              ))}
+                          {isInlineEditing ? (
+                            <div className="inline-article-editor">
+                              <label className="field">
+                                <span>기사 제목</span>
+                                <input
+                                  value={inlineArticleDraft.title || ""}
+                                  onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, title: event.target.value }))}
+                                />
+                              </label>
+                              <label className="field">
+                                <span>요약</span>
+                                <textarea
+                                  value={inlineArticleDraft.summary || ""}
+                                  onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, summary: event.target.value }))}
+                                />
+                              </label>
+                              <div className="inline-article-editor-grid">
+                                <label className="field">
+                                  <span>상위 분류</span>
+                                  <select
+                                    value={inlineArticleDraft.sectionLabel || donggukSections.foundation}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, sectionLabel: event.target.value, section: event.target.value }))}
+                                  >
+                                    {Object.values(donggukSections).map((label) => <option key={label} value={label}>{label}</option>)}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>하위 카테고리</span>
+                                  <select
+                                    value={inlineArticleDraft.category || ""}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, category: event.target.value }))}
+                                  >
+                                    {donggukCategoryRules.map((rule) => <option key={rule.key} value={rule.label}>{rule.label}</option>)}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>우선순위</span>
+                                  <select
+                                    value={inlineArticleDraft.priority || "P3"}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, priority: event.target.value }))}
+                                  >
+                                    {donggukPriorityBands.map((band) => <option key={band.label} value={band.label}>{band.name}</option>)}
+                                  </select>
+                                </label>
+                                <label className="field">
+                                  <span>점수</span>
+                                  <input
+                                    min="0"
+                                    max="100"
+                                    type="number"
+                                    value={inlineArticleDraft.score ?? 0}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, score: Math.max(0, Math.min(100, Number(event.target.value) || 0)) }))}
+                                  />
+                                </label>
+                                <label className="field">
+                                  <span>작성일</span>
+                                  <input
+                                    type="date"
+                                    value={articlePublishedDateKey(inlineArticleDraft)}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({ ...draft, published_at: `${event.target.value}T12:00:00+09:00` }))}
+                                  />
+                                </label>
+                                <label className="field inline-url-field">
+                                  <span>대표 URL</span>
+                                  <input
+                                    value={realArticleLinks(inlineArticleDraft)[0] || ""}
+                                    onChange={(event) => setInlineArticleDraft((draft) => ({
+                                      ...draft,
+                                      url: event.target.value,
+                                      links: [event.target.value, ...realArticleLinks(draft).slice(1)].filter(Boolean),
+                                    }))}
+                                  />
+                                </label>
+                              </div>
+                              <div className="inline-article-editor-actions">
+                                <button className="secondary" disabled={savingInlineArticle} onClick={cancelInlineArticleEdit} type="button">취소</button>
+                                <button className="primary" disabled={savingInlineArticle || !inlineArticleDraft.title?.trim()} onClick={() => saveInlineArticleEdit(article, index)} type="button">
+                                  {savingInlineArticle ? <Loader2 className="spin" size={15} /> : <CheckCircle2 size={15} />}
+                                  저장
+                                </button>
+                              </div>
                             </div>
+                          ) : (
+                            <>
+                              <div className="meta">
+                                <span className={`pill ${includedInMail ? "include" : "muted"}`}>{isTrashed ? "휴지통" : includedInMail ? "메일 포함" : "메일 제외"}</span>
+                                <span>{article.score}점</span>
+                                {article.isSyndicated && <span className="pill warning">중복 보도</span>}
+                                {article.isCampaign && <span className="pill">캠페인 +8</span>}
+                              </div>
+                              <p>{article.summary}</p>
+                              <div className="priority-reason">
+                                <span>{articlePriorityReason(article)}</span>
+                              </div>
+                              <div className="dongguk-link-row">
+                                <span>{article.source}</span>
+                                <span>작성 {articlePublishedDateKey(article) || "날짜 미상"}</span>
+                                <span>수집 {articleCollectedDateKey(article) || "날짜 미상"}</span>
+                                <span>원문 링크 {links.length}개</span>
+                              </div>
+                              {links.length > 0 && (
+                                <div className="article-url-list">
+                                  {links.map((link) => (
+                                    <a href={link} target="_blank" rel="noreferrer" key={link}>
+                                      <ExternalLink size={14} /> 원문 보기
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
-                          <div className="candidate-edit-row">
-                            <label>
-                              <span>상위 분류</span>
-                              <select value={article.sectionLabel || donggukSections.foundation} onChange={(event) => updateCandidateArticle(index, { sectionLabel: event.target.value, section: event.target.value })}>
-                                {Object.values(donggukSections).map((label) => <option key={label} value={label}>{label}</option>)}
-                              </select>
-                            </label>
-                            <label>
-                              <span>하위 카테고리</span>
-                              <select value={article.category || ""} onChange={(event) => updateCandidateArticle(index, { category: event.target.value })}>
-                                {donggukCategoryRules.map((rule) => <option key={rule.key} value={rule.label}>{rule.label}</option>)}
-                              </select>
-                            </label>
-                          </div>
                           {!includedInMail && !isTrashed && (
                             <div className="excluded-reason">
                               <span>{excludedArticleReason(article, key)}</span>
-                              {isArticleInMailWindow(article, mailDate, autoSendTime) && (
-                                <button className="secondary compact" onClick={() => restoreExcludedArticle(article, index)} type="button">
-                                  <Plus size={14} /> 메일에 추가
-                                </button>
-                              )}
                             </div>
                           )}
-                          {!isTrashed && (
+                          {!isTrashed && !isInlineEditing && (
                             <button className="danger compact candidate-toggle" onClick={() => deleteCandidateArticle(article, index)} type="button">
                               <Trash2 size={14} /> 휴지통으로 이동
                             </button>
                           )}
+                          </div>
                         </div>
-                      </article>
+                      </details>
                     );
-                  })}
+              })}
+            </div>
+            {!loadingCandidates && filteredCandidateRows.length > 0 && (
+              <div className="candidate-pagination" aria-label="수집 기사 페이지 이동">
+                <button
+                  className="secondary compact"
+                  disabled={normalizedCandidatePage <= 1}
+                  onClick={() => setCandidatePage((page) => Math.max(1, page - 1))}
+                  type="button"
+                >
+                  <ChevronLeft size={15} /> 이전
+                </button>
+                <div className="candidate-page-numbers" aria-label={`전체 ${candidateTotalPages}페이지`}>
+                  {Array.from({ length: candidateTotalPages }, (_, index) => index + 1).map((pageNumber) => (
+                    <button
+                      aria-current={pageNumber === normalizedCandidatePage ? "page" : undefined}
+                      aria-label={`${pageNumber}페이지로 이동`}
+                      className={`candidate-page-number ${pageNumber === normalizedCandidatePage ? "active" : ""}`}
+                      key={pageNumber}
+                      onClick={() => setCandidatePage(pageNumber)}
+                      type="button"
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
                 </div>
-              );
-            })}
+                <button
+                  className="secondary compact"
+                  disabled={normalizedCandidatePage >= candidateTotalPages}
+                  onClick={() => setCandidatePage((page) => Math.min(candidateTotalPages, page + 1))}
+                  type="button"
+                >
+                  다음 <ChevronRight size={15} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {viewMode === "stats" && (
         <div className="dongguk-stats">
-          <ChartCard title="상위 카테고리별 기사 수" data={sectionChart} xKey="label" yKey="count" color="#2271b1" note="동국대 법인/건학위, 대학 교육, 불교 종단 기준" />
+          <ChartCard
+            title="상위 카테고리별 기사 수"
+            data={sectionChart.map((item) => ({
+              ...item,
+              label: item.label === donggukSections.foundation
+                ? "동국대·건학위"
+                : item.label === donggukSections.education
+                  ? "대학·교육"
+                  : "불교·종단",
+            }))}
+            xKey="label"
+            yKey="count"
+            color="#2271b1"
+            note="동국대 법인/건학위, 대학 교육, 불교 종단 기준"
+            seriesName="기사 수"
+            valueSuffix="건"
+          />
           <ChartCard title="우선순위별 기사 수" data={priorityChart.map((item) => {
             const band = donggukPriorityBands.find((entry) => entry.label === item.label);
             return { ...item, label: priorityDisplayName(band) };
-          })} xKey="label" yKey="count" color="#00a32a" note="최우선~낮음 점수 구간 기준" />
+          })} xKey="label" yKey="count" color="#00a32a" note="최우선~낮음 점수 구간 기준" seriesName="기사 수" valueSuffix="건" />
           <div className="dongguk-stat-table">
             <div className="panel-heading">
               <strong>섹션별 구성</strong>
               <span>동국대·대학 교육·불교계 기준으로 분류</span>
             </div>
             {sectionChart.map(({ label: section, count }) => (
-              <div className="stat-row" key={section}>
+              <div className={`stat-row ${count ? "" : "is-empty"}`} key={section}>
                 <span>{section}</span>
                 <strong>{count}건</strong>
               </div>
@@ -4414,6 +5767,171 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
               </div>
             ))}
           </div>
+          <section className="ai-insights-panel">
+            <div className="ai-insights-heading">
+              <div>
+                <span className="ai-insights-icon"><Sparkles size={18} /></span>
+                <div>
+                  <strong>AI 인사이트</strong>
+                  <p>관리자의 기사 포함·제외, 순서, 우선순위 수정을 학습해 선정 기준에 반영합니다.</p>
+                </div>
+              </div>
+              <button
+                className="secondary compact"
+                disabled={generatingPriorityInsight || loadingPriorityInsights}
+                onClick={generatePriorityInsight}
+                type="button"
+              >
+                {generatingPriorityInsight ? <Loader2 className="spin" size={15} /> : <RefreshCw size={15} />}
+                지난달 분석 실행
+              </button>
+            </div>
+
+            <div className="insight-cadence-strip">
+              <span><b>월별 학습</b>{priorityInsightCadence.monthly || "지난달 행동을 분석해 기준을 소폭 반영합니다."}</span>
+              <span><b>분기 재조정</b>{priorityInsightCadence.quarterly || "직전 분기 전체 행동으로 기준을 다시 조정합니다."}</span>
+            </div>
+
+            <div className="ai-insights-grid">
+              <div className="active-insight-rules">
+                <div className="panel-heading clean">
+                  <div>
+                    <strong>현재 반영된 우선순위</strong>
+                    <span>메일 대표 기사 선정 시 기본 기준과 함께 AI에 전달됩니다.</span>
+                  </div>
+                  <b>{activeInsightRules.length}개</b>
+                </div>
+                {activeInsightRules.length ? (
+                  <div className="active-insight-list">
+                    {activeInsightRules.map((rule, index) => (
+                      <button
+                        className="active-insight-rule"
+                        key={`${rule.insight_id}-${rule.rule_text}-${index}`}
+                        onClick={() => openPriorityInsight(rule.insight_id)}
+                        type="button"
+                      >
+                        <span>{rule.target || "전체"}</span>
+                        <strong>{rule.rule_text}</strong>
+                        <small>{rule.period_key} · 근거 {rule.evidence_count || 0}건</small>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="insight-empty">
+                    <Sparkles size={20} />
+                    <span>아직 반복 행동으로 반영된 기준이 없습니다.</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="insight-history">
+                <div className="panel-heading clean">
+                  <div>
+                    <strong>월별 반영 로그</strong>
+                    <span>월을 선택하면 근거가 된 사용자 수행 기록을 볼 수 있습니다.</span>
+                  </div>
+                </div>
+                {priorityInsights.length ? (
+                  <div className="insight-history-list">
+                    {priorityInsights.map((insight) => (
+                      <button
+                        className={selectedPriorityInsightId === insight.id ? "active" : ""}
+                        key={insight.id}
+                        onClick={() => openPriorityInsight(insight.id)}
+                        type="button"
+                      >
+                        <span>
+                          <strong>{insight.period_key}</strong>
+                          <small>{insight.cadence_label}</small>
+                        </span>
+                        <span>
+                          <b>{insight.changes?.length || 0}개 반영</b>
+                          <em className={`insight-status ${insight.status}`}>
+                            {insight.status === "applied" ? "반영 중" : insight.status === "deleted" ? "삭제됨" : "변경 없음"}
+                          </em>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="insight-empty">
+                    <span>월별 분석 기록이 없습니다. 지난달 분석을 실행하면 이곳에 기록됩니다.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {priorityInsightDetail && (
+              <div className="insight-detail">
+                <div className="insight-detail-heading">
+                  <div>
+                    <span>{priorityInsightDetail.period_key} · {priorityInsightDetail.cadence_label}</span>
+                    <strong>{priorityInsightDetail.summary}</strong>
+                    <p>{priorityInsightDetail.rationale}</p>
+                  </div>
+                  {priorityInsightDetail.status === "applied" && (
+                    <button
+                      className="secondary compact danger-text"
+                      onClick={() => deletePriorityInsight(priorityInsightDetail)}
+                      title="기준 반영만 취소되며 근거 행동 로그는 보존됩니다."
+                      type="button"
+                    >
+                      <Trash2 size={14} /> 인사이트 삭제
+                    </button>
+                  )}
+                </div>
+
+                <div className="insight-change-list">
+                  {(priorityInsightDetail.changes || []).map((change, index) => (
+                    <div className="insight-change-card" key={`${change.rule_text}-${index}`}>
+                      <span>{change.target || "전체"} · 근거 {change.evidence_count || 0}건</span>
+                      <div>
+                        <small>변경 전</small>
+                        <p>{change.before || "기존 기준 유지"}</p>
+                      </div>
+                      <div>
+                        <small>변경 후</small>
+                        <strong>{change.rule_text || change.after}</strong>
+                      </div>
+                      <p className="insight-change-reason">{change.reason}</p>
+                    </div>
+                  ))}
+                  {!priorityInsightDetail.changes?.length && (
+                    <div className="insight-empty">반복 근거가 충분하지 않아 이 기간에는 기준을 변경하지 않았습니다.</div>
+                  )}
+                </div>
+
+                <details className="insight-action-log">
+                  <summary>
+                    <span>이 판단에 사용한 사용자 수행 로그</span>
+                    <b>{priorityInsightDetail.actions?.length || 0}건</b>
+                  </summary>
+                  <div className="insight-action-list">
+                    {(priorityInsightDetail.actions || []).map((action) => (
+                      <div key={action.id}>
+                        <span>
+                          <strong>{action.action_label}</strong>
+                          <small>{action.created_at ? formatDate(action.created_at) : action.mail_date || ""}</small>
+                        </span>
+                        <p>{action.article_title || (action.action_type === "criteria_edit" ? "AI 기사 선정 기준" : "기사 정보 없음")}</p>
+                        <small>
+                          {formatInsightActionState(action.before)}
+                          {Object.keys(action.before || {}).length && Object.keys(action.after || {}).length ? " → " : ""}
+                          {formatInsightActionState(action.after)}
+                        </small>
+                        {action.reason && <em>{action.reason}</em>}
+                      </div>
+                    ))}
+                    {!priorityInsightDetail.actions?.length && <div className="insight-empty">이 기간에 저장된 사용자 수행 로그가 없습니다.</div>}
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {loadingPriorityInsights && (
+              <div className="loading-line"><Loader2 className="spin" size={16} /> AI 인사이트를 불러오는 중</div>
+            )}
+          </section>
         </div>
       )}
 
@@ -4425,13 +5943,12 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
               <p>기사의 제목, 요약, 분류, 우선순위 정보를 조정합니다.</p>
             </div>
             <div className="article-edit-header-actions">
-              <button className="secondary" onClick={() => setViewMode("mail")} type="button">
-                취소
-              </button>
               <button
                 className="primary"
                 onClick={async () => {
                   await saveEditedPreview(editedMailArticles);
+                  editBaselineArticles.current = cloneArticles(editedMailArticles);
+                  setEditDirty(false);
                   showToast?.("기사 편집 내용을 저장했습니다.", "success");
                   setViewMode("mail");
                 }}
@@ -4483,7 +6000,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                       <div className="mail-editor-actions">
                         <button className="secondary compact icon-only" disabled={index === 0} onClick={() => movePreviewArticle(index, -1)} title="위로 이동" type="button">↑</button>
                         <button className="secondary compact icon-only" disabled={index === editedMailArticles.length - 1} onClick={() => movePreviewArticle(index, 1)} title="아래로 이동" type="button">↓</button>
-                        <button className="danger compact icon-only" onClick={() => removePreviewArticle(index)} title="메일에서 삭제" type="button">
+                        <button className="danger compact icon-only" onClick={() => removePreviewArticle(index)} title="이번 메일에서 제외" type="button">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -4521,6 +6038,27 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                           type="number"
                           value={article.score}
                           onChange={(event) => updatePreviewArticle(index, { score: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>기사 작성일</span>
+                        <input
+                          type="date"
+                          value={articlePublishedDateKey(article)}
+                          onChange={(event) => updatePreviewArticle(index, { published_at: `${event.target.value}T12:00:00+09:00` })}
+                        />
+                      </label>
+                      <label className="field article-url-field">
+                        <span>대표 URL</span>
+                        <input
+                          value={links[0] || ""}
+                          onChange={(event) => {
+                            const nextUrl = event.target.value;
+                            updatePreviewArticle(index, {
+                              url: nextUrl,
+                              links: [nextUrl, ...links.slice(1)].filter(Boolean),
+                            });
+                          }}
                         />
                       </label>
                     </div>
@@ -4564,9 +6102,10 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       )}
 
       {viewMode === "mail" && (
-        <div className="dongguk-mail-preview">
+        <div className="dongguk-mail-preview integrated-mail-preview">
           <div className="panel-heading">
             <div>
+              <span className="preview-section-label">선택 기사 메일 미리보기</span>
               <strong>{mailSubject}</strong>
               <span>
                 {loadingPreview
@@ -4579,15 +6118,9 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
               </span>
             </div>
             <div className="candidate-actions">
-              {isMailEditView ? (
-                <button className="secondary compact" onClick={() => setViewMode("mail")} type="button">
-                  <Eye size={15} /> 미리보기로 이동
-                </button>
-              ) : (
-                <button className="secondary compact" onClick={() => setViewMode("edit")} type="button">
-                  <Pencil size={15} /> 편집으로 이동
-                </button>
-              )}
+              <button className="secondary compact" onClick={() => setViewMode("priority")} type="button">
+                <ChevronUp size={15} /> 미리보기 접기
+              </button>
               <button className="secondary compact" disabled={loadingPreview || !mailArticles.length} onClick={() => loadDifyPreview(true)} type="button">
                 {loadingPreview ? <Loader2 className="spin" size={15} /> : <Sparkles size={15} />}
                 AI 미리보기 갱신
@@ -4671,7 +6204,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                           <div className="mail-editor-actions">
                             <button className="secondary compact icon-only" disabled={index === 0} onClick={() => movePreviewArticle(editedMailArticles.indexOf(article), -1)} title="위로 이동" type="button">↑</button>
                             <button className="secondary compact icon-only" disabled={index === rows.length - 1} onClick={() => movePreviewArticle(editedMailArticles.indexOf(article), 1)} title="아래로 이동" type="button">↓</button>
-                            <button className="danger compact icon-only" onClick={() => removePreviewArticle(editedMailArticles.indexOf(article))} title="메일에서 삭제" type="button">
+                            <button className="danger compact icon-only" onClick={() => removePreviewArticle(editedMailArticles.indexOf(article))} title="이번 메일에서 제외" type="button">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -4767,7 +6300,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
               <strong>홍보처 발송 기록</strong>
               <span>최근 발송 메일과 제외된 유사 기사 수를 확인합니다.</span>
             </div>
-            <button className="secondary compact" onClick={loadDonggukHistory} type="button">
+            <button className="secondary compact" onClick={() => loadDonggukHistory(false)} type="button">
               <RefreshCw size={15} /> 새로고침
             </button>
           </div>
@@ -4845,7 +6378,8 @@ function App() {
   const [importancePage, setImportancePage] = useState(null);
   const [activeTab, setActiveTab] = useState("stats");
   const [dashboardMode, setDashboardMode] = useState("general");
-  const [donggukViewMode, setDonggukViewMode] = useState("home");
+  const [loadedDashboardMode, setLoadedDashboardMode] = useState(null);
+  const [donggukViewMode, setDonggukViewMode] = useState("priority");
   const [toast, setToast] = useState(null);
   const [loadingSide, setLoadingSide] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -4854,6 +6388,9 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [keywordArticleCountOverrides, setKeywordArticleCountOverrides] = useState({});
+  const [donggukArticleSummary, setDonggukArticleSummary] = useState({});
+  const shellRequestIdRef = useRef(0);
+  const chatsLoadedRef = useRef(false);
 
   const selectedKeyword = keywords.find((item) => item.id === selectedKeywordId);
   const donggukKeyword = keywords.find((item) => keywordName(item).includes("동국"));
@@ -4875,28 +6412,39 @@ function App() {
   }
 
   async function loadShell(mode = dashboardMode) {
+    const requestId = ++shellRequestIdRef.current;
     setLoadingSide(true);
     try {
-      const [keywordData, chatData] = await Promise.all([endpoints.keywords(mode), endpoints.chats()]);
+      const [keywordData, chatData] = await Promise.all([
+        endpoints.keywords(mode, localDateKey()),
+        chatsLoadedRef.current ? Promise.resolve(null) : endpoints.chats(),
+      ]);
+      if (requestId !== shellRequestIdRef.current) return;
       const nextKeywords = keywordData.items || [];
-      const nextChats = chatData.items || [];
       const nextDonggukKeyword = nextKeywords.find((item) => keywordName(item).includes("동국"));
 
       setKeywords(nextKeywords);
-      setChats(nextChats);
+      if (chatData) {
+        setChats(chatData.items || []);
+        chatsLoadedRef.current = true;
+      }
       setSelectedKeywordId((current) => {
         if (current && nextKeywords.some((item) => item.id === current)) return current;
         return mode === "dongguk"
           ? nextDonggukKeyword?.id || nextKeywords[0]?.id || null
           : nextKeywords[0]?.id || null;
       });
+      setLoadedDashboardMode(mode);
       setLoginRequired(false);
     } catch (err) {
+      if (requestId !== shellRequestIdRef.current) return;
       if (String(err.message).includes("Authentication")) setLoginRequired(true);
       else showToast(err.message, "error");
     } finally {
-      setBootstrapped(true);
-      setLoadingSide(false);
+      if (requestId === shellRequestIdRef.current) {
+        setBootstrapped(true);
+        setLoadingSide(false);
+      }
     }
   }
 
@@ -4952,6 +6500,7 @@ function App() {
   }
 
   useEffect(() => {
+    setLoadedDashboardMode(null);
     loadShell(dashboardMode);
   }, [dashboardMode]);
 
@@ -4967,8 +6516,10 @@ function App() {
   }, [activeTab, donggukKeyword?.id, selectedKeywordId]);
 
   useEffect(() => {
-    loadSummary(selectedKeywordId);
-  }, [selectedKeywordId]);
+    if (dashboardMode === "general") {
+      loadSummary(selectedKeywordId);
+    }
+  }, [selectedKeywordId, dashboardMode]);
 
   async function createKeyword(keywordConfig) {
     setLoadingSide(true);
@@ -5090,10 +6641,12 @@ function App() {
     return <LoginGate onLogin={loadShell} />;
   }
 
+  const modeReady = loadedDashboardMode === dashboardMode;
+
   return (
     <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${chatSidebarOpen ? "chat-sidebar-open" : ""}`}>
       <Sidebar
-        keywords={keywords}
+        keywords={modeReady ? keywords : []}
         selectedKeywordId={selectedKeywordId}
         setSelectedKeywordId={setSelectedKeywordId}
         activeTab={activeTab}
@@ -5109,9 +6662,19 @@ function App() {
         onDeleteKeyword={deleteKeyword}
         loading={loadingSide}
         collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
         keywordArticleCountOverrides={keywordArticleCountOverrides}
+        donggukArticleSummary={donggukArticleSummary}
       />
+      <button
+        aria-label={sidebarCollapsed ? "왼쪽 사이드바 열기" : "왼쪽 사이드바 닫기"}
+        aria-expanded={!sidebarCollapsed}
+        className={`sidebar-edge-toggle ${sidebarCollapsed ? "is-collapsed" : "is-expanded"}`}
+        onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+        title={sidebarCollapsed ? "왼쪽 사이드바 열기" : "왼쪽 사이드바 닫기"}
+        type="button"
+      >
+        {sidebarCollapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+      </button>
       <main className="main">
         {!(dashboardMode === "dongguk" && activeTab === "dongguk" && donggukViewMode === "trash") && (
           <header className="topbar">
@@ -5167,14 +6730,21 @@ function App() {
           </header>
         )}
 
-        {dashboardMode === "general" && activeTab === "stats" && (
+        {!modeReady && (
+          <div className="mode-loading" role="status">
+            <Loader2 className="spin" size={22} />
+            <span>{dashboardMode === "dongguk" ? "홍보처 화면을 불러오는 중" : "대시보드를 불러오는 중"}</span>
+          </div>
+        )}
+
+        {modeReady && dashboardMode === "general" && activeTab === "stats" && (
           <Summary selectedKeyword={selectedKeyword} articlePage={articlePage} importancePage={importancePage} />
         )}
 
-        {activeTab === "articles" && (
+        {modeReady && activeTab === "articles" && (
           <Articles selectedKeywordId={selectedKeywordId} selectedKeyword={selectedKeyword} topItems={topItems} showToast={showToast} refreshSummary={() => loadSummary()} />
         )}
-        {activeTab === "dongguk" && (
+        {modeReady && activeTab === "dongguk" && (
           <DonggukPrConsole
             selectedKeyword={activeKeyword}
             selectedKeywordId={activeKeywordId}
@@ -5183,17 +6753,18 @@ function App() {
             onUpdateKeyword={updateKeyword}
             viewMode={donggukViewMode}
             setViewMode={setDonggukViewMode}
-            onCandidateCountChange={(keywordId, count) => {
+            onCandidateCountChange={(keywordId, summary) => {
+              setDonggukArticleSummary(summary || {});
               setKeywordArticleCountOverrides((prev) => {
                 const next = { ...prev };
-                if (count == null) delete next[keywordId];
-                else next[keywordId] = count;
+                if (summary == null) delete next[keywordId];
+                else next[keywordId] = Number(summary.total || 0);
                 return next;
               });
             }}
           />
         )}
-        {activeTab === "stats" && (
+        {modeReady && activeTab === "stats" && (
           <Stats
             selectedKeywordId={selectedKeywordId}
             selectedKeyword={selectedKeyword}

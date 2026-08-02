@@ -4,7 +4,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.article_match import ArticleMatch
+from app.models.crawl_run_article import CrawlRunArticle
 from app.models.crawl_run_keyword import CrawlRunKeyword
+from app.models.crawl_run_source import CrawlRunSource
 
 
 class CrawlRun(Base):
@@ -30,4 +32,16 @@ class CrawlRun(Base):
     article_matches: Mapped[list["ArticleMatch"]] = relationship(
         "ArticleMatch",
         back_populates="crawl_run"
+    )
+    source_records: Mapped[list["CrawlRunSource"]] = relationship(
+        "CrawlRunSource",
+        back_populates="crawl_run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    article_records: Mapped[list["CrawlRunArticle"]] = relationship(
+        "CrawlRunArticle",
+        back_populates="crawl_run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

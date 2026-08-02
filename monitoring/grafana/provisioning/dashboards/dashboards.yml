@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: News Intelligence
+    orgId: 1
+    folder: News Intelligence
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

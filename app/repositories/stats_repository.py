@@ -1,12 +1,13 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.article import Article
 from app.models.article_analysis import ArticleAnalysis
 from app.models.article_match import ArticleMatch
+from app.models.dongguk_article_trash import DonggukArticleTrash
 from app.models.keyword import Keyword
 from app.models.news_search_metric import NewsSearchMetric
 from app.models.social_metric import SocialMetric
@@ -22,6 +23,18 @@ def _kst_day_start(days: int) -> datetime:
 
 def _kst_date(column):
     return func.date(func.timezone("Asia/Seoul", column))
+
+
+def _article_is_not_trashed(user_id: int):
+    return ~exists(
+        select(literal(1))
+        .select_from(DonggukArticleTrash)
+        .where(
+            DonggukArticleTrash.user_id == user_id,
+            DonggukArticleTrash.keyword_id == Keyword.id,
+            DonggukArticleTrash.article_id == Article.id,
+        )
+    )
 
 
 class StatsRepository:
@@ -55,6 +68,7 @@ class StatsRepository:
                 Keyword.user_id == user_id,
                 Keyword.is_active.is_(True),
                 Article.published_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(Keyword.id, Keyword.keyword_text)
             .order_by(func.count(ArticleMatch.article_id).desc())
@@ -85,6 +99,7 @@ class StatsRepository:
             .where(
                 Keyword.user_id == user_id,
                 Article.published_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(published_date)
             .order_by(published_date)
@@ -117,6 +132,7 @@ class StatsRepository:
                 Keyword.user_id == user_id,
                 Keyword.is_active.is_(True),
                 Article.published_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(
                 Keyword.id,
@@ -157,6 +173,7 @@ class StatsRepository:
                 Keyword.user_id == user_id,
                 Keyword.is_active.is_(True),
                 Article.published_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(Keyword.keyword_text, ArticleAnalysis.sentiment)
             .order_by(Keyword.keyword_text)
@@ -189,6 +206,7 @@ class StatsRepository:
                 Keyword.user_id == user_id,
                 Keyword.is_active.is_(True),
                 Article.published_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(Keyword.keyword_text, ArticleAnalysis.is_promotion)
             .order_by(Keyword.keyword_text)
@@ -231,6 +249,7 @@ class StatsRepository:
                 Keyword.is_active.is_(True),
                 Article.published_at >= since,
                 ArticleAnalysis.sentiment.in_(["긍정", "부정", "중립"]),
+                _article_is_not_trashed(user_id),
             )
             .group_by(Keyword.keyword_text, published_date, ArticleAnalysis.sentiment)
             .order_by(Keyword.keyword_text, published_date)
@@ -261,6 +280,7 @@ class StatsRepository:
             .where(
                 Keyword.user_id == user_id,
                 Article.created_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(collected_date)
             .order_by(collected_date)
@@ -292,6 +312,7 @@ class StatsRepository:
                 Keyword.user_id == user_id,
                 Keyword.is_active.is_(True),
                 Article.created_at >= since,
+                _article_is_not_trashed(user_id),
             )
             .group_by(
                 Keyword.id,
@@ -338,6 +359,7 @@ class StatsRepository:
                 Keyword.is_active.is_(True),
                 Article.published_at >= start_at,
                 Article.published_at <= end_at,
+                _article_is_not_trashed(user_id),
             )
             .group_by(published_hour)
             .order_by(published_hour)

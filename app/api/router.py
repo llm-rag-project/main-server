@@ -11,6 +11,7 @@ from app.api.v1.credits import router as credits_router
 from app.api.v1.stats import router as stats_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.jobs import router as jobs_router
+from app.api.v1.calendar import router as calendar_router
 
 api_router = APIRouter()
 
@@ -26,3 +27,4 @@ api_router.include_router(credits_router)
 api_router.include_router(stats_router)
 api_router.include_router(reports_router)
 api_router.include_router(jobs_router)
+api_router.include_router(calendar_router)

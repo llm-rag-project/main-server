@@ -3,5 +3,15 @@ __pycache__
 *.pyc
 .env
 .git
+node_modules
+streamlit-app
+react-app
+exports
+monitoring
+docs
+tests
+.agents
+.codex
+*.xlsx
 react-app/node_modules
 react-app/dist
