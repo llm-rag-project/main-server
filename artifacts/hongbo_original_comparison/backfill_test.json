@@ -1,0 +1,28 @@
+{
+  "started_at": "2026-08-05T16:35:15.159064",
+  "keyword_id": 86,
+  "requested_date_count": 1,
+  "dates": [
+    {
+      "mail_date": "2025-04-10",
+      "work_window_start": "2025-04-10",
+      "work_window_end": "2025-04-10",
+      "collection_start": "2025-04-09T08:30:00+09:00",
+      "collection_end": "2025-04-10T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 862,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "matched_article_ids": []
+    }
+  ],
+  "failures": [],
+  "completed_date_count": 1,
+  "finished_at": "2026-08-05T16:36:33.253959",
+  "unique_matched_article_count": 0
+}

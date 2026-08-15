@@ -54,6 +54,7 @@ class ArticleRepository:
 
         if query.keyword_id:
             matched_keyword_expr = literal(query.keyword_id)
+            matched_at_expr = ArticleMatch.matched_at
         else:
             matched_keyword_expr = (
                 select(func.min(ArticleMatch.keyword_id))
@@ -65,20 +66,16 @@ class ArticleRepository:
                 .correlate(Article)
                 .scalar_subquery()
             )
-
-        matched_at_conditions = [
-            ArticleMatch.article_id == Article.id,
-            Keyword.user_id == user_id,
-        ]
-        if query.keyword_id:
-            matched_at_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
-        matched_at_expr = (
-            select(func.max(ArticleMatch.matched_at))
-            .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-            .where(*matched_at_conditions)
-            .correlate(Article)
-            .scalar_subquery()
-        )
+            matched_at_expr = (
+                select(func.max(ArticleMatch.matched_at))
+                .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                .where(
+                    ArticleMatch.article_id == Article.id,
+                    Keyword.user_id == user_id,
+                )
+                .correlate(Article)
+                .scalar_subquery()
+            )
 
         has_feedback_expr = exists(
             select(literal(1))
@@ -99,18 +96,17 @@ class ArticleRepository:
             )
         )
 
-        access_conditions = [
-            ArticleMatch.article_id == Article.id,
-            Keyword.user_id == user_id,
-        ]
-        if query.keyword_id:
-            access_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
-        accessible_articles_expr = exists(
-            select(literal(1))
-            .select_from(ArticleMatch)
-            .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-            .where(*access_conditions)
-        )
+        accessible_articles_expr = None
+        if not query.keyword_id:
+            accessible_articles_expr = exists(
+                select(literal(1))
+                .select_from(ArticleMatch)
+                .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                .where(
+                    ArticleMatch.article_id == Article.id,
+                    Keyword.user_id == user_id,
+                )
+            )
         trash_conditions = [
             DonggukArticleTrash.user_id == user_id,
             DonggukArticleTrash.article_id == Article.id,
@@ -163,8 +159,19 @@ class ArticleRepository:
                 ArticleAnalysis,
                 ArticleAnalysis.article_id == Article.id,
             )
-            .where(accessible_articles_expr, ~is_trashed_expr)
         )
+        if query.keyword_id:
+            stmt = (
+                stmt.join(ArticleMatch, ArticleMatch.article_id == Article.id)
+                .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                .where(
+                    ArticleMatch.keyword_id == query.keyword_id,
+                    Keyword.user_id == user_id,
+                )
+            )
+        else:
+            stmt = stmt.where(accessible_articles_expr)
+        stmt = stmt.where(~is_trashed_expr)
 
         if query.q:
             like_expr = f"%{query.q.strip()}%"
@@ -204,28 +211,36 @@ class ArticleRepository:
             )
 
         if query.matched_from_date or query.matched_to_date:
-            match_conditions = [
-                ArticleMatch.article_id == Article.id,
-                Keyword.user_id == user_id,
-            ]
             if query.keyword_id:
-                match_conditions.append(ArticleMatch.keyword_id == query.keyword_id)
-            if query.matched_from_date:
-                match_conditions.append(
-                    ArticleMatch.matched_at >= datetime.combine(query.matched_from_date, time.min, tzinfo=KST)
+                if query.matched_from_date:
+                    stmt = stmt.where(
+                        ArticleMatch.matched_at >= datetime.combine(query.matched_from_date, time.min, tzinfo=KST)
+                    )
+                if query.matched_to_date:
+                    stmt = stmt.where(
+                        ArticleMatch.matched_at <= datetime.combine(query.matched_to_date, time.max, tzinfo=KST)
+                    )
+            else:
+                match_conditions = [
+                    ArticleMatch.article_id == Article.id,
+                    Keyword.user_id == user_id,
+                ]
+                if query.matched_from_date:
+                    match_conditions.append(
+                        ArticleMatch.matched_at >= datetime.combine(query.matched_from_date, time.min, tzinfo=KST)
+                    )
+                if query.matched_to_date:
+                    match_conditions.append(
+                        ArticleMatch.matched_at <= datetime.combine(query.matched_to_date, time.max, tzinfo=KST)
+                    )
+                stmt = stmt.where(
+                    exists(
+                        select(literal(1))
+                        .select_from(ArticleMatch)
+                        .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
+                        .where(*match_conditions)
+                    )
                 )
-            if query.matched_to_date:
-                match_conditions.append(
-                    ArticleMatch.matched_at <= datetime.combine(query.matched_to_date, time.max, tzinfo=KST)
-                )
-            stmt = stmt.where(
-                exists(
-                    select(literal(1))
-                    .select_from(ArticleMatch)
-                    .join(Keyword, Keyword.id == ArticleMatch.keyword_id)
-                    .where(*match_conditions)
-                )
-            )
 
         if query.min_importance is not None:
             stmt = stmt.where(latest_importance_subq.c.score >= query.min_importance)
@@ -241,7 +256,8 @@ class ArticleRepository:
 
         total = 0
         if query.include_total:
-            count_stmt = select(func.count()).select_from(stmt.subquery())
+            count_source = stmt.with_only_columns(Article.id).order_by(None).subquery()
+            count_stmt = select(func.count()).select_from(count_source)
             total = await self.db.scalar(count_stmt) or 0
 
         sort_map = {

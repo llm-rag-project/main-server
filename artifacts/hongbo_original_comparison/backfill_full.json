@@ -1,0 +1,1340 @@
+{
+  "started_at": "2026-08-05T16:40:49.291993",
+  "keyword_id": 86,
+  "requested_date_count": 77,
+  "dates": [
+    {
+      "mail_date": "2025-04-10",
+      "work_window_start": "2025-04-10",
+      "work_window_end": "2025-04-10",
+      "collection_start": "2025-04-09T08:30:00+09:00",
+      "collection_end": "2025-04-10T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 863,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-14",
+      "work_window_start": "2025-04-12",
+      "work_window_end": "2025-04-14",
+      "collection_start": "2025-04-11T08:30:00+09:00",
+      "collection_end": "2025-04-14T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 864,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-15",
+      "work_window_start": "2025-04-15",
+      "work_window_end": "2025-04-15",
+      "collection_start": "2025-04-14T08:30:00+09:00",
+      "collection_end": "2025-04-15T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 865,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-17",
+      "work_window_start": "2025-04-17",
+      "work_window_end": "2025-04-17",
+      "collection_start": "2025-04-16T08:30:00+09:00",
+      "collection_end": "2025-04-17T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 866,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-21",
+      "work_window_start": "2025-04-19",
+      "work_window_end": "2025-04-21",
+      "collection_start": "2025-04-18T08:30:00+09:00",
+      "collection_end": "2025-04-21T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 867,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-22",
+      "work_window_start": "2025-04-22",
+      "work_window_end": "2025-04-22",
+      "collection_start": "2025-04-21T08:30:00+09:00",
+      "collection_end": "2025-04-22T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 868,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-28",
+      "work_window_start": "2025-04-26",
+      "work_window_end": "2025-04-28",
+      "collection_start": "2025-04-25T08:30:00+09:00",
+      "collection_end": "2025-04-28T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 869,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-04-29",
+      "work_window_start": "2025-04-29",
+      "work_window_end": "2025-04-29",
+      "collection_start": "2025-04-28T08:30:00+09:00",
+      "collection_end": "2025-04-29T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 870,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-01",
+      "work_window_start": "2025-05-01",
+      "work_window_end": "2025-05-01",
+      "collection_start": "2025-04-30T08:30:00+09:00",
+      "collection_end": "2025-05-01T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 871,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-12",
+      "work_window_start": "2025-05-10",
+      "work_window_end": "2025-05-12",
+      "collection_start": "2025-05-09T08:30:00+09:00",
+      "collection_end": "2025-05-12T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 872,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-13",
+      "work_window_start": "2025-05-13",
+      "work_window_end": "2025-05-13",
+      "collection_start": "2025-05-12T08:30:00+09:00",
+      "collection_end": "2025-05-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 873,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-14",
+      "work_window_start": "2025-05-14",
+      "work_window_end": "2025-05-14",
+      "collection_start": "2025-05-13T08:30:00+09:00",
+      "collection_end": "2025-05-14T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 874,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-15",
+      "work_window_start": "2025-05-15",
+      "work_window_end": "2025-05-15",
+      "collection_start": "2025-05-14T08:30:00+09:00",
+      "collection_end": "2025-05-15T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 875,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-16",
+      "work_window_start": "2025-05-16",
+      "work_window_end": "2025-05-16",
+      "collection_start": "2025-05-15T08:30:00+09:00",
+      "collection_end": "2025-05-16T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 876,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-19",
+      "work_window_start": "2025-05-17",
+      "work_window_end": "2025-05-19",
+      "collection_start": "2025-05-16T08:30:00+09:00",
+      "collection_end": "2025-05-19T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 877,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-22",
+      "work_window_start": "2025-05-22",
+      "work_window_end": "2025-05-22",
+      "collection_start": "2025-05-21T08:30:00+09:00",
+      "collection_end": "2025-05-22T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 878,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-23",
+      "work_window_start": "2025-05-23",
+      "work_window_end": "2025-05-23",
+      "collection_start": "2025-05-22T08:30:00+09:00",
+      "collection_end": "2025-05-23T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 879,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-26",
+      "work_window_start": "2025-05-24",
+      "work_window_end": "2025-05-26",
+      "collection_start": "2025-05-23T08:30:00+09:00",
+      "collection_end": "2025-05-26T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 880,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-27",
+      "work_window_start": "2025-05-27",
+      "work_window_end": "2025-05-27",
+      "collection_start": "2025-05-26T08:30:00+09:00",
+      "collection_end": "2025-05-27T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 881,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-28",
+      "work_window_start": "2025-05-28",
+      "work_window_end": "2025-05-28",
+      "collection_start": "2025-05-27T08:30:00+09:00",
+      "collection_end": "2025-05-28T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 882,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-29",
+      "work_window_start": "2025-05-29",
+      "work_window_end": "2025-05-29",
+      "collection_start": "2025-05-28T08:30:00+09:00",
+      "collection_end": "2025-05-29T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 883,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-05-30",
+      "work_window_start": "2025-05-30",
+      "work_window_end": "2025-05-30",
+      "collection_start": "2025-05-29T08:30:00+09:00",
+      "collection_end": "2025-05-30T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 884,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-07-30",
+      "work_window_start": "2025-07-30",
+      "work_window_end": "2025-07-30",
+      "collection_start": "2025-07-29T08:30:00+09:00",
+      "collection_end": "2025-07-30T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 885,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-01",
+      "work_window_start": "2025-08-01",
+      "work_window_end": "2025-08-01",
+      "collection_start": "2025-07-31T08:30:00+09:00",
+      "collection_end": "2025-08-01T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 886,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-13",
+      "work_window_start": "2025-08-13",
+      "work_window_end": "2025-08-13",
+      "collection_start": "2025-08-12T08:30:00+09:00",
+      "collection_end": "2025-08-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 887,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-18",
+      "work_window_start": "2025-08-15",
+      "work_window_end": "2025-08-18",
+      "collection_start": "2025-08-14T08:30:00+09:00",
+      "collection_end": "2025-08-18T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 888,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-19",
+      "work_window_start": "2025-08-19",
+      "work_window_end": "2025-08-19",
+      "collection_start": "2025-08-18T08:30:00+09:00",
+      "collection_end": "2025-08-19T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 889,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-20",
+      "work_window_start": "2025-08-20",
+      "work_window_end": "2025-08-20",
+      "collection_start": "2025-08-19T08:30:00+09:00",
+      "collection_end": "2025-08-20T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 890,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-26",
+      "work_window_start": "2025-08-26",
+      "work_window_end": "2025-08-26",
+      "collection_start": "2025-08-25T08:30:00+09:00",
+      "collection_end": "2025-08-26T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 891,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-27",
+      "work_window_start": "2025-08-27",
+      "work_window_end": "2025-08-27",
+      "collection_start": "2025-08-26T08:30:00+09:00",
+      "collection_end": "2025-08-27T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 892,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-28",
+      "work_window_start": "2025-08-28",
+      "work_window_end": "2025-08-28",
+      "collection_start": "2025-08-27T08:30:00+09:00",
+      "collection_end": "2025-08-28T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 893,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-08-29",
+      "work_window_start": "2025-08-29",
+      "work_window_end": "2025-08-29",
+      "collection_start": "2025-08-28T08:30:00+09:00",
+      "collection_end": "2025-08-29T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 894,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-09-09",
+      "work_window_start": "2025-09-09",
+      "work_window_end": "2025-09-09",
+      "collection_start": "2025-09-08T08:30:00+09:00",
+      "collection_end": "2025-09-09T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 895,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-09-11",
+      "work_window_start": "2025-09-11",
+      "work_window_end": "2025-09-11",
+      "collection_start": "2025-09-10T08:30:00+09:00",
+      "collection_end": "2025-09-11T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 896,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-10-13",
+      "work_window_start": "2025-10-11",
+      "work_window_end": "2025-10-13",
+      "collection_start": "2025-10-10T08:30:00+09:00",
+      "collection_end": "2025-10-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 897,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-10-16",
+      "work_window_start": "2025-10-16",
+      "work_window_end": "2025-10-16",
+      "collection_start": "2025-10-15T08:30:00+09:00",
+      "collection_end": "2025-10-16T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 898,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-10-24",
+      "work_window_start": "2025-10-24",
+      "work_window_end": "2025-10-24",
+      "collection_start": "2025-10-23T08:30:00+09:00",
+      "collection_end": "2025-10-24T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 899,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-10",
+      "work_window_start": "2025-11-08",
+      "work_window_end": "2025-11-10",
+      "collection_start": "2025-11-07T08:30:00+09:00",
+      "collection_end": "2025-11-10T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 900,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-11",
+      "work_window_start": "2025-11-11",
+      "work_window_end": "2025-11-11",
+      "collection_start": "2025-11-10T08:30:00+09:00",
+      "collection_end": "2025-11-11T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 901,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-13",
+      "work_window_start": "2025-11-13",
+      "work_window_end": "2025-11-13",
+      "collection_start": "2025-11-12T08:30:00+09:00",
+      "collection_end": "2025-11-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 902,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-25",
+      "work_window_start": "2025-11-25",
+      "work_window_end": "2025-11-25",
+      "collection_start": "2025-11-24T08:30:00+09:00",
+      "collection_end": "2025-11-25T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 903,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-26",
+      "work_window_start": "2025-11-26",
+      "work_window_end": "2025-11-26",
+      "collection_start": "2025-11-25T08:30:00+09:00",
+      "collection_end": "2025-11-26T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 904,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-11-27",
+      "work_window_start": "2025-11-27",
+      "work_window_end": "2025-11-27",
+      "collection_start": "2025-11-26T08:30:00+09:00",
+      "collection_end": "2025-11-27T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 905,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-12-01",
+      "work_window_start": "2025-11-29",
+      "work_window_end": "2025-12-01",
+      "collection_start": "2025-11-28T08:30:00+09:00",
+      "collection_end": "2025-12-01T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 906,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2025-12-10",
+      "work_window_start": "2025-12-10",
+      "work_window_end": "2025-12-10",
+      "collection_start": "2025-12-09T08:30:00+09:00",
+      "collection_end": "2025-12-10T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 907,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-01-08",
+      "work_window_start": "2026-01-08",
+      "work_window_end": "2026-01-08",
+      "collection_start": "2026-01-07T08:30:00+09:00",
+      "collection_end": "2026-01-08T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 908,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-01-12",
+      "work_window_start": "2026-01-10",
+      "work_window_end": "2026-01-12",
+      "collection_start": "2026-01-09T08:30:00+09:00",
+      "collection_end": "2026-01-12T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 909,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-01-14",
+      "work_window_start": "2026-01-14",
+      "work_window_end": "2026-01-14",
+      "collection_start": "2026-01-13T08:30:00+09:00",
+      "collection_end": "2026-01-14T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 910,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-01-16",
+      "work_window_start": "2026-01-16",
+      "work_window_end": "2026-01-16",
+      "collection_start": "2026-01-15T08:30:00+09:00",
+      "collection_end": "2026-01-16T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 911,
+        "status": "COMPLETED",
+        "crawl_count": 1,
+        "upload_target_count": 1,
+        "dify_uploaded_count": 1,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": [
+        5548
+      ]
+    },
+    {
+      "mail_date": "2026-01-19",
+      "work_window_start": "2026-01-17",
+      "work_window_end": "2026-01-19",
+      "collection_start": "2026-01-16T08:30:00+09:00",
+      "collection_end": "2026-01-19T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 912,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-01-21",
+      "work_window_start": "2026-01-21",
+      "work_window_end": "2026-01-21",
+      "collection_start": "2026-01-20T08:30:00+09:00",
+      "collection_end": "2026-01-21T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 913,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-02-20",
+      "work_window_start": "2026-02-20",
+      "work_window_end": "2026-02-20",
+      "collection_start": "2026-02-19T08:30:00+09:00",
+      "collection_end": "2026-02-20T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 914,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-02-23",
+      "work_window_start": "2026-02-21",
+      "work_window_end": "2026-02-23",
+      "collection_start": "2026-02-20T08:30:00+09:00",
+      "collection_end": "2026-02-23T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 915,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-02-24",
+      "work_window_start": "2026-02-24",
+      "work_window_end": "2026-02-24",
+      "collection_start": "2026-02-23T08:30:00+09:00",
+      "collection_end": "2026-02-24T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 916,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-03-03",
+      "work_window_start": "2026-02-28",
+      "work_window_end": "2026-03-03",
+      "collection_start": "2026-02-27T08:30:00+09:00",
+      "collection_end": "2026-03-03T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 917,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-03-09",
+      "work_window_start": "2026-03-07",
+      "work_window_end": "2026-03-09",
+      "collection_start": "2026-03-06T08:30:00+09:00",
+      "collection_end": "2026-03-09T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 919,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-03-11",
+      "work_window_start": "2026-03-11",
+      "work_window_end": "2026-03-11",
+      "collection_start": "2026-03-10T08:30:00+09:00",
+      "collection_end": "2026-03-11T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 918,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-03-23",
+      "work_window_start": "2026-03-21",
+      "work_window_end": "2026-03-23",
+      "collection_start": "2026-03-20T08:30:00+09:00",
+      "collection_end": "2026-03-23T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 920,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-03-25",
+      "work_window_start": "2026-03-25",
+      "work_window_end": "2026-03-25",
+      "collection_start": "2026-03-24T08:30:00+09:00",
+      "collection_end": "2026-03-25T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 921,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-01",
+      "work_window_start": "2026-04-01",
+      "work_window_end": "2026-04-01",
+      "collection_start": "2026-03-31T08:30:00+09:00",
+      "collection_end": "2026-04-01T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 922,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-03",
+      "work_window_start": "2026-04-03",
+      "work_window_end": "2026-04-03",
+      "collection_start": "2026-04-02T08:30:00+09:00",
+      "collection_end": "2026-04-03T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 924,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-06",
+      "work_window_start": "2026-04-04",
+      "work_window_end": "2026-04-06",
+      "collection_start": "2026-04-03T08:30:00+09:00",
+      "collection_end": "2026-04-06T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 923,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-07",
+      "work_window_start": "2026-04-07",
+      "work_window_end": "2026-04-07",
+      "collection_start": "2026-04-06T08:30:00+09:00",
+      "collection_end": "2026-04-07T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 925,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-13",
+      "work_window_start": "2026-04-11",
+      "work_window_end": "2026-04-13",
+      "collection_start": "2026-04-10T08:30:00+09:00",
+      "collection_end": "2026-04-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 926,
+        "status": "PARTIAL",
+        "crawl_count": 1,
+        "upload_target_count": 1,
+        "dify_uploaded_count": 1,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": [
+        5549
+      ]
+    },
+    {
+      "mail_date": "2026-04-17",
+      "work_window_start": "2026-04-17",
+      "work_window_end": "2026-04-17",
+      "collection_start": "2026-04-16T08:30:00+09:00",
+      "collection_end": "2026-04-17T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 927,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-23",
+      "work_window_start": "2026-04-23",
+      "work_window_end": "2026-04-23",
+      "collection_start": "2026-04-22T08:30:00+09:00",
+      "collection_end": "2026-04-23T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 928,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-24",
+      "work_window_start": "2026-04-24",
+      "work_window_end": "2026-04-24",
+      "collection_start": "2026-04-23T08:30:00+09:00",
+      "collection_end": "2026-04-24T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 929,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-27",
+      "work_window_start": "2026-04-25",
+      "work_window_end": "2026-04-27",
+      "collection_start": "2026-04-24T08:30:00+09:00",
+      "collection_end": "2026-04-27T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 930,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-28",
+      "work_window_start": "2026-04-28",
+      "work_window_end": "2026-04-28",
+      "collection_start": "2026-04-27T08:30:00+09:00",
+      "collection_end": "2026-04-28T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 931,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-04-30",
+      "work_window_start": "2026-04-30",
+      "work_window_end": "2026-04-30",
+      "collection_start": "2026-04-29T08:30:00+09:00",
+      "collection_end": "2026-04-30T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 932,
+        "status": "COMPLETED",
+        "crawl_count": 1,
+        "upload_target_count": 1,
+        "dify_uploaded_count": 1,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": [
+        5550
+      ]
+    },
+    {
+      "mail_date": "2026-05-04",
+      "work_window_start": "2026-05-02",
+      "work_window_end": "2026-05-04",
+      "collection_start": "2026-05-01T08:30:00+09:00",
+      "collection_end": "2026-05-04T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 933,
+        "status": "COMPLETED",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-05-12",
+      "work_window_start": "2026-05-12",
+      "work_window_end": "2026-05-12",
+      "collection_start": "2026-05-11T08:30:00+09:00",
+      "collection_end": "2026-05-12T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 934,
+        "status": "PARTIAL",
+        "crawl_count": 6,
+        "upload_target_count": 6,
+        "dify_uploaded_count": 6,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": [
+        5556,
+        5555,
+        5554,
+        5553,
+        5552,
+        5551
+      ]
+    },
+    {
+      "mail_date": "2026-05-13",
+      "work_window_start": "2026-05-13",
+      "work_window_end": "2026-05-13",
+      "collection_start": "2026-05-12T08:30:00+09:00",
+      "collection_end": "2026-05-13T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 935,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-05-14",
+      "work_window_start": "2026-05-14",
+      "work_window_end": "2026-05-14",
+      "collection_start": "2026-05-13T08:30:00+09:00",
+      "collection_end": "2026-05-14T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 936,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-05-15",
+      "work_window_start": "2026-05-15",
+      "work_window_end": "2026-05-15",
+      "collection_start": "2026-05-14T08:30:00+09:00",
+      "collection_end": "2026-05-15T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 937,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-05-19",
+      "work_window_start": "2026-05-19",
+      "work_window_end": "2026-05-19",
+      "collection_start": "2026-05-18T08:30:00+09:00",
+      "collection_end": "2026-05-19T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 938,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    },
+    {
+      "mail_date": "2026-05-26",
+      "work_window_start": "2026-05-23",
+      "work_window_end": "2026-05-26",
+      "collection_start": "2026-05-22T08:30:00+09:00",
+      "collection_end": "2026-05-26T08:30:00+09:00",
+      "crawl_result": {
+        "crawl_run_id": 939,
+        "status": "PARTIAL",
+        "crawl_count": 0,
+        "upload_target_count": 0,
+        "dify_uploaded_count": 0,
+        "dify_failed_count": 0,
+        "dify_failed_items": []
+      },
+      "candidate_article_ids": []
+    }
+  ],
+  "failures": [],
+  "completed_date_count": 77,
+  "ai_result": {
+    "article_count": 9,
+    "summary_count": 9,
+    "importance_count": 9,
+    "already_scored_count": 0,
+    "remaining_count": 0
+  },
+  "finished_at": "2026-08-05T17:15:28.819682",
+  "unique_candidate_article_count": 9
+}

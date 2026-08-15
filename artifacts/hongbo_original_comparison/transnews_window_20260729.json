@@ -1,0 +1,706 @@
+{
+  "mail_date": "2026-07-29",
+  "window_start": "2026-07-28T08:30:00+09:00",
+  "window_end": "2026-07-29T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 51,
+  "section_counts": {
+    "education": 3,
+    "buddhism": 39,
+    "dongguk_core": 9
+  },
+  "audit_source_counts": {
+    "naver": 39,
+    "google_rss": 12
+  },
+  "source_type_counts": {
+    "section_pool": 42,
+    "keyword_news": 4,
+    "relation_expansion": 5
+  },
+  "source_debug": {
+    "google_rss": {
+      "status": "ok",
+      "count": 4,
+      "retry_count": 0,
+      "duration_ms": 1786,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 4,
+          "duration_ms": 1786
+        }
+      ],
+      "sections": {
+        "unknown": 4
+      },
+      "source_types": {
+        "unknown": 4
+      },
+      "collection_sources": {
+        "google_rss": 4
+      }
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 15974,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6719
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4559,
+          "error": "naver timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3348,
+          "error": "naver timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "dongguk_official": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 19453,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 9857,
+          "error": "dongguk_official timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4623
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2579,
+          "error": "dongguk_official timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "section_pool_education": {
+      "status": "ok",
+      "count": 3,
+      "retry_count": 0,
+      "duration_ms": 33435,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 3,
+          "duration_ms": 33435
+        }
+      ],
+      "sections": {
+        "education": 3
+      },
+      "source_types": {
+        "section_pool": 3
+      },
+      "collection_sources": {
+        "naver": 3
+      },
+      "section": "education"
+    },
+    "section_pool_buddhism": {
+      "status": "ok",
+      "count": 39,
+      "retry_count": 0,
+      "duration_ms": 35018,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 39,
+          "duration_ms": 35018
+        }
+      ],
+      "sections": {
+        "buddhism": 39
+      },
+      "source_types": {
+        "section_pool": 39
+      },
+      "collection_sources": {
+        "naver": 31,
+        "google_rss": 8
+      },
+      "section": "buddhism"
+    },
+    "media_direct_pool": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 17833,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 9578
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3803
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 2342
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "completed_without_eligible_articles"
+    },
+    "media_site_direct": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 17964,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 9841,
+          "error": "media_site_direct timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3302
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3529,
+          "error": "media_site_direct timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "relation_expansion": {
+      "status": "ok",
+      "count": 17,
+      "retry_count": 0,
+      "duration_ms": 9578,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 17,
+          "duration_ms": 9578
+        }
+      ],
+      "sections": {
+        "dongguk_core": 17
+      },
+      "source_types": {
+        "relation_expansion": 17
+      },
+      "collection_sources": {
+        "naver": 11,
+        "google_rss": 6
+      }
+    }
+  },
+  "items": [
+    {
+      "title": "[데스크 칼럼] '사립대 구조개선법'과 '투명한 대학 정보공시'",
+      "published_at": "Mon, 27 Jul 2026 14:30:00 +0900",
+      "section": "education",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.ajunews.com/view/20260727103015883"
+    },
+    {
+      "title": "경성대, 교육부 '유학생 취·창업 우수대학' 선정… 비수도권 사립대 중...",
+      "published_at": "2026-07-28T16:29:17+09:00",
+      "section": "education",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://daily.hankooki.com/news/articleView.html?idxno=1390301"
+    },
+    {
+      "title": "[노명우의 알고리즘 밖에서] 망설이지 말고 빨리 죽입시다",
+      "published_at": "Wed, 29 Jul 2026 05:02:00 +0900",
+      "section": "education",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.seoul.co.kr/news/editOpinion/opinion/algorithm-outside/2026/07/29/20260729026003?wlog_tag3=naver"
+    },
+    {
+      "title": "현대인 삶 속 함께하는 선명상…전통 수행 새 방편 제시",
+      "published_at": "2026-07-27T17:57:17+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440518"
+    },
+    {
+      "title": "노후복지 보장…스님들 수행 포교에만 매진할 수 있게 돼 - 불교신문",
+      "published_at": "2026-07-27T09:01:57+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440572"
+    },
+    {
+      "title": "총무원장 진우스님이 이끈 제37대 조계종 총무원",
+      "published_at": "2026-07-27T09:14:01+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440579"
+    },
+    {
+      "title": "만세운동부터 지하신문까지…통도사 박민오·양대응 스님 항일행적 조명 - 법보신문",
+      "published_at": "2026-07-27T18:09:10+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336793"
+    },
+    {
+      "title": "자연과 인간의 공존 가능성을 ‘입증하는’ 공간 - 불교신문",
+      "published_at": "2026-07-27T16:31:32+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440618"
+    },
+    {
+      "title": "전국비구니회원葬 공식 출범…8월부터 본격 운영 - 불교신문",
+      "published_at": "2026-07-28T21:45:57+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440675"
+    },
+    {
+      "title": "한국 스리랑카불교사원, 하안거 입재법회",
+      "published_at": "2026-07-27T13:48:17+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336780"
+    },
+    {
+      "title": "태고종 종회의장 법륜 스님, 논산훈련소 수계법회",
+      "published_at": "2026-07-27T13:49:49+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336781"
+    },
+    {
+      "title": "온 국민이 향유하는 불교문화유산-불교무형유산, 세계적으로도 '각광'",
+      "published_at": "2026-07-27T09:37:33+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440589"
+    },
+    {
+      "title": "유네스코 사로잡은 사찰음식, K-디저트 500인분 '조기 품절' - 현대불교",
+      "published_at": "2026-07-27T09:35:24+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504514"
+    },
+    {
+      "title": "법보신문 '편향'이 아니라 '정당한 비판'…법원, 재갈 물리기 막았다",
+      "published_at": "Mon, 27 Jul 2026 15:28:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336784"
+    },
+    {
+      "title": "'해양 수호' 해군병 726기 수계법회 ... 태고종 총무원장 상진스님 \"오계...",
+      "published_at": "Wed, 29 Jul 2026 08:14:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://news.bbsi.co.kr/news/articleView.html?idxno=4097593"
+    },
+    {
+      "title": "스님의 마지막 길은 승가공동체가‥'전국비구니회원장' 발대식",
+      "published_at": "Wed, 29 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91039"
+    },
+    {
+      "title": "'초전법륜지' 사르나트·'일본 최초 사찰' 등재..불교가치 세계가 인정",
+      "published_at": "Mon, 27 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91015"
+    },
+    {
+      "title": "봉선사 메운 천진불 50여 명 \"사찰서 친구와 뛰놀며 더위 이겨요\"",
+      "published_at": "2026-07-27T22:06:32+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336794"
+    },
+    {
+      "title": "\"사찰음식은 지혜로운 해답\"..유네스코 세계유산위 대표단 만찬",
+      "published_at": "Wed, 29 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91043"
+    },
+    {
+      "title": "예천군·BTN투어, 국보·보물 순례 팸투어 성료",
+      "published_at": "Tue, 28 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91022"
+    },
+    {
+      "title": "고승유묵과 고려 청자발우, 범어사에서 만난다",
+      "published_at": "2026-07-25T11:54:13+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440560"
+    },
+    {
+      "title": "태고종, 부산 해군작전사령부 격려 방문",
+      "published_at": "2026-07-28T14:26:02+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336839"
+    },
+    {
+      "title": "비판 보도엔 '편파' 딱지, 옹호 보도엔 침묵…공감과미래, 언론 압박 논...",
+      "published_at": "Sun, 26 Jul 2026 17:36:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336773"
+    },
+    {
+      "title": "산사에서 특별한 추억..동화사·운문사 어린이 여름캠프·불교학교",
+      "published_at": "Tue, 28 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91027"
+    },
+    {
+      "title": "2026부산국제불교박람회, 세대를 잇는 ‘공놀이’",
+      "published_at": "2026-07-28T12:47:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://bravo.etoday.co.kr/view/atc_view/19711"
+    },
+    {
+      "title": "조계사·일일시호일 이주민돕기 공동캠페인",
+      "published_at": "Tue, 28 Jul 2026 08:52:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336820"
+    },
+    {
+      "title": "[기획 '위기의 병원전법' ②] \"40년 원력, 대가 끊긴다\"‥이어갈 후학 없...",
+      "published_at": "Wed, 29 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91038"
+    },
+    {
+      "title": "외국인 유학생들의 특별한 여름방학..봉선사서 템플스테이",
+      "published_at": "Mon, 27 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91013"
+    },
+    {
+      "title": "'한국의 갯벌' 추가로 세계유산 등재 주변사찰 '조명'",
+      "published_at": "Mon, 27 Jul 2026 18:18:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440626"
+    },
+    {
+      "title": "불교중앙박물관 '개관 이래 최다' 관람객 방문",
+      "published_at": "2026-07-27T08:12:32",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://sjbnews.com/news/news.php?number=883789"
+    },
+    {
+      "title": "통도사 스님 항일독립운동 재조명 - 경남매일",
+      "published_at": "2026-07-26T20:30:37+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://www.gnmaeil.com/news/articleView.html?idxno=591415"
+    },
+    {
+      "title": "'공감과미래' 단식 농성 명분 잃었다",
+      "published_at": "Tue, 28 Jul 2026 07:36:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336795"
+    },
+    {
+      "title": "진관사 국행수륙재, 세계인에 생명 존중 메시지 전하다",
+      "published_at": "2026-07-27T09:35:14+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504516"
+    },
+    {
+      "title": "\"부처님 품에서 자라요\"..50회 맞은 봉선사 '여름숲속학교'",
+      "published_at": "Tue, 28 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91026"
+    },
+    {
+      "title": "유네스코 세계유산위서 봉행된 '진관사 국행수륙재'..등재 염원",
+      "published_at": "Tue, 28 Jul 2026 07:00:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=91031"
+    },
+    {
+      "title": "현대적 감각 더해진 전통문화 매력에 빠지다",
+      "published_at": "Tue, 28 Jul 2026 16:26:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440664"
+    },
+    {
+      "title": "[공양하는 아이들 동자] 문수동자, 보현동자",
+      "published_at": "Mon, 27 Jul 2026 08:30:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.bulkwang.co.kr/news/articleView.html?idxno=40556"
+    },
+    {
+      "title": "밀양의 여름, 신비로운 전설과 기상 체험을 만나는 가볼 만한 곳 - 톱스타뉴스",
+      "published_at": "2026-07-27T12:10:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://www.topstarnews.net/news/articleView.html?idxno=16141466"
+    },
+    {
+      "title": "'환생불상' 도자기 진짜 유골 사용했나?…사건 확대 조짐",
+      "published_at": "Mon, 27 Jul 2026 07:50:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.newsgn.com/news/articleView.html?idxno=564343"
+    },
+    {
+      "title": "여름의 활기 가득, 합천에서 만나는 특별한 명소 가볼 만한 곳",
+      "published_at": "Tue, 28 Jul 2026 14:04:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.cbci.co.kr/news/articleView.html?idxno=592538"
+    },
+    {
+      "title": "돌려준 관음보살상, 돌아온 지장보살상",
+      "published_at": "Tue, 28 Jul 2026 17:48:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.abcn.kr/news/articleView.html?idxno=89886"
+    },
+    {
+      "title": "양산항일독립운동기념사업회, 정기학술대회 - v.daum.net",
+      "published_at": "Sun, 26 Jul 2026 07:00:00 GMT",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://v.daum.net/v/20260726113519292"
+    },
+    {
+      "title": "세종대·동국대, 「지능IoT 공동학위」 시대를 열다 - usline.kr",
+      "published_at": "Tue, 28 Jul 2026 10:14:48 GMT",
+      "section": "dongguk_core",
+      "source_type": "keyword_news",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "http://www.usline.kr"
+    },
+    {
+      "title": "동국대 한의대 ‘심우회’, 경주 문무대왕면서 5일간 의료봉사 - v.daum.net",
+      "published_at": "Tue, 28 Jul 2026 08:24:00 GMT",
+      "section": "dongguk_core",
+      "source_type": "keyword_news",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://v.daum.net"
+    },
+    {
+      "title": "대학, 정보보호 투자 공시 5곳 불과...숙대·숭실대·단국대·성대·동국대 - 지디넷코리아",
+      "published_at": "Tue, 28 Jul 2026 21:41:35 GMT",
+      "section": "dongguk_core",
+      "source_type": "keyword_news",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://zdnet.co.kr"
+    },
+    {
+      "title": "이경 동국대 교수, 한국 로레알-유네스코 여성과학자상 받아 - 뉴스프리존",
+      "published_at": "Tue, 28 Jul 2026 00:24:12 GMT",
+      "section": "dongguk_core",
+      "source_type": "keyword_news",
+      "collection_source": "google_rss",
+      "audit_source": "google_rss",
+      "url": "https://www.newsfreezone.co.kr"
+    },
+    {
+      "title": "[원철스님의 '가로세로'] 고향사람들이 힘을 모아 나옹(懶翁)스님을 선...",
+      "published_at": "2026-07-25T22:27:44+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.ajunews.com/view/20260725220141442"
+    },
+    {
+      "title": "통도사 스님 항일독립운동 재조명",
+      "published_at": "2026-07-26T20:30:37+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.gnmaeil.com/news/articleView.html?idxno=591415"
+    },
+    {
+      "title": "만세운동부터 지하신문까지…통도사 박민오·양대응 스님 항일행적 조명",
+      "published_at": "2026-07-27T18:09:10+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336793"
+    },
+    {
+      "title": "나라 되찾기 위해 독립운동 나선 통도사 스님들 '조명'",
+      "published_at": "2026-07-25T20:53:06+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=440564"
+    },
+    {
+      "title": "창원 성주사 범허 스님, 장기기증으로 4명에 새 생명",
+      "published_at": "2026-07-27T19:00:35+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504528"
+    }
+  ]
+}

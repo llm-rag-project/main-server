@@ -89,6 +89,18 @@ class CrawlKeywordRelevanceTests(unittest.TestCase):
             "section_pool_buddhism",
         )
 
+    def test_section_pool_audit_wins_over_transport_source(self):
+        self.assertEqual(
+            self.service._audit_source_name(
+                {
+                    "source_type": "section_pool",
+                    "section": "education",
+                    "collection_source": "naver",
+                }
+            ),
+            "section_pool_education",
+        )
+
 
 class CrawlRelevanceEnrichmentTests(unittest.IsolatedAsyncioTestCase):
     async def test_same_canonical_url_is_enriched_once(self):

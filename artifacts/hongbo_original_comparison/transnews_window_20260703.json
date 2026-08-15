@@ -1,0 +1,390 @@
+{
+  "mail_date": "2026-07-03",
+  "window_start": "2026-07-02T08:30:00+09:00",
+  "window_end": "2026-07-03T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 14,
+  "section_counts": {
+    "buddhism": 14
+  },
+  "audit_source_counts": {
+    "section_pool_buddhism": 14
+  },
+  "source_type_counts": {
+    "section_pool": 14
+  },
+  "source_debug": {
+    "google_rss": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 25472,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 14102
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 5061,
+          "error": "google_rss timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4872,
+          "error": "google_rss timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 25587,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 14246,
+          "error": "naver timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3964
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4980,
+          "error": "naver timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "dongguk_official": {
+      "status": "timeout",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 26356,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 14265,
+          "error": "dongguk_official timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 5689,
+          "error": "dongguk_official timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3305,
+          "error": "dongguk_official timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "error": "dongguk_official timed out after 2.0s"
+    },
+    "section_pool_education": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 61269,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 37237
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 15022
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 7804
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "section": "education",
+      "empty_reason": "completed_without_eligible_articles"
+    },
+    "section_pool_buddhism": {
+      "status": "ok",
+      "count": 14,
+      "retry_count": 0,
+      "duration_ms": 37238,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 14,
+          "duration_ms": 37238
+        }
+      ],
+      "sections": {
+        "buddhism": 14
+      },
+      "source_types": {
+        "section_pool": 14
+      },
+      "collection_sources": {
+        "naver": 14
+      },
+      "section": "buddhism"
+    },
+    "media_direct_pool": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 25046,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 14130,
+          "error": "media_direct_pool timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4055
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4442
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "media_site_direct": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 21334,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 14083
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3269
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2623,
+          "error": "media_site_direct timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "relation_expansion": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 20993,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 9870
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 5278
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4482
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "completed_without_eligible_articles"
+    }
+  },
+  "items": [
+    {
+      "title": "조계종 성보박물관협회, 중국 해외 연수 '성료'",
+      "published_at": "2026-07-01T17:41:16+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=439729"
+    },
+    {
+      "title": "조계종 성보박물관협회, 中해외 연수 성료",
+      "published_at": "2026-07-01T15:00:15+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504125"
+    },
+    {
+      "title": "조계종 성보박물관협회, 중국서 해외 연수...\"성보박물관 발전 밑거름 ...",
+      "published_at": "2026-07-01T15:45:05+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://news.bbsi.co.kr/news/articleView.html?idxno=4092538"
+    },
+    {
+      "title": "조계종 미래본부 \"'천년을 세우다' 왜곡 유감…집행 투명\"",
+      "published_at": "2026-06-29T19:21:19+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504104"
+    },
+    {
+      "title": "성보박물관협, 中 승덕·북경서 해외연수 성료",
+      "published_at": "2026-07-01T15:05:22+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336337"
+    },
+    {
+      "title": "조계종 총무원 \"무분별한 의혹 제기 엄정 대응…해종행위 끝까지 책임 ...",
+      "published_at": "Thu, 02 Jul 2026 17:50:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336364"
+    },
+    {
+      "title": "고려·조선시대 성보·고문서 보물 지정 예고",
+      "published_at": "2026-07-03T07:00:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=90737"
+    },
+    {
+      "title": "'천년을 세우다' 불사 왜곡 비방 \"심히 유감\"",
+      "published_at": "Tue, 30 Jun 2026 00:18:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64473"
+    },
+    {
+      "title": "​평창 상원사 목조제석천의좌상 등 보물 예고",
+      "published_at": "2026-07-02T11:56:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64487"
+    },
+    {
+      "title": "K-콘텐츠 영감 원천 '불교회화'‥시대의 경쟁력",
+      "published_at": "2026-07-02T07:00:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=90729"
+    },
+    {
+      "title": "홍성주지협·만해한용운선양사업회, 만해 한용운 선사 82주기 추모다례",
+      "published_at": "Wed, 01 Jul 2026 15:58:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336340"
+    },
+    {
+      "title": "백양사·산내 암자까지 명승으로 확대해 품는다",
+      "published_at": "Tue, 30 Jun 2026 11:28:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336315"
+    },
+    {
+      "title": "14개 본사주지, \"총무원장 선거, 종헌종법 따라 공정하게 치러져야\"",
+      "published_at": "Thu, 02 Jul 2026 11:02:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336353"
+    },
+    {
+      "title": "마곡사, 제77주기 백범 김구 선생 추모다례재 봉행",
+      "published_at": "Mon, 29 Jun 2026 10:40:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336297"
+    }
+  ]
+}

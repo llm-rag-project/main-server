@@ -1,0 +1,733 @@
+{
+  "policy_version": 15,
+  "date_count": 37,
+  "business_date_count": 26,
+  "missing_business_drafts": [],
+  "stale_business_drafts": [
+    "2026-07-02",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-07-07",
+    "2026-07-09",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-21",
+    "2026-07-23",
+    "2026-07-24",
+    "2026-07-27",
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-05"
+  ],
+  "manual_business_drafts": [
+    "2026-07-02",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-07-07",
+    "2026-07-09",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-21",
+    "2026-07-23",
+    "2026-07-24",
+    "2026-07-27",
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-08-05"
+  ],
+  "invalid_business_drafts": [],
+  "rule_violation_business_drafts": [
+    "2026-07-06",
+    "2026-07-07",
+    "2026-07-09",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-21",
+    "2026-07-23",
+    "2026-07-24",
+    "2026-07-27",
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-04"
+  ],
+  "dates": [
+    {
+      "mail_date": "2026-07-01",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-03",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-04",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-05",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 2,
+      "sanitized_count": 2,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 0,
+        "education": 0,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-06",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 13,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-07",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 13,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-08",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-09",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": null,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 4,
+      "removed_by_current_rules_count": 1,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 0,
+        "buddhism": 0
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-10",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-11",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 0,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-12",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 2,
+        "education": 2,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-13",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-14",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 3,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-15",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-16",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-17",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 1,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": [
+        "백석문화대, 교육부 성과평가서 2년 연속 '전 영역 S등급' - 뉴시스"
+      ]
+    },
+    {
+      "mail_date": "2026-07-18",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-19",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 9,
+      "policy_stale": true,
+      "selected_count": 4,
+      "sanitized_count": 4,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 1,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-20",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-21",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-22",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-23",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 13,
+      "policy_stale": true,
+      "selected_count": 9,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-24",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 6,
+      "sanitized_count": 4,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 0,
+        "buddhism": 0
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-25",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 7,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 0
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-26",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 2,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-27",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-28",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 13,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-29",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 1,
+      "policy_version": 13,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-30",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 66,
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-31",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 1,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 3,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-01",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-02",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 1,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-03",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-04",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 1,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 3,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-05",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 38,
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-06",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "policy_version": 15,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    }
+  ]
+}

@@ -1,0 +1,392 @@
+{
+  "mail_date": "2026-07-03",
+  "window_start": "2026-07-02T08:30:00+09:00",
+  "window_end": "2026-07-03T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 15,
+  "section_counts": {
+    "education": 1,
+    "buddhism": 9,
+    "dongguk_core": 5
+  },
+  "audit_source_counts": {
+    "section_pool_education": 1,
+    "section_pool_buddhism": 9,
+    "naver": 5
+  },
+  "source_type_counts": {
+    "section_pool": 10,
+    "relation_expansion": 5
+  },
+  "source_debug": {
+    "google_rss": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 18754,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6025
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 8691,
+          "error": "google_rss timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2741,
+          "error": "google_rss timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 24551,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6476
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4671,
+          "error": "naver timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4820,
+          "error": "naver timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "dongguk_official": {
+      "status": "timeout",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 25991,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 15482,
+          "error": "dongguk_official timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4661,
+          "error": "dongguk_official timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3487,
+          "error": "dongguk_official timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "error": "dongguk_official timed out after 2.0s"
+    },
+    "section_pool_education": {
+      "status": "ok",
+      "count": 1,
+      "retry_count": 0,
+      "duration_ms": 37254,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 1,
+          "duration_ms": 37254
+        }
+      ],
+      "sections": {
+        "education": 1
+      },
+      "source_types": {
+        "section_pool": 1
+      },
+      "collection_sources": {
+        "naver": 1
+      },
+      "section": "education"
+    },
+    "section_pool_buddhism": {
+      "status": "ok",
+      "count": 9,
+      "retry_count": 0,
+      "duration_ms": 37254,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 9,
+          "duration_ms": 37254
+        }
+      ],
+      "sections": {
+        "buddhism": 9
+      },
+      "source_types": {
+        "section_pool": 9
+      },
+      "collection_sources": {
+        "naver": 9
+      },
+      "section": "buddhism"
+    },
+    "media_direct_pool": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 24619,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 15234,
+          "error": "media_direct_pool timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4896
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3202,
+          "error": "media_direct_pool timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "media_site_direct": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 24471,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6483
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4672,
+          "error": "media_site_direct timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4740,
+          "error": "media_site_direct timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "relation_expansion": {
+      "status": "ok",
+      "count": 5,
+      "retry_count": 0,
+      "duration_ms": 9535,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 5,
+          "duration_ms": 9535
+        }
+      ],
+      "sections": {
+        "dongguk_core": 5
+      },
+      "source_types": {
+        "relation_expansion": 5
+      },
+      "collection_sources": {
+        "naver": 5
+      }
+    }
+  },
+  "items": [
+    {
+      "title": "[칼럼] 2024 대입 수능시험 결과 분석 소고(小考)",
+      "published_at": "Mon, 29 Jun 2026 19:58:00 +0900",
+      "section": "education",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_education",
+      "url": "http://www.cctimes.kr/news/articleView.html?idxno=913987"
+    },
+    {
+      "title": "조계종 성보박물관협회, 중국 해외 연수 '성료'",
+      "published_at": "2026-07-01T17:41:16+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=439729"
+    },
+    {
+      "title": "조계종 성보박물관협회, 中해외 연수 성료",
+      "published_at": "2026-07-01T15:00:15+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504125"
+    },
+    {
+      "title": "조계종 성보박물관협회, 중국서 해외 연수...\"성보박물관 발전 밑거름 ...",
+      "published_at": "2026-07-01T15:45:05+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://news.bbsi.co.kr/news/articleView.html?idxno=4092538"
+    },
+    {
+      "title": "조계종 미래본부 \"'천년을 세우다' 왜곡 유감…집행 투명\"",
+      "published_at": "2026-06-29T19:21:19+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504104"
+    },
+    {
+      "title": "성보박물관협, 中 승덕·북경서 해외연수 성료",
+      "published_at": "2026-07-01T15:05:22+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336337"
+    },
+    {
+      "title": "고려·조선시대 성보·고문서 보물 지정 예고",
+      "published_at": "2026-07-03T07:00:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=90737"
+    },
+    {
+      "title": "'천년을 세우다' 불사 왜곡 비방 \"심히 유감\"",
+      "published_at": "Tue, 30 Jun 2026 00:18:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64473"
+    },
+    {
+      "title": "K-콘텐츠 영감 원천 '불교회화'‥시대의 경쟁력",
+      "published_at": "2026-07-02T07:00:00+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.btnnews.tv/news/articleView.html?idxno=90729"
+    },
+    {
+      "title": "​평창 상원사 목조제석천의좌상 등 보물 예고",
+      "published_at": "Thu, 02 Jul 2026 11:58:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64487"
+    },
+    {
+      "title": "[프로농구] 유도훈 정관장 감독, 애제자 이대헌 데려와 골밑 보강",
+      "published_at": "2026-07-01T12:50:00+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.newspim.com/news/view/20260701000899"
+    },
+    {
+      "title": "[오피셜] 이대헌, 유도훈 감독과 재회한다... 정관장 트레이드 발표, 김...",
+      "published_at": "2026-07-01T02:51:37.000Z",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.starnewskorea.com/sports/2026/07/01/2026070111265526213"
+    },
+    {
+      "title": "유도훈 정관장 감독, 애제자 이대헌 품는다···김경원과 1대1 트레이드...",
+      "published_at": "2026-07-01T09:41:00+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://sports.khan.co.kr/article/202607010941003?pt=nv"
+    },
+    {
+      "title": "현대모비스 이대헌, 김경원과 트레이드로 정관장 이적···유도훈 감독...",
+      "published_at": "Wed, 01 Jul 2026 09:12:00 +0900",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://m.sports.naver.com/basketball/article/065/0000299190"
+    },
+    {
+      "title": "'KIA 고민' FA 중견수 최고 몸값? 그런데 발목 잡는 하나가 있다",
+      "published_at": "2026-06-30T07:33:09+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.sportschosun.com/baseball/2026-06-30/202606300100205910013582"
+    }
+  ]
+}

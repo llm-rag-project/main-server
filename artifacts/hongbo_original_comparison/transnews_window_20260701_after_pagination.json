@@ -1,0 +1,422 @@
+{
+  "mail_date": "2026-07-01",
+  "window_start": "2026-06-30T08:30:00+09:00",
+  "window_end": "2026-07-01T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 18,
+  "section_counts": {
+    "buddhism": 9,
+    "dongguk_core": 9
+  },
+  "audit_source_counts": {
+    "section_pool_buddhism": 9,
+    "naver": 9
+  },
+  "source_type_counts": {
+    "section_pool": 9,
+    "relation_expansion": 9
+  },
+  "source_debug": {
+    "google_rss": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 18986,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 10052
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4362,
+          "error": "google_rss timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2725,
+          "error": "google_rss timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 14721,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 5466
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4253,
+          "error": "naver timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2509,
+          "error": "naver timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "dongguk_official": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 18331,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 10153,
+          "error": "dongguk_official timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4363,
+          "error": "dongguk_official timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 2358
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "section_pool_education": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 61202,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 37249
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 15004
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 7803
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "section": "education",
+      "empty_reason": "completed_without_eligible_articles"
+    },
+    "section_pool_buddhism": {
+      "status": "ok",
+      "count": 9,
+      "retry_count": 0,
+      "duration_ms": 37250,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 9,
+          "duration_ms": 37250
+        }
+      ],
+      "sections": {
+        "buddhism": 9
+      },
+      "source_types": {
+        "section_pool": 9
+      },
+      "collection_sources": {
+        "naver": 9
+      },
+      "section": "buddhism"
+    },
+    "media_direct_pool": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 17796,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 10135,
+          "error": "media_direct_pool timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3869
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 2123
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "media_site_direct": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 13352,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 3468
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 6120,
+          "error": "media_site_direct timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2503,
+          "error": "media_site_direct timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "relation_expansion": {
+      "status": "ok",
+      "count": 10,
+      "retry_count": 0,
+      "duration_ms": 9305,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 10,
+          "duration_ms": 9305
+        }
+      ],
+      "sections": {
+        "dongguk_core": 10
+      },
+      "source_types": {
+        "relation_expansion": 10
+      },
+      "collection_sources": {
+        "naver": 10
+      }
+    }
+  },
+  "items": [
+    {
+      "title": "조계종 미래본부 \"'천년을 세우다' 왜곡 유감…집행 투명\"",
+      "published_at": "2026-06-29T19:21:19+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504104"
+    },
+    {
+      "title": "조계종 \"'천년을 세우다' 불사, 원래 목적대로 투명하게 집행\"",
+      "published_at": "2026-06-29T17:57:01+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=439664"
+    },
+    {
+      "title": "\"'천년을 세우다'는 종합 종책사업...국가는 외형, 종단은 신앙의 성역...",
+      "published_at": "2026-06-29T18:02:34+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://news.bbsi.co.kr/news/articleView.html?idxno=4092041"
+    },
+    {
+      "title": "백양사·산내 암자까지 명승으로 확대해 품는다",
+      "published_at": "2026-06-30T11:27:07+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336315"
+    },
+    {
+      "title": "미래본부 \"'마애부처님 기금 전용' 주장은 명백한 허위… 정치적 이용 ...",
+      "published_at": "2026-06-29T18:27:03+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336308"
+    },
+    {
+      "title": "마곡사, 제77주기 백범 김구 선생 추모다례재 봉행",
+      "published_at": "2026-06-29T10:38:16+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336297"
+    },
+    {
+      "title": "'천년을 세우다' 불사 왜곡 비방 \"심히 유감\"",
+      "published_at": "Tue, 30 Jun 2026 00:18:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64473"
+    },
+    {
+      "title": "부산 범어사 대웅전 벽화 4점 ‘보물’ 됐다",
+      "published_at": "Sun, 28 Jun 2026 14:35:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.busan.com/view/busan/view.php?code=2026062802064507851"
+    },
+    {
+      "title": "구미의 숨결을 느끼는 여름, 풍성한 이야기 가득한 가볼 만한 곳",
+      "published_at": "Mon, 29 Jun 2026 12:46:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.cbci.co.kr/news/articleView.html?idxno=585335"
+    },
+    {
+      "title": "'KIA 고민' FA 중견수 최고 몸값? 그런데 발목 잡는 하나가 있다",
+      "published_at": "2026-06-30T07:33:09+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.sportschosun.com/baseball/2026-06-30/202606300100205910013582"
+    },
+    {
+      "title": "‘국경도 막지 못한 팬심’ 김영훈, 10년 여정에 마침표…“울컥했고 감...",
+      "published_at": "Sun, 28 Jun 2026 08:03:00 +0900",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://m.sports.naver.com/basketball/article/065/0000299097"
+    },
+    {
+      "title": "동국대 경기RISE사업단, 내달 '한·중 지산학협력 글로벌 진출 전략' 세...",
+      "published_at": "2026-06-30T17:29:36+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.thepublic.kr/news/articleView.html?idxno=309594"
+    },
+    {
+      "title": "동국대, 경기북부 기업 글로벌 진출 지원 본격화, 한·중 전략 세미나 개...",
+      "published_at": "2026-06-30T14:26:30+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.enewstoday.co.kr/news/articleView.html?idxno=2443823"
+    },
+    {
+      "title": "동국대, 내달 '한·중 지산학협력 글로벌 진출 세미나' 연다",
+      "published_at": "2026-06-30T14:24:23+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.newsis.com/view/NISX20260630_0003689667"
+    },
+    {
+      "title": "동국대 경기RISE사업단 '한/중 지산학협력 글로벌 진출 전략 세미나' 개...",
+      "published_at": "2026-06-30T14:02:36+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.veritas-a.com/news/articleView.html?idxno=617255"
+    },
+    {
+      "title": "동국대, 산학협력 세미나로 지역기업 해외 진출 기반 마련",
+      "published_at": "2026-06-30T13:30:42+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://www.kyosu.net/news/articleView.html?idxno=207094"
+    },
+    {
+      "title": "동국대 경기RISE사업단, '한‧중 지산학협력 글로벌 진출 전략 세미나' ...",
+      "published_at": "2026-06-30T12:59:07+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "https://edu.donga.com/news/articleView.html?idxno=109439"
+    },
+    {
+      "title": "\"중국 시장, 알아야 뚫는다\"…동국대 경기RISE 사업단, 경기북부 기업 '...",
+      "published_at": "2026-06-30T12:02:27+09:00",
+      "section": "dongguk_core",
+      "source_type": "relation_expansion",
+      "collection_source": "naver",
+      "audit_source": "naver",
+      "url": "http://www.dailysmart.co.kr/news/articleView.html?idxno=126240"
+    }
+  ]
+}

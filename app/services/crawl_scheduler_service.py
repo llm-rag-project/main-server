@@ -46,6 +46,7 @@ SessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 _daily_crawl_retry_in_progress = False
 _dongguk_refresh_in_progress = False
 AUTO_RETRY_MAX_ATTEMPTS = 3
+AUTO_RETRY_SECTION_POOL_TARGET_COUNT = 10
 AUTO_RETRY_TRIGGER_TYPES = ("daily_refresh", "auto_retry")
 DAILY_COLLECTION_TRIGGER_TYPES = ("scheduled", "daily_refresh", "auto_retry")
 CORE_COLLECTION_SOURCES = {
@@ -64,6 +65,14 @@ REQUIRED_COLLECTION_GROUPS = (
 
 
 def _source_has_usable_result(source: CrawlRunSource) -> bool:
+    if source.source_name in {"section_pool_education", "section_pool_buddhism"}:
+        # Section discovery can include candidates outside the requested mail
+        # window. Only a stored or already-linked article proves that the
+        # category is represented in the target window.
+        return (
+            int(source.stored_count or 0) > 0
+            or int(source.duplicate_count or 0) > 0
+        )
     return (
         int(source.discovered_count or 0) > 0
         or int(source.stored_count or 0) > 0
@@ -296,6 +305,8 @@ async def run_dongguk_daily_refresh() -> None:
                         discovery_only=True,
                         enrich_for_relevance=True,
                         trigger_type="auto_retry",
+                        section_pool_target_count=AUTO_RETRY_SECTION_POOL_TARGET_COUNT,
+                        search_sort="latest",
                     )
                     refresh_runs.append(
                         {

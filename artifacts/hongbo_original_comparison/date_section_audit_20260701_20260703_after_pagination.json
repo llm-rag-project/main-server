@@ -1,0 +1,534 @@
+{
+  "keyword_id": 86,
+  "keyword": "동국대학교",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-03",
+  "dates": [
+    {
+      "mail_date": "2026-07-01",
+      "is_target_business_day": true,
+      "work_start_date": "2026-07-01",
+      "holiday_dates": [],
+      "published_from": "2026-06-30T08:30:00+09:00",
+      "published_to": "2026-07-01T08:30:00+09:00",
+      "candidate_count": 34,
+      "section_counts": {
+        "foundation": 33,
+        "education": 0,
+        "buddhism": 1,
+        "unclassified": 0
+      },
+      "run_ids": [
+        790,
+        791,
+        943,
+        944,
+        945,
+        946,
+        947,
+        948,
+        949,
+        950,
+        959,
+        961,
+        962,
+        963,
+        964,
+        965
+      ],
+      "source_totals": {
+        "dongguk_official": {
+          "runs": 14,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "timeout": 8,
+            "empty": 6
+          }
+        },
+        "google_rss": {
+          "runs": 14,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 14
+          }
+        },
+        "media_direct_pool": {
+          "runs": 14,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 13,
+            "timeout": 1
+          }
+        },
+        "media_site_direct": {
+          "runs": 14,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 14
+          }
+        },
+        "merged_pipeline": {
+          "runs": 16,
+          "discovered": 247,
+          "processed": 106,
+          "stored": 11,
+          "duplicates": 79,
+          "rejected_date": 141,
+          "rejected_relevance": 16,
+          "failed": 0,
+          "statuses": {
+            "reconstructed": 2,
+            "partial": 8,
+            "success": 6
+          }
+        },
+        "naver": {
+          "runs": 14,
+          "discovered": 0,
+          "processed": 65,
+          "stored": 3,
+          "duplicates": 46,
+          "rejected_date": 48,
+          "rejected_relevance": 16,
+          "failed": 0,
+          "statuses": {
+            "empty": 14
+          }
+        },
+        "relation_expansion": {
+          "runs": 14,
+          "discovered": 124,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 14
+          }
+        },
+        "section_pool_buddhism": {
+          "runs": 14,
+          "discovered": 129,
+          "processed": 41,
+          "stored": 8,
+          "duplicates": 33,
+          "rejected_date": 88,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 14
+          }
+        },
+        "section_pool_education": {
+          "runs": 14,
+          "discovered": 5,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 5,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 9,
+            "success": 5
+          }
+        }
+      },
+      "candidate_audit": {
+        "naver:duplicate:already_linked": 46,
+        "naver:rejected:outside_date_window": 28,
+        "naver:stored:new_article": 3,
+        "section_pool_buddhism:duplicate:already_linked": 4,
+        "section_pool_buddhism:rejected:outside_date_window": 5,
+        "section_pool_buddhism:stored:new_article": 1
+      },
+      "education_titles": [],
+      "buddhism_titles": [
+        "백양사·산내 암자까지 명승으로 확대해 품는다"
+      ]
+    },
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "work_start_date": "2026-07-02",
+      "holiday_dates": [],
+      "published_from": "2026-07-01T08:30:00+09:00",
+      "published_to": "2026-07-02T08:30:00+09:00",
+      "candidate_count": 19,
+      "section_counts": {
+        "foundation": 12,
+        "education": 0,
+        "buddhism": 7,
+        "unclassified": 0
+      },
+      "run_ids": [
+        791,
+        792,
+        943,
+        944,
+        945,
+        946,
+        947,
+        948,
+        949,
+        950,
+        951,
+        952,
+        953,
+        959,
+        961,
+        962,
+        963,
+        964,
+        965,
+        966,
+        967
+      ],
+      "source_totals": {
+        "dongguk_official": {
+          "runs": 19,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "timeout": 12,
+            "empty": 7
+          }
+        },
+        "google_rss": {
+          "runs": 19,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 19
+          }
+        },
+        "media_direct_pool": {
+          "runs": 19,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 18,
+            "timeout": 1
+          }
+        },
+        "media_site_direct": {
+          "runs": 19,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 19
+          }
+        },
+        "merged_pipeline": {
+          "runs": 21,
+          "discovered": 341,
+          "processed": 124,
+          "stored": 15,
+          "duplicates": 89,
+          "rejected_date": 217,
+          "rejected_relevance": 20,
+          "failed": 0,
+          "statuses": {
+            "reconstructed": 2,
+            "partial": 12,
+            "success": 7
+          }
+        },
+        "naver": {
+          "runs": 19,
+          "discovered": 0,
+          "processed": 69,
+          "stored": 3,
+          "duplicates": 46,
+          "rejected_date": 87,
+          "rejected_relevance": 20,
+          "failed": 0,
+          "statuses": {
+            "empty": 19
+          }
+        },
+        "relation_expansion": {
+          "runs": 19,
+          "discovered": 171,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 19
+          }
+        },
+        "section_pool_buddhism": {
+          "runs": 19,
+          "discovered": 180,
+          "processed": 55,
+          "stored": 12,
+          "duplicates": 43,
+          "rejected_date": 125,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 19
+          }
+        },
+        "section_pool_education": {
+          "runs": 19,
+          "discovered": 5,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 5,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 14,
+            "success": 5
+          }
+        }
+      },
+      "candidate_audit": {
+        "naver:rejected:keyword_not_found": 16,
+        "naver:rejected:outside_date_window": 12,
+        "section_pool_buddhism:duplicate:already_linked": 29,
+        "section_pool_buddhism:rejected:outside_date_window": 23,
+        "section_pool_buddhism:stored:new_article": 7
+      },
+      "education_titles": [],
+      "buddhism_titles": [
+        "K-콘텐츠 영감 원천 '불교회화'‥시대의 경쟁력",
+        "1545년 [청송심씨족보] 을사보 학술대회 발표문을 보강함",
+        "홍성주지협·만해한용운선양사업회, 만해 한용운 선사 82주기 추모다례",
+        "성보박물관협, 中 승덕·북경서 해외연수 성료",
+        "조계종 성보박물관협회, 중국서 해외 연수...\"성보박물관 발전 밑거름 ...",
+        "조계종 성보박물관협회, 中해외 연수 성료",
+        "조계종 성보박물관협회, 중국 해외 연수 '성료'"
+      ]
+    },
+    {
+      "mail_date": "2026-07-03",
+      "is_target_business_day": true,
+      "work_start_date": "2026-07-03",
+      "holiday_dates": [],
+      "published_from": "2026-07-02T08:30:00+09:00",
+      "published_to": "2026-07-03T08:30:00+09:00",
+      "candidate_count": 23,
+      "section_counts": {
+        "foundation": 19,
+        "education": 0,
+        "buddhism": 4,
+        "unclassified": 0
+      },
+      "run_ids": [
+        792,
+        793,
+        948,
+        949,
+        950,
+        951,
+        952,
+        953,
+        955,
+        963,
+        964,
+        965,
+        966,
+        967
+      ],
+      "source_totals": {
+        "dongguk_official": {
+          "runs": 12,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "timeout": 9,
+            "empty": 3
+          }
+        },
+        "google_rss": {
+          "runs": 12,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 12
+          }
+        },
+        "media_direct_pool": {
+          "runs": 12,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 11,
+            "timeout": 1
+          }
+        },
+        "media_site_direct": {
+          "runs": 12,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 12
+          }
+        },
+        "merged_pipeline": {
+          "runs": 14,
+          "discovered": 224,
+          "processed": 78,
+          "stored": 18,
+          "duplicates": 40,
+          "rejected_date": 146,
+          "rejected_relevance": 20,
+          "failed": 0,
+          "statuses": {
+            "reconstructed": 2,
+            "partial": 9,
+            "success": 3
+          }
+        },
+        "naver": {
+          "runs": 12,
+          "discovered": 0,
+          "processed": 20,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 71,
+          "rejected_relevance": 20,
+          "failed": 0,
+          "statuses": {
+            "empty": 12
+          }
+        },
+        "relation_expansion": {
+          "runs": 12,
+          "discovered": 99,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 11,
+            "empty": 1
+          }
+        },
+        "section_pool_buddhism": {
+          "runs": 12,
+          "discovered": 130,
+          "processed": 57,
+          "stored": 17,
+          "duplicates": 40,
+          "rejected_date": 73,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 12
+          }
+        },
+        "section_pool_education": {
+          "runs": 12,
+          "discovered": 3,
+          "processed": 1,
+          "stored": 1,
+          "duplicates": 0,
+          "rejected_date": 2,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 9,
+            "success": 3
+          }
+        }
+      },
+      "candidate_audit": {
+        "naver:rejected:keyword_not_found": 4,
+        "section_pool_buddhism:duplicate:already_linked": 10,
+        "section_pool_buddhism:rejected:outside_date_window": 2,
+        "section_pool_buddhism:stored:new_article": 4
+      },
+      "education_titles": [],
+      "buddhism_titles": [
+        "14개 본사주지, \"총무원장 선거, 종헌종법 따라 공정하게 치러져야\"",
+        "조계종 총무원 \"무분별한 의혹 제기 엄정 대응…해종행위 끝까지 책임 ...",
+        "​평창 상원사 목조제석천의좌상 등 보물 예고",
+        "고려·조선시대 성보·고문서 보물 지정 예고"
+      ]
+    }
+  ],
+  "zero_section_dates": {
+    "foundation": [],
+    "education": [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
+    "buddhism": []
+  }
+}

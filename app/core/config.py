@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     debug: bool = True
     database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
+    database_pool_size: int = Field(default=15, alias="DATABASE_POOL_SIZE")
+    database_max_overflow: int = Field(default=15, alias="DATABASE_MAX_OVERFLOW")
+    database_pool_timeout: int = Field(default=10, alias="DATABASE_POOL_TIMEOUT")
+    database_pool_recycle: int = Field(default=1800, alias="DATABASE_POOL_RECYCLE")
 
     refresh_token_expire_days: int = 14
     database_url: str = Field(..., alias="DATABASE_URL")

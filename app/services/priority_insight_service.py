@@ -41,6 +41,35 @@ def _dumps(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, default=str)
 
 
+def representative_action_samples(actions: list[dict], limit: int = 30) -> list[dict]:
+    """Keep Dify input bounded while preserving each action/category pattern."""
+    if limit <= 0 or not actions:
+        return []
+    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for action in actions:
+        key = (
+            str(action.get("action_type") or "unknown"),
+            str(action.get("article_category") or "미분류"),
+        )
+        groups[key].append(action)
+
+    samples: list[dict] = []
+    group_values = list(groups.values())
+    offset = 0
+    while len(samples) < limit:
+        added = False
+        for items in group_values:
+            if offset < len(items):
+                samples.append(items[offset])
+                added = True
+                if len(samples) >= limit:
+                    break
+        if not added:
+            break
+        offset += 1
+    return samples
+
+
 def _article_identity(article: dict, index: int = 0) -> str:
     article_id = article.get("id") or article.get("article_id")
     if article_id:
@@ -306,17 +335,21 @@ class PriorityInsightService:
         keyword_id: int,
         period_start: date,
         period_end: date,
+        source_screen: str | None = None,
     ) -> list[DonggukPriorityAction]:
         start_at = datetime.combine(period_start, time.min, tzinfo=KST).astimezone(timezone.utc)
         end_at = datetime.combine(period_end + timedelta(days=1), time.min, tzinfo=KST).astimezone(timezone.utc)
+        conditions = [
+            DonggukPriorityAction.user_id == user_id,
+            DonggukPriorityAction.keyword_id == keyword_id,
+            DonggukPriorityAction.created_at >= start_at,
+            DonggukPriorityAction.created_at < end_at,
+        ]
+        if source_screen:
+            conditions.append(DonggukPriorityAction.source_screen == source_screen)
         result = await self.db.execute(
             select(DonggukPriorityAction)
-            .where(
-                DonggukPriorityAction.user_id == user_id,
-                DonggukPriorityAction.keyword_id == keyword_id,
-                DonggukPriorityAction.created_at >= start_at,
-                DonggukPriorityAction.created_at < end_at,
-            )
+            .where(*conditions)
             .order_by(DonggukPriorityAction.created_at.asc())
         )
         return list(result.scalars().all())
@@ -349,6 +382,12 @@ class PriorityInsightService:
             "total_actions": len(actions),
             "action_counts": dict(action_counts),
             "category_counts": dict(category_counts),
+            "action_category_counts": dict(
+                Counter(
+                    f"{item['action_type']} | {item.get('article_category') or '미분류'}"
+                    for item in actions
+                )
+            ),
             "action_labels": {
                 key: ACTION_LABELS.get(key, key)
                 for key in action_counts
@@ -373,7 +412,7 @@ class PriorityInsightService:
                     cadence=cadence,
                     current_priority_criteria=current_criteria,
                     action_summary_json=_dumps(evidence),
-                    action_samples_json=_dumps(action_dicts[:120]),
+                    action_samples_json=_dumps(representative_action_samples(action_dicts, limit=30)),
                     max_changes=max_changes,
                     user=f"user-{user_id}",
                 )
@@ -595,10 +634,18 @@ class PriorityInsightService:
             keyword_id=row.keyword_id,
             period_start=row.period_start,
             period_end=row.period_end,
+            source_screen=(
+                "demo_seed_july_2026"
+                if row.generated_by == "ai-workflow-demo"
+                else None
+            ),
         )
         return {
             **self.serialize_insight(row),
             "actions": [self._action_dict(action) for action in actions],
+            "demo_action_count": sum(
+                1 for action in actions if action.source_screen == "demo_seed_july_2026"
+            ),
         }
 
     async def delete_insight(self, *, user_id: int, insight_id: int) -> DonggukPriorityInsight:

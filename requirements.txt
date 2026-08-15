@@ -20,5 +20,6 @@ psycopg[binary]
 apscheduler
 tzdata
 openpyxl
+olefile>=0.47,<1
 holidays>=0.58,<1
 prometheus-client>=0.20,<1

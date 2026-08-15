@@ -35,6 +35,22 @@ Grafana는 로컬 환경에서 별도 로그인 없이 읽기 전용으로 열�
 docker compose up -d --build
 ```
 
+### 동일 조건 API 벤치마크
+
+Grafana 비교 전후에 같은 URL, 요청 수, 동시성을 사용합니다. 첫 연결 생성 비용이
+결과를 흔들지 않도록 워밍업 요청을 먼저 보냅니다.
+
+```powershell
+docker compose exec fastapi python scripts/benchmark_api.py `
+  --url "http://localhost:8001/api/v1/articles?page=1&size=100&keyword_id=86" `
+  --requests 96 `
+  --concurrency 12 `
+  --warmup 12
+```
+
+출력되는 `average_ms`, `p50_ms`, `p95_ms`, `max_ms`를 변경 전후로 기록합니다.
+인증이 필요한 환경에서는 `--token`에 액세스 토큰을 전달합니다.
+
 상태 확인:
 
 ```powershell

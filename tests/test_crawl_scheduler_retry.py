@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from app.services.crawl_scheduler_service import (
     AUTO_RETRY_MAX_ATTEMPTS,
+    AUTO_RETRY_SECTION_POOL_TARGET_COUNT,
     _dongguk_collection_needs_retry,
 )
 
@@ -14,11 +15,13 @@ def source(
     discovered: int = 0,
     stored: int = 0,
     duplicates: int = 0,
+    processed: int = 0,
 ):
     return SimpleNamespace(
         source_name=name,
         status=status,
         discovered_count=discovered,
+        processed_count=processed,
         stored_count=stored,
         duplicate_count=duplicates,
     )
@@ -28,11 +31,14 @@ class DonggukAutoRetryTests(unittest.TestCase):
     def test_retry_limit_is_three(self):
         self.assertEqual(AUTO_RETRY_MAX_ATTEMPTS, 3)
 
+    def test_retry_uses_expanded_section_pool(self):
+        self.assertEqual(AUTO_RETRY_SECTION_POOL_TARGET_COUNT, 10)
+
     def test_complete_three_section_result_does_not_retry(self):
         sources = [
             source("naver", discovered=10),
-            source("section_pool_education", discovered=2),
-            source("section_pool_buddhism", discovered=3),
+            source("section_pool_education", stored=2),
+            source("section_pool_buddhism", stored=3),
         ]
 
         self.assertFalse(_dongguk_collection_needs_retry(sources))
@@ -41,8 +47,8 @@ class DonggukAutoRetryTests(unittest.TestCase):
         sources = [
             source("dongguk_official", status="timeout"),
             source("google_rss", discovered=4),
-            source("section_pool_education", discovered=1),
-            source("section_pool_buddhism", discovered=1),
+            source("section_pool_education", stored=1),
+            source("section_pool_buddhism", stored=1),
         ]
 
         self.assertFalse(_dongguk_collection_needs_retry(sources))
@@ -50,7 +56,7 @@ class DonggukAutoRetryTests(unittest.TestCase):
     def test_missing_education_section_retries(self):
         sources = [
             source("naver", discovered=10),
-            source("section_pool_buddhism", discovered=2),
+            source("section_pool_buddhism", stored=2),
         ]
 
         self.assertTrue(_dongguk_collection_needs_retry(sources))
@@ -59,7 +65,7 @@ class DonggukAutoRetryTests(unittest.TestCase):
         sources = [
             source("naver", discovered=10),
             source("section_pool_education", status="success"),
-            source("section_pool_buddhism", discovered=2),
+            source("section_pool_buddhism", stored=2),
         ]
 
         self.assertTrue(_dongguk_collection_needs_retry(sources))
@@ -72,6 +78,15 @@ class DonggukAutoRetryTests(unittest.TestCase):
         ]
 
         self.assertFalse(_dongguk_collection_needs_retry(sources))
+
+    def test_discovered_but_not_usable_section_candidate_retries(self):
+        sources = [
+            source("naver", discovered=10),
+            source("section_pool_education", discovered=16),
+            source("section_pool_buddhism", stored=1),
+        ]
+
+        self.assertTrue(_dongguk_collection_needs_retry(sources))
 
 
 if __name__ == "__main__":

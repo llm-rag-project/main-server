@@ -23,6 +23,8 @@ class DifyWorkflowError(Exception):
 
 
 class DifyService:
+    _shared_client: httpx.AsyncClient | None = None
+
     def __init__(
         self,
         base_url: str,
@@ -42,6 +44,21 @@ class DifyService:
         self.news_editor_workflow_api_key = news_editor_workflow_api_key
         self.priority_insight_workflow_api_key = priority_insight_workflow_api_key
         self.timeout = timeout
+
+    @classmethod
+    def _http_client(cls) -> httpx.AsyncClient:
+        if cls._shared_client is None or cls._shared_client.is_closed:
+            cls._shared_client = httpx.AsyncClient(
+                limits=httpx.Limits(max_connections=30, max_keepalive_connections=15),
+            )
+        return cls._shared_client
+
+    @classmethod
+    async def close_shared_client(cls) -> None:
+        client = cls._shared_client
+        cls._shared_client = None
+        if client is not None and not client.is_closed:
+            await client.aclose()
 
     async def _post(self, path: str, api_key: str, payload: dict) -> dict:
         url = f"{self.base_url}{path}"
@@ -64,8 +81,12 @@ class DifyService:
         started_at = time.perf_counter()
         metric_status = "error"
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, headers=headers, json=payload)
+            response = await self._http_client().post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=self.timeout,
+            )
 
             try:
                 detail = response.json()
@@ -438,6 +459,12 @@ class DifyService:
         }
         data = await self._post("/workflows/run", self.priority_insight_workflow_api_key, payload)
         result_data = data.get("data") or {}
+        if result_data.get("status") == "failed" or result_data.get("error"):
+            raise DifyWorkflowError(
+                "WORKFLOW_FAILED",
+                str(result_data.get("error") or "Priority insight workflow failed"),
+                status_code=502,
+            )
         outputs = result_data.get("outputs") or {}
         raw_result = (
             outputs.get("result_json")
@@ -463,7 +490,11 @@ class DifyService:
                 status_code=502,
             )
         return {
-            "workflow_run_id": result_data.get("workflow_run_id"),
+            "workflow_run_id": (
+                data.get("workflow_run_id")
+                or result_data.get("workflow_run_id")
+                or result_data.get("id")
+            ),
             "summary": str(raw_result.get("summary") or "").strip(),
             "rationale": str(raw_result.get("rationale") or "").strip(),
             "changes": changes[:max_changes],

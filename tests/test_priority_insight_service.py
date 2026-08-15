@@ -6,6 +6,7 @@ from app.services.priority_insight_service import (
     fallback_priority_changes,
     previous_month_period,
     previous_quarter_period,
+    representative_action_samples,
 )
 
 
@@ -77,6 +78,23 @@ class PriorityInsightServiceTests(unittest.TestCase):
             (quarter_start, quarter_end, quarter_key),
             (date(2026, 4, 1), date(2026, 6, 30), "2026-Q2"),
         )
+
+    def test_representative_samples_respect_workflow_limit_and_keep_groups(self):
+        actions = []
+        for index in range(40):
+            actions.append(
+                {
+                    "id": index,
+                    "action_type": "mail_exclude" if index < 35 else "order_change",
+                    "article_category": "인사/위촉" if index < 35 else "연구 성과/AI",
+                }
+            )
+
+        samples = representative_action_samples(actions, limit=30)
+
+        self.assertEqual(len(samples), 30)
+        self.assertTrue(any(item["action_type"] == "order_change" for item in samples))
+        self.assertTrue(any(item["article_category"] == "연구 성과/AI" for item in samples))
 
 
 if __name__ == "__main__":

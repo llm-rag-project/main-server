@@ -1,0 +1,1709 @@
+{
+  "policy_version": 16,
+  "date_count": 37,
+  "business_date_count": 26,
+  "missing_business_drafts": [],
+  "stale_business_drafts": [
+    "2026-07-30",
+    "2026-08-05"
+  ],
+  "manual_business_drafts": [
+    "2026-07-30",
+    "2026-08-05"
+  ],
+  "invalid_business_drafts": [],
+  "rule_violation_business_drafts": [
+    "2026-07-30"
+  ],
+  "dates": [
+    {
+      "mail_date": "2026-07-01",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 신임 보직교수 인사 발표",
+          "article_category": "인사/위촉",
+          "reason": "[7월 데모] 단순 인사발령 기사는 메일 핵심 소식에서 제외했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-03",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 연구팀, 차세대 배터리 원천기술 개발",
+          "article_category": "연구 성과/AI",
+          "reason": "[7월 데모] 연구 성과의 홍보 가치가 높아 기사 순서를 위로 올렸습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-04",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_include",
+          "article_title": "동문 기업인, 동국대 발전기금 1억 원 기탁",
+          "article_category": "기부/장학/발전기금",
+          "reason": "[7월 데모] 기부 소식은 학교 이미지와 직접 연결돼 메일에 추가했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-05",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 2,
+      "sanitized_count": 2,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 0,
+        "education": 0,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-06",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 교수의 여름 독서 추천 칼럼",
+          "article_category": "동문/교수 인터뷰·칼럼",
+          "reason": "[7월 데모] 학교 공식 성과와 직접 관련이 낮은 교수 칼럼을 제외했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-07",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대학교 산학협력단 전문위원 위촉",
+          "article_category": "인사/위촉",
+          "reason": "[7월 데모] 위촉 자체보다 학교 성과를 보여주는 기사를 우선하기 위해 제외했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-08",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-09",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 AI 연구센터, 의료영상 분석 정확도 향상",
+          "article_category": "연구 성과/AI",
+          "reason": "[7월 데모] AI 연구 성과를 메일 상단에서 보여주도록 순서를 조정했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-10",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-11",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "order_change",
+          "article_title": "불교계 인사, 동국대 장학기금 전달",
+          "article_category": "기부/장학/발전기금",
+          "reason": "[7월 데모] 장학기금 기사를 메일 첫 기사로 이동했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 0,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-12",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 2,
+        "education": 2,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-13",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "trash",
+          "article_title": "동국대 동문 방송인 근황 인터뷰",
+          "article_category": "동문/교수 인터뷰·칼럼",
+          "reason": "[7월 데모] 학교와의 직접 연관성이 약한 동문 근황 기사라 휴지통으로 이동했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-14",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대 연구진 국제학술지 표지논문 선정",
+          "article_category": "연구 성과/AI",
+          "reason": "[7월 데모] 대외 연구 경쟁력을 보여주는 기사라 메일에 다시 포함했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-15",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "trash",
+          "article_title": "동국대 특임교수 신규 임용 소식",
+          "article_category": "인사/위촉",
+          "reason": "[7월 데모] 반복되는 단순 임용 소식이라 휴지통으로 이동했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-16",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 총장, 건학 120주년 미래 비전 발표",
+          "article_category": "총장/이사장 메시지",
+          "reason": "[7월 데모] 총장 메시지를 최우선 기사로 직접 상향했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-17",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 1,
+      "removed_by_current_rules": [
+        {
+          "title": "동국대 ‘영캠프 학생기획위원단’ 발대식 - 불교신문",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        },
+        {
+          "title": "[단독] ‘주요22개대 최초’ 동국대 2027대입 평가기준 선공개.. 교과전형 “서류평가 영향력 90% 이상” - 베리타스알파",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        }
+      ],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": [
+        "백석문화대, 교육부 성과평가서 2년 연속 '전 영역 S등급' - 뉴시스"
+      ]
+    },
+    {
+      "mail_date": "2026-07-18",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대 후배 사랑 장학금 전달식 개최",
+          "article_category": "기부/장학/발전기금",
+          "reason": "[7월 데모] 장학 소식의 지속적인 홍보 가치가 있어 메일에 다시 포함했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 14,
+      "policy_stale": true,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-19",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 9,
+      "policy_stale": true,
+      "selected_count": 4,
+      "sanitized_count": 4,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 1,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-20",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-21",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 반도체 연구과제 대형 국책사업 선정",
+          "article_category": "연구 성과/AI",
+          "reason": "[7월 데모] 대형 연구사업 선정 성과를 최상단으로 이동했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-22",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-23",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 교수 영화평론 기고",
+          "article_category": "동문/교수 인터뷰·칼럼",
+          "reason": "[7월 데모] 개인 기고보다 대학 공식 성과를 우선하기 위해 제외했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-24",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 겸임교수 위촉장 수여",
+          "article_category": "인사/위촉",
+          "reason": "[7월 데모] 인사·위촉 기사가 반복돼 대표 메일 기사에서 제외했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 6,
+      "sanitized_count": 6,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 1
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-25",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 7,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [
+        {
+          "title": "[포토] 동국대 WISE캠퍼스, 2027학년도 수시 박람회 현장 - 교수신문",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        },
+        {
+          "title": "파주시 월롱면-동국대, 인문·문화 배움과정 성료 - 파주에서신문",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        }
+      ],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 0
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-26",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 10,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 2,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-27",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 이사장, 교육 혁신 방향 제시",
+          "article_category": "총장/이사장 메시지",
+          "reason": "[7월 데모] 이사장 메시지의 대표성을 반영해 최우선으로 수정했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-28",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 생성형 AI 교육 플랫폼 특허 등록",
+          "article_category": "연구 성과/AI",
+          "reason": "[7월 데모] 연구 파급력이 높다고 판단해 우선순위를 최우선으로 수정했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-29",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 1,
+      "manual_actions": [
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 발전기금 모금 캠페인 목표 조기 달성",
+          "article_category": "기부/장학/발전기금",
+          "reason": "[7월 데모] 발전기금 성과를 최우선으로 직접 상향했습니다.",
+          "source_screen": "demo_seed_july_2026"
+        }
+      ],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-30",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 66,
+      "demo_action_count": 0,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "'여성과학자상' 학술진흥상…동국대 이경 교수, 신약개발 새 패러다임 ...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "건국대, 2027년 수시 1900명 모집...'2026년 기업 인사관계자 초청 간담회...",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "건국대, 2027년 수시 1900명 모집...'2026년 기업 인사관계자 초청 간담회...",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "건국대, 2027년 수시 1900명 모집...'2026년 기업 인사관계자 초청 간담회...",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "'여성과학자상' 학술진흥상…동국대 이경 교수, 신약개발 새 패러다임 ...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "고양시, 항공대·중부대·동국대와 산학협력 생태계 구축 '첨단산업 육성키로' - 고양인터넷신문",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대 경기앵커사업단, 中 SISPARK와 업무협약 체결… 바이오·헬스케어 기업 글로벌 진출 지원 - 씨원뉴스",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "학생부 '상업적 이용' 29일부터 금지…컨설팅 사교육비 잡히나 - 연합뉴스",
+          "article_category": "입시/교육 프로그램",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대 WISE캠퍼스, 울릉·독도서 '지역사랑 나눔 봉사' 실천",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "불교중앙박물관 개관 이래 최대 관람객 끌었던 선운사 특별전 오는 7월 31일 성료 - 대한불교조계종",
+          "article_category": "불교계/종단 일반",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "트럼프 행정부의 미국 고등교육 인가 체계 개편이 시장과 한국 유학생에 미칠 파장 - 한국AI부동산신문",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대학교 김덕기 교수 한양대 동양학 대토론회서 '전통 풍수에서 현대 입지론으로' 발표 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "동국대 WISE캠퍼스, 베트남 고교와 교육협력‧유학 간담회 개최 - 서라벌신문",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "'여성과학자상' 학술진흥상…동국대 이경 교수, 신약개발 새 패러다임 ...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "마음건강 치료 학생 대상 학사 지원 및 교육부 행정  재정 지원 근거...",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "마음건강 치료 학생 대상 학사 지원 및 교육부 행정  재정 지원 근거...",
+          "article_category": "수상/인증",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "'여성과학자상' 학술진흥상…동국대 이경 교수, 신약개발 새 패러다임 ...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "마음건강 치료 학생 대상 학사 지원 및 교육부 행정  재정 지원 근거...",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "미래불교 주역 한자리‥파라미타 창립 30주년",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 북한학연구소 '노동신문의 말하기와 숨기기: '산림복구전투'로 본 북한 정권의 담론 전략' - SPN 서울평양뉴스",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 데이터 완전성∙스마트 GMP 역량 강화 교육",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 약학연수원, 연속공정∙PAT∙디지털 등 제약혁신기술 전파",
+          "article_category": "학교 공식 행사",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "'제1대 국가유산위원회' 스님 12명 위촉 \"불교문화유산 가치 알린다\"",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대, 캐나다 데이비드 안과의 첫 경기에서 17점차 대승",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 경주병원, 약제급여 적정성 평가서 1등급 획득 - 뉴스1",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대학교경주병원, 약제급여 적정성 평가 `1등급` 획득 - CBN뉴스",
+          "article_category": "수상/인증",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        }
+      ],
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [
+        {
+          "title": "'다문화 가교 역할 톡톡'···동국대 WISE캠퍼스, 이민자 통·번역가 21...",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        },
+        {
+          "title": "경주교육지원청, 동국대 WISE캠퍼스 ‘초중고 찾아가는 인문강좌’ 상반기 성료- - 경북뉴스",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        }
+      ],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-07-31",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 3,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-01",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 10,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 2,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [
+        {
+          "title": "[종별선수권] ‘엘리트가 아니라고?’ 동국대WISE 유일한 非선출 이종민",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        },
+        {
+          "title": "동국대 WISE캠퍼스 카누부, 백마강배 전국대회 3관왕 ‘금물살’ - 중앙일보",
+          "reason": "동국대 [법인/건학위] 관련 기사의 최대 기사 수 4건을 적용해 메일에서 제외되었습니다."
+        }
+      ],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-02",
+      "is_target_business_day": false,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 5,
+      "sanitized_count": 5,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 1,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-03",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-04",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-05",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 38,
+      "demo_action_count": 0,
+      "manual_actions": [
+        {
+          "action_type": "mail_exclude",
+          "article_title": "국·공립대총장협 \"교육재정교부금 개편해 고등교육 재정 확충을\"",
+          "article_category": "총장/이사장 메시지",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 경기앵커사업단-파주상공회의소-한국특허기술진흥원, 3자 MOU 체...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"지역 성보, 수도권서 대중 중심으로 재조명\"..선운사 특별전 회향",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 이사회, 범죄학과 등 신규교원 임용 2건 보류 - 법보신문",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_include",
+          "article_title": "국·공립대총장협 \"교육재정교부금 개편해 고등교육 재정 확충을\"",
+          "article_category": "총장/이사장 메시지",
+          "reason": "관리자가 메일 대표 기사 목록에 다시 포함했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 경기앵커사업단-파주상공회의소-한국특허기술진흥원, 3자 MOU 체...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "\"지역 성보, 수도권서 대중 중심으로 재조명\"..선운사 특별전 회향",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 이사회, 범죄학과 등 신규교원 임용 2건 보류 - 법보신문",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "국·공립대총장협 \"교육재정교부금 개편해 고등교육 재정 확충을\"",
+          "article_category": "총장/이사장 메시지",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 경기앵커사업단-파주상공회의소-한국특허기술진흥원, 3자 MOU 체...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"지역 성보, 수도권서 대중 중심으로 재조명\"..선운사 특별전 회향",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 이사회, 범죄학과 등 신규교원 임용 2건 보류 - 법보신문",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "mail_exclude",
+          "article_title": "동국대 경기앵커사업단-파주상공회의소-한국특허기술진흥원, 3자 MOU 체...",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일 대표 기사 목록에서 제외했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 도시정비법무정책최고위과정, 조민환 교수 초청 명사강연회 성료 - 고령자주택신문",
+          "article_category": "협약/사업 선정",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"일상 속으로 들어간 불교 '붓쯔'…절 밖에도 부처님 진리 있죠\"",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "\"지역 성보, 수도권서 대중 중심으로 재조명\"..선운사 특별전 회향",
+          "article_category": "기타 개별 홍보 피처",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대 이사회, 범죄학과 등 신규교원 임용 2건 보류 - 법보신문",
+          "article_category": "인사(임용/위촉)",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "국·공립대총장협 \"교육재정교부금 개편해 고등교육 재정 확충을\"",
+          "article_category": "총장/이사장 메시지",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "국·공립대총장협 \"교육재정교부금 개편해 고등교육 재정 확충을\"",
+          "article_category": "총장/이사장 메시지",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "order_change",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 메일에서 보이는 기사 순서를 변경했습니다.",
+          "source_screen": "today"
+        },
+        {
+          "action_type": "article_edit",
+          "article_title": "동국대일산병원 간호직 83명 확대된다 - 현대불교",
+          "article_category": "연구 성과/AI",
+          "reason": "관리자가 기사 제목, 요약, 분류 또는 우선순위를 수정했습니다.",
+          "source_screen": "today"
+        }
+      ],
+      "policy_version": 11,
+      "policy_stale": true,
+      "selected_count": 7,
+      "sanitized_count": 7,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 1,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    },
+    {
+      "mail_date": "2026-08-06",
+      "is_target_business_day": true,
+      "found": true,
+      "manual_action_count": 0,
+      "demo_action_count": 0,
+      "manual_actions": [],
+      "policy_version": 16,
+      "policy_stale": false,
+      "selected_count": 8,
+      "sanitized_count": 8,
+      "removed_by_current_rules_count": 0,
+      "invalid_selected_count": 0,
+      "removed_by_current_rules": [],
+      "section_counts": {
+        "foundation": 4,
+        "education": 2,
+        "buddhism": 2
+      },
+      "invalid_selected_titles": []
+    }
+  ]
+}

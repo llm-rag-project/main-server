@@ -1,0 +1,123 @@
+{
+  "keyword_id": 86,
+  "start_date": "2026-07-02",
+  "end_date": "2026-07-03",
+  "in_progress": false,
+  "completed_date_count": 2,
+  "results": [
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 21,
+        "education": 0,
+        "buddhism": 7
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1032,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 13,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 1,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 21,
+            "education": 1,
+            "buddhism": 8
+          }
+        }
+      ],
+      "after": {
+        "foundation": 21,
+        "education": 1,
+        "buddhism": 8
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-03",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 22,
+        "education": 0,
+        "buddhism": 5
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1033,
+          "crawl_status": "PARTIAL",
+          "crawl_count": 8,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 22,
+            "education": 0,
+            "buddhism": 9
+          }
+        },
+        {
+          "attempt": 2,
+          "crawl_run_id": 1034,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 23,
+          "ai_result": {
+            "summary_count": 7,
+            "importance_count": 7,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 22,
+            "education": 0,
+            "buddhism": 16
+          }
+        },
+        {
+          "attempt": 3,
+          "crawl_run_id": 1035,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 18,
+          "ai_result": {
+            "summary_count": 2,
+            "importance_count": 2,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 22,
+            "education": 4,
+            "buddhism": 15
+          }
+        }
+      ],
+      "after": {
+        "foundation": 22,
+        "education": 4,
+        "buddhism": 15
+      },
+      "status": "repaired"
+    }
+  ],
+  "summary": {
+    "repaired": 2
+  },
+  "still_incomplete_dates": []
+}

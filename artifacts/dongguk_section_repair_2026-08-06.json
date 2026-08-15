@@ -1,0 +1,845 @@
+{
+  "keyword_id": 86,
+  "start_date": "2026-07-01",
+  "end_date": "2026-08-06",
+  "in_progress": false,
+  "completed_date_count": 37,
+  "results": [
+    {
+      "mail_date": "2026-07-01",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 33,
+        "education": 0,
+        "buddhism": 1
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "error": "This Session's transaction has been rolled back due to a previous exception during flush. To begin a new transaction with this Session, first issue Session.rollback(). Original exception was: (raised as a result of Query-invoked autoflush; consider using a session.no_autoflush block if this flush is occurring prematurely)\n(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DeadlockDetectedError'>: deadlock detected\nDETAIL:  Process 1906 waits for RowShareLock on relation 17357 of database 16386; blocked by process 1909.\nProcess 1909 waits for AccessExclusiveLock on relation 17453 of database 16386; blocked by process 1906.\nHINT:  See server log for query details.\n[SQL: INSERT INTO crawl_run_articles (crawl_run_id, keyword_id, article_id, source_name, status, reason_code, candidate_url, canonical_url, title, published_at, is_reconstructed, details) VALUES ($1::BIGINT, $2::BIGINT, $3::BIGINT, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR, $9::VARCHAR, $10::TIMESTAMP WITH TIME ZONE, $11::BOOLEAN, $12::JSONB) RETURNING crawl_run_articles.id, crawl_run_articles.created_at]\n[parameters: (1016, 86, None, 'section_pool_education', 'rejected', 'outside_date_window', 'http://www.cctimes.kr/news/articleView.html?idxno=913987', 'https://cctimes.kr/news/articleView.html?idxno=913987', '[칼럼] 2024 대입 수능시험 결과 분석 소고(小考)', datetime.datetime(2026, 6, 29, 10, 58, tzinfo=datetime.timezone.utc), False, '{}')]\n(Background on this error at: https://sqlalche.me/e/20/dbapi) (Background on this error at: https://sqlalche.me/e/20/7s2a)",
+          "section_counts": {
+            "foundation": 33,
+            "education": 0,
+            "buddhism": 1
+          }
+        },
+        {
+          "attempt": 2,
+          "crawl_run_id": 1018,
+          "crawl_status": "PARTIAL",
+          "crawl_count": 8,
+          "ai_result": {
+            "summary_count": 1,
+            "importance_count": 1,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 35,
+            "education": 3,
+            "buddhism": 2
+          }
+        }
+      ],
+      "after": {
+        "foundation": 35,
+        "education": 3,
+        "buddhism": 2
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 12,
+        "education": 0,
+        "buddhism": 7
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1021,
+          "crawl_status": "PARTIAL",
+          "crawl_count": 3,
+          "ai_result": {
+            "summary_count": 1,
+            "importance_count": 1,
+            "already_scored_count": 1,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 14,
+            "education": 0,
+            "buddhism": 8
+          }
+        },
+        {
+          "attempt": 2,
+          "crawl_run_id": 1023,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 19,
+          "ai_result": {
+            "summary_count": 7,
+            "importance_count": 7,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 21,
+            "education": 0,
+            "buddhism": 8
+          }
+        },
+        {
+          "attempt": 3,
+          "crawl_run_id": 1025,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 21,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 21,
+            "education": 0,
+            "buddhism": 8
+          }
+        }
+      ],
+      "after": {
+        "foundation": 21,
+        "education": 0,
+        "buddhism": 8
+      },
+      "status": "still_incomplete"
+    },
+    {
+      "mail_date": "2026-07-03",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 19,
+        "education": 0,
+        "buddhism": 4
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1026,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 13,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 22,
+            "education": 1,
+            "buddhism": 6
+          }
+        }
+      ],
+      "after": {
+        "foundation": 22,
+        "education": 1,
+        "buddhism": 6
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-04",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 32,
+        "education": 1,
+        "buddhism": 9
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 32,
+        "education": 1,
+        "buddhism": 9
+      }
+    },
+    {
+      "mail_date": "2026-07-05",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 0,
+        "education": 0,
+        "buddhism": 2
+      },
+      "missing_before": [
+        "foundation",
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1027,
+          "crawl_status": "PARTIAL",
+          "crawl_count": 2,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 0,
+            "education": 0,
+            "buddhism": 2
+          }
+        },
+        {
+          "attempt": 2,
+          "crawl_run_id": 1028,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 2,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 0,
+            "education": 0,
+            "buddhism": 2
+          }
+        },
+        {
+          "attempt": 3,
+          "crawl_run_id": 1029,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 1,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 0,
+            "education": 0,
+            "buddhism": 2
+          }
+        }
+      ],
+      "after": {
+        "foundation": 0,
+        "education": 0,
+        "buddhism": 2
+      },
+      "status": "still_incomplete"
+    },
+    {
+      "mail_date": "2026-07-06",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 44,
+        "education": 2,
+        "buddhism": 12
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 44,
+        "education": 2,
+        "buddhism": 12
+      }
+    },
+    {
+      "mail_date": "2026-07-07",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 28,
+        "education": 1,
+        "buddhism": 2
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 28,
+        "education": 1,
+        "buddhism": 2
+      }
+    },
+    {
+      "mail_date": "2026-07-08",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 48,
+        "education": 2,
+        "buddhism": 1
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 48,
+        "education": 2,
+        "buddhism": 1
+      }
+    },
+    {
+      "mail_date": "2026-07-09",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 31,
+        "education": 2,
+        "buddhism": 24
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 31,
+        "education": 2,
+        "buddhism": 24
+      }
+    },
+    {
+      "mail_date": "2026-07-10",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 43,
+        "education": 2,
+        "buddhism": 1
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 43,
+        "education": 2,
+        "buddhism": 1
+      }
+    },
+    {
+      "mail_date": "2026-07-11",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 9,
+        "education": 0,
+        "buddhism": 1
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1030,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 7,
+          "ai_result": {
+            "summary_count": 1,
+            "importance_count": 1,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 9,
+            "education": 1,
+            "buddhism": 2
+          }
+        }
+      ],
+      "after": {
+        "foundation": 9,
+        "education": 1,
+        "buddhism": 2
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-12",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 8,
+        "education": 2,
+        "buddhism": 3
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 8,
+        "education": 2,
+        "buddhism": 3
+      }
+    },
+    {
+      "mail_date": "2026-07-13",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 42,
+        "education": 7,
+        "buddhism": 16
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 42,
+        "education": 7,
+        "buddhism": 16
+      }
+    },
+    {
+      "mail_date": "2026-07-14",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 42,
+        "education": 9,
+        "buddhism": 9
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 42,
+        "education": 9,
+        "buddhism": 9
+      }
+    },
+    {
+      "mail_date": "2026-07-15",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 63,
+        "education": 26,
+        "buddhism": 20
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 63,
+        "education": 26,
+        "buddhism": 20
+      }
+    },
+    {
+      "mail_date": "2026-07-16",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 63,
+        "education": 26,
+        "buddhism": 15
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 63,
+        "education": 26,
+        "buddhism": 15
+      }
+    },
+    {
+      "mail_date": "2026-07-17",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 61,
+        "education": 5,
+        "buddhism": 8
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 61,
+        "education": 5,
+        "buddhism": 8
+      }
+    },
+    {
+      "mail_date": "2026-07-18",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 19,
+        "education": 5,
+        "buddhism": 0
+      },
+      "missing_before": [
+        "buddhism"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1031,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 4,
+          "ai_result": {
+            "summary_count": 2,
+            "importance_count": 2,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 19,
+            "education": 6,
+            "buddhism": 2
+          }
+        }
+      ],
+      "after": {
+        "foundation": 19,
+        "education": 6,
+        "buddhism": 2
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-19",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 8,
+        "education": 1,
+        "buddhism": 5
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 8,
+        "education": 1,
+        "buddhism": 5
+      }
+    },
+    {
+      "mail_date": "2026-07-20",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 94,
+        "education": 15,
+        "buddhism": 26
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 94,
+        "education": 15,
+        "buddhism": 26
+      }
+    },
+    {
+      "mail_date": "2026-07-21",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 88,
+        "education": 23,
+        "buddhism": 15
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 88,
+        "education": 23,
+        "buddhism": 15
+      }
+    },
+    {
+      "mail_date": "2026-07-22",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 50,
+        "education": 18,
+        "buddhism": 19
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 50,
+        "education": 18,
+        "buddhism": 19
+      }
+    },
+    {
+      "mail_date": "2026-07-23",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 37,
+        "education": 2,
+        "buddhism": 9
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 37,
+        "education": 2,
+        "buddhism": 9
+      }
+    },
+    {
+      "mail_date": "2026-07-24",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 54,
+        "education": 1,
+        "buddhism": 1
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 54,
+        "education": 1,
+        "buddhism": 1
+      }
+    },
+    {
+      "mail_date": "2026-07-25",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 23,
+        "education": 1,
+        "buddhism": 1
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 23,
+        "education": 1,
+        "buddhism": 1
+      }
+    },
+    {
+      "mail_date": "2026-07-26",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 5,
+        "education": 1,
+        "buddhism": 1
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 5,
+        "education": 1,
+        "buddhism": 1
+      }
+    },
+    {
+      "mail_date": "2026-07-27",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 36,
+        "education": 5,
+        "buddhism": 9
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 36,
+        "education": 5,
+        "buddhism": 9
+      }
+    },
+    {
+      "mail_date": "2026-07-28",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 62,
+        "education": 2,
+        "buddhism": 22
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 62,
+        "education": 2,
+        "buddhism": 22
+      }
+    },
+    {
+      "mail_date": "2026-07-29",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 22,
+        "education": 3,
+        "buddhism": 10
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 22,
+        "education": 3,
+        "buddhism": 10
+      }
+    },
+    {
+      "mail_date": "2026-07-30",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 23,
+        "education": 15,
+        "buddhism": 31
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 23,
+        "education": 15,
+        "buddhism": 31
+      }
+    },
+    {
+      "mail_date": "2026-07-31",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 33,
+        "education": 28,
+        "buddhism": 41
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 33,
+        "education": 28,
+        "buddhism": 41
+      }
+    },
+    {
+      "mail_date": "2026-08-01",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 46,
+        "education": 18,
+        "buddhism": 40
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 46,
+        "education": 18,
+        "buddhism": 40
+      }
+    },
+    {
+      "mail_date": "2026-08-02",
+      "is_target_business_day": false,
+      "before": {
+        "foundation": 3,
+        "education": 2,
+        "buddhism": 10
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 3,
+        "education": 2,
+        "buddhism": 10
+      }
+    },
+    {
+      "mail_date": "2026-08-03",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 63,
+        "education": 27,
+        "buddhism": 56
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 63,
+        "education": 27,
+        "buddhism": 56
+      }
+    },
+    {
+      "mail_date": "2026-08-04",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 28,
+        "education": 15,
+        "buddhism": 39
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 28,
+        "education": 15,
+        "buddhism": 39
+      }
+    },
+    {
+      "mail_date": "2026-08-05",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 10,
+        "education": 3,
+        "buddhism": 8
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 10,
+        "education": 3,
+        "buddhism": 8
+      }
+    },
+    {
+      "mail_date": "2026-08-06",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 39,
+        "education": 39,
+        "buddhism": 53
+      },
+      "missing_before": [],
+      "attempts": [],
+      "status": "already_complete",
+      "after": {
+        "foundation": 39,
+        "education": 39,
+        "buddhism": 53
+      }
+    }
+  ],
+  "summary": {
+    "repaired": 4,
+    "still_incomplete": 2,
+    "already_complete": 31
+  },
+  "still_incomplete_dates": [
+    "2026-07-02",
+    "2026-07-05"
+  ]
+}

@@ -246,13 +246,22 @@ class TransNewsClient:
         if include_empty_content:
             params["include_empty_content"] = True
         if section_pool_target_count:
-            params["section_pool_target_count"] = section_pool_target_count
+            params["section_pool_target_count"] = max(
+                1,
+                min(int(section_pool_target_count), 10),
+            )
         if timeout_seconds:
             params["timeout_seconds"] = timeout_seconds
         if discovery_only:
             params["discovery_only"] = True
         if search_sort:
-            params["search_sort"] = search_sort
+            normalized_sort = {
+                "date": "latest",
+                "newest": "latest",
+                "recent": "latest",
+            }.get(str(search_sort).casefold(), str(search_sort).casefold())
+            if normalized_sort in {"relevance", "latest"}:
+                params["search_sort"] = normalized_sort
         if include_source_debug:
             params["include_source_debug"] = True
 

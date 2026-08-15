@@ -53,6 +53,19 @@ class CrawlRunService:
             item.get("pool"),
         ]
         text_value = " ".join(str(value or "") for value in values).casefold()
+        # Section-pool articles can originate from Naver or Google. Keep the
+        # functional pool as the audit source so coverage/retry checks measure
+        # the education and Buddhism pipelines instead of the transport used.
+        if (
+            item.get("source_type") == "section_pool"
+            and str(item.get("section") or "").casefold() == "education"
+        ):
+            return "section_pool_education"
+        if (
+            item.get("source_type") == "section_pool"
+            and str(item.get("section") or "").casefold() == "buddhism"
+        ):
+            return "section_pool_buddhism"
         if "naver" in text_value:
             return "naver"
         if "google" in text_value or "rss" in text_value:
@@ -65,15 +78,9 @@ class CrawlRunService:
             return "media_site_direct"
         if "media_direct" in text_value:
             return "media_direct_pool"
-        if (
-            "section" in text_value
-            and str(item.get("section") or "").casefold() == "education"
-        ):
+        if "section" in text_value and str(item.get("section") or "").casefold() == "education":
             return "section_pool_education"
-        if (
-            "section" in text_value
-            and str(item.get("section") or "").casefold() == "buddhism"
-        ):
+        if "section" in text_value and str(item.get("section") or "").casefold() == "buddhism":
             return "section_pool_buddhism"
         if "section" in text_value:
             return "section_pool"
@@ -445,6 +452,8 @@ class CrawlRunService:
         discovery_only: bool = True,
         enrich_for_relevance: bool = True,
         trigger_type: str = "manual",
+        section_pool_target_count: int | None = None,
+        search_sort: str | None = None,
     ) -> dict[str, Any]:
         keywords = await self._get_user_keywords(user_id=user_id, keyword_ids=keyword_ids)
         if not keywords:
@@ -511,9 +520,12 @@ class CrawlRunService:
                         include_dongguk_official=is_dongguk_keyword,
                         include_section_pools=is_dongguk_keyword,
                         include_empty_content=is_dongguk_keyword,
-                        section_pool_target_count=3 if is_dongguk_keyword else None,
+                        section_pool_target_count=(
+                            section_pool_target_count or 3
+                        ) if is_dongguk_keyword else None,
                         timeout_seconds=90 if is_dongguk_keyword else None,
                         discovery_only=discovery_only,
+                        search_sort=search_sort,
                         include_source_debug=True,
                     )
                 except (TransNewsClientError, TimeoutError, OSError, httpx.TransportError) as exc:

@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
@@ -17,6 +18,7 @@ from app.core.transnews_client import TransNewsClient
 from app.db.base import Base
 from app.db.session import engine
 from app.services.crawl_scheduler_service import shutdown_scheduler, start_scheduler
+from app.services.dify_service import DifyService
 
 ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(ENV_PATH, override=True)
@@ -87,6 +89,7 @@ async def lifespan(app: FastAPI):
     finally:
         shutdown_scheduler()
         await TransNewsClient.close_shared_client()
+        await DifyService.close_shared_client()
 
 
 app = FastAPI(
@@ -106,6 +109,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 

@@ -1,0 +1,103 @@
+{
+  "keyword_id": 86,
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-02",
+  "in_progress": false,
+  "completed_date_count": 2,
+  "results": [
+    {
+      "mail_date": "2026-07-01",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 32,
+        "education": 2,
+        "buddhism": 0
+      },
+      "missing_before": [
+        "buddhism"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1036,
+          "crawl_status": "PARTIAL",
+          "crawl_count": 8,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 32,
+            "education": 2,
+            "buddhism": 1
+          }
+        }
+      ],
+      "after": {
+        "foundation": 32,
+        "education": 2,
+        "buddhism": 1
+      },
+      "status": "repaired"
+    },
+    {
+      "mail_date": "2026-07-02",
+      "is_target_business_day": true,
+      "before": {
+        "foundation": 20,
+        "education": 0,
+        "buddhism": 7
+      },
+      "missing_before": [
+        "education"
+      ],
+      "attempts": [
+        {
+          "attempt": 1,
+          "crawl_run_id": 1037,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 15,
+          "ai_result": {
+            "summary_count": 1,
+            "importance_count": 1,
+            "already_scored_count": 0,
+            "remaining_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 21,
+            "education": 0,
+            "buddhism": 11
+          }
+        },
+        {
+          "attempt": 2,
+          "crawl_run_id": 1038,
+          "crawl_status": "COMPLETED",
+          "crawl_count": 17,
+          "ai_result": {
+            "summary_count": 0,
+            "importance_count": 0
+          },
+          "ai_error": null,
+          "section_counts": {
+            "foundation": 21,
+            "education": 1,
+            "buddhism": 12
+          }
+        }
+      ],
+      "after": {
+        "foundation": 21,
+        "education": 1,
+        "buddhism": 12
+      },
+      "status": "repaired"
+    }
+  ],
+  "summary": {
+    "repaired": 2
+  },
+  "still_incomplete_dates": []
+}

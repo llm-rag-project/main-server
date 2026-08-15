@@ -66,7 +66,12 @@ GREEN = "16A34A"
 RED = "DC2626"
 AMBER = "D97706"
 KST = ZoneInfo("Asia/Seoul")
-DONGGUK_MAIL_POLICY_VERSION = 11
+DONGGUK_MAIL_POLICY_VERSION = 16
+DONGGUK_DEFAULT_SECTION_LIMITS = {
+    "foundation": 4,
+    "education": 2,
+    "buddhism": 2,
+}
 DEFAULT_DONGGUK_PRIORITY_CRITERIA = """홍보처 AI 기사 선정 기준
 
 우선순위 기준:
@@ -80,8 +85,10 @@ DEFAULT_DONGGUK_PRIORITY_CRITERIA = """홍보처 AI 기사 선정 기준
 - 학교, 교직원, 학생의 수상 및 공식 인증 획득 기사를 우선 선정합니다.
 - 학교가 주최하거나 공식적으로 참여한 주요 행사 기사를 우선 선정합니다.
 - 학술대회, 세미나, 입시, 교육 프로그램, 인사, 동문 및 교수 인터뷰 기사는 직접적인 학교 성과 기사보다 낮게 선정합니다.
-- 대학 [교육] 섹션은 개별 대학 홍보 기사보다 교육부, 대교협, 사총협, 고등교육법, 교육교부금, 등록금, 교원창업, AI 기본역량 등 고등교육 정책성 기사를 우선 선정합니다.
-- 불교 [종단] 섹션은 조계종, 종단, 포교, 출가, 성보, 불교문화유산, 불교중앙박물관, 불교신문/법보신문/BBS/BTN/현대불교 등 종단성과 불교계 파급력이 있는 기사를 우선 선정합니다.
+- 동국대 [법인/건학위] 섹션은 동국대학교, 학교법인, 건학위원회, 교내 기관, 동문 또는 교수와의 직접 관련성이 확인되는 기사를 선정합니다.
+- 대학 [교육] 섹션은 동국대 직접 언급 여부와 관계없이 교육부, 대교협, 사총협, 고등교육법, 교육교부금, 등록금, 입시, 교원창업, AI 기본역량 등 파급력 있는 고등교육 정책 기사를 우선 선정합니다.
+- 불교 [종단] 섹션은 동국대 직접 언급 여부와 관계없이 조계종, 종단, 포교, 출가, 성보, 불교문화유산, 불교중앙박물관 등 불교계 파급력이 있는 기사를 우선 선정합니다.
+- [동문소식], 교수 인터뷰·칼럼, 불교학술원, 종학연구소, 한국문학연구소, 미당연구소 등 동국대 소속이 제목에 드러나는 기사는 동국대 직접 관련 기사로 판단합니다.
 
 대표 기사 선정 기준:
 - 동일 주제, 동일 보도자료, 같은 사건의 반복 보도는 하나의 그룹으로 묶고 대표 기사 1건만 선정합니다.
@@ -91,7 +98,7 @@ DEFAULT_DONGGUK_PRIORITY_CRITERIA = """홍보처 AI 기사 선정 기준
 - 언론사 신뢰도와 홍보처 배포 활용도가 높은 기사를 우선합니다.
 
 제외 기준:
-- 동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.
+- 동국대 [법인/건학위] 섹션에서 동국대학교 또는 소속 기관·동문·교수와의 직접 관련성이 확인되지 않는 기사는 제외합니다.
 - 원문 확인이 어렵거나 본문 정보가 부족한 기사는 제외합니다."""
 DEFAULT_DONGGUK_REPRESENTATIVE_CRITERIA = """대표 기사 선정 기준:
 - 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
@@ -106,6 +113,22 @@ def _normalize_dongguk_priority_criteria(criteria: str | None) -> str:
     text = (criteria or "").strip()
     if not text:
         return DEFAULT_DONGGUK_PRIORITY_CRITERIA
+    legacy_replacements = {
+        "- 대학 정책과 고등교육 일반 이슈는 동국대학교와의 직접 관련성을 확인해 선정합니다.": (
+            "- 대학 [교육] 섹션은 동국대 직접 언급 여부와 관계없이 교육부, 대교협, 사총협, "
+            "고등교육법, 교육교부금, 등록금, 입시 등 파급력 있는 고등교육 정책 기사를 선정합니다."
+        ),
+        "- 불교계와 종단 일반 소식은 동국대학교와 직접 연결될 때만 참고 기사로 선정합니다.": (
+            "- 불교 [종단] 섹션은 동국대 직접 언급 여부와 관계없이 조계종, 종단, 포교, 출가, "
+            "성보, 불교문화유산 등 불교계 파급력이 있는 기사를 선정합니다."
+        ),
+        "- 동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.": (
+            "- 동국대 [법인/건학위] 섹션에서 동국대학교 또는 소속 기관·동문·교수와의 "
+            "직접 관련성이 확인되지 않는 기사는 제외합니다."
+        ),
+    }
+    for legacy, replacement in legacy_replacements.items():
+        text = text.replace(legacy, replacement)
     return text
 DONGGUK_DASHBOARD_URL = "https://2c25-210-94-172-73.ngrok-free.app/"
 DONGGUK_HWPX_TEMPLATE = Path(__file__).resolve().parents[2] / "templates" / "dongguk_daily_news_template.hwpx"
@@ -166,6 +189,7 @@ class DonggukEmailRequest(BaseModel):
     exclude_similar_sent: bool = True
     use_current_articles: bool = False
     priority_criteria: str | None = None
+    section_limits: dict[str, int] | None = None
     is_test: bool = False
 
 
@@ -180,6 +204,7 @@ class DonggukPreviewRequest(BaseModel):
     removed_article_keys: list[str] = []
     removed_articles: list[DonggukMailArticle] = []
     priority_criteria: str | None = None
+    section_limits: dict[str, int] | None = None
 
 
 class DonggukDraftRequest(BaseModel):
@@ -191,6 +216,7 @@ class DonggukDraftRequest(BaseModel):
     removed_article_keys: list[str] = []
     removed_articles: list[DonggukMailArticle] = []
     preview_data: dict | None = None
+    section_limits: dict[str, int] | None = None
     feedback_source: str | None = None
 
 
@@ -210,6 +236,7 @@ class DonggukHwpRequest(BaseModel):
     subject: str
     articles: list[DonggukMailArticle]
     mail_date: str | None = None
+    section_limits: dict[str, int] | None = None
 
 
 class DonggukLinkPreviewRequest(BaseModel):
@@ -993,21 +1020,56 @@ def _has_hongbo_hard_exclusion(article: DonggukMailArticle, section: str) -> boo
     return False
 
 
+def _has_foundation_affiliation_signal(article: DonggukMailArticle) -> bool:
+    title = article.title or ""
+    summary = article.summary or ""
+    category = article.category or ""
+    source = article.source or ""
+    url = article.url or (article.links[0] if article.links else "")
+    raw_section = str(article.section or "").strip()
+    affiliation_text = f"{title} {summary} {category}"
+    explicit_signal = bool(
+        re.search(
+            r"동국대|동국대학교|동국대WISE|WISE캠퍼스|동문소식|건학위|로터스관|"
+            r"지역미래불자|미래불자|불교학술원|종학연구소|한국문학연구소|미당연구소|"
+            r"불교문화연구원|동국미디어센터|동대부속|동대부고|동대부중|선화여고|"
+            r"동국인의|동국108리더스|동대문학상|선재봇|동국의\s*감동",
+            affiliation_text,
+            re.I,
+        )
+    )
+    tagged_affiliate = raw_section in {"dongguk_core", "foundation"} and bool(
+        re.search(r"\[[^\]]*(?:교수|연구소|학술원|동문)[^\]]*\]", title, re.I)
+    )
+    classified_affiliate = raw_section in {"dongguk_core", "foundation"} and bool(
+        re.search(
+            r"총장/이사장|기부/장학|건학\s*120주년|연구\s*성과|협약/사업|수상/인증|"
+            r"학교\s*공식\s*행사|학술활동|입시/교육\s*프로그램|동문/교수",
+            category,
+            re.I,
+        )
+    )
+    return bool(
+        explicit_signal
+        or tagged_affiliate
+        or classified_affiliate
+        or source.strip() == "동국대학교"
+        or "dongguk.edu" in url
+    )
+
+
 def _is_foundation_mail_eligible(article: DonggukMailArticle) -> bool:
     if _has_hongbo_hard_exclusion(article, "foundation"):
         return False
     text = _dongguk_article_qualification_text(article)
-    title = article.title or ""
-    source = article.source or ""
-    has_direct_title_signal = bool(re.search(r"동국대|동국대학교|동국대WISE|WISE캠퍼스|동문소식", title, re.I))
-    has_official_source_signal = source.strip() == "동국대학교"
-    if not (has_direct_title_signal or has_official_source_signal):
+    if not _has_foundation_affiliation_signal(article):
         return False
     positive = (
         r"총장|이사장|부총장|교수|학생|동문|학부|학과|대학원|캠퍼스|기술지주|"
         r"연구소|학술원|종학연구소|불교학술원|기부|장학|발전기금|로터스관|"
         r"협약|사업|선정|수상|인증|개최|성료|모집|임용|선임|취임|연구|개발|"
-        r"AI|C포럼|서울RISE|농구|MBC배|입시|교사연수|Dream"
+        r"AI|C포럼|서울RISE|농구|MBC배|입시|교사연수|Dream|봉정|불교사전|"
+        r"동아리|전시|작가|칼럼|인터뷰|출연|미래불자|건학위|학술대회|토론"
     )
     if not re.search(positive, text, re.I):
         return False
@@ -1020,9 +1082,9 @@ def _is_education_mail_eligible(article: DonggukMailArticle) -> bool:
     text = _dongguk_article_qualification_text(article)
     return bool(
         re.search(
-            r"대학|고등교육|교육부|대교협|수능|대입|입시|등록금|교부금|학사|"
-            r"정원|국공립대|사립대|전문대|의대|문·이과|AI\s*기본\s*역량|"
-            r"교육재정|고등교육법|지역인재|연구원|교원창업",
+            r"대학|고등교육|대교협|사총협|수능|대입|입시|수시|정시|등록금|"
+            r"교부금|학사|대학\s*정원|국공립대|사립대|전문대|의대|문·이과|"
+            r"AI\s*기본\s*역량|교육재정|고등교육법|지역인재|교원창업",
             text,
             re.I,
         )
@@ -1036,7 +1098,8 @@ def _is_buddhism_mail_eligible(article: DonggukMailArticle) -> bool:
     return bool(
         re.search(
             r"불교|조계종|종단|스님|사찰|성보|포교|선명상|수행|출가|법회|"
-            r"불상|불두|불교문화유산|불교중앙박물관|불교신문|법보신문|현대불교|BTN|BBS",
+            r"불상|불두|암자|백양사|불국사|통도사|해인사|송광사|봉은사|조계사|"
+            r"불교문화유산|불교중앙박물관|불교신문|법보신문|현대불교|BTN|BBS",
             text,
             re.I,
         )
@@ -1054,10 +1117,7 @@ def _is_dongguk_mail_section_eligible(article: DonggukMailArticle) -> bool:
 
 def _dongguk_candidate_section_key(article: DonggukMailArticle) -> str | None:
     if _is_foundation_mail_eligible(article):
-        title = article.title or ""
-        source = article.source or ""
-        url = article.url or (article.links[0] if article.links else "")
-        if re.search(r"동국대|동국대학교|동국대WISE|WISE캠퍼스|동문소식", title, re.I) or source.strip() == "동국대학교" or "dongguk.edu" in url:
+        if _has_foundation_affiliation_signal(article):
             return "foundation"
     raw_section = str(article.section or "").strip()
     if raw_section:
@@ -1173,22 +1233,73 @@ def _article_with_mail_section(article: DonggukMailArticle, section: str) -> Don
     return DonggukMailArticle(**data)
 
 
+def _normalize_dongguk_section_limits(section_limits: dict[str, int] | None = None) -> dict[str, int]:
+    normalized = dict(DONGGUK_DEFAULT_SECTION_LIMITS)
+    for raw_section, raw_limit in (section_limits or {}).items():
+        section = _dongguk_section_key(raw_section)
+        try:
+            limit = int(raw_limit)
+        except (TypeError, ValueError):
+            continue
+        normalized[section] = max(0, min(30, limit))
+    return normalized
+
+
+def _limit_dongguk_articles_by_section(
+    articles: list[DonggukMailArticle],
+    section_limits: dict[str, int] | None = None,
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    limits = _normalize_dongguk_section_limits(section_limits)
+    counts = {section: 0 for section in limits}
+    kept: list[DonggukMailArticle] = []
+    removed: list[DonggukMailArticle] = []
+    for article in articles:
+        section = _dongguk_section_key(article.section)
+        if counts[section] < limits[section]:
+            kept.append(article)
+            counts[section] += 1
+            continue
+        data = article.model_dump()
+        data["selection_reason"] = (
+            f"{_dongguk_section_label(article.section)}의 최대 기사 수 "
+            f"{limits[section]}건을 적용해 메일에서 제외되었습니다."
+        )
+        removed.append(DonggukMailArticle(**data))
+    return kept, removed
+
+
+def _sanitize_dongguk_mail_articles(
+    articles: list[DonggukMailArticle],
+    section_limits: dict[str, int] | None = None,
+) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    articles, exact_duplicates = _dedupe_exact_dongguk_articles(articles)
+    articles, topic_duplicates = _dedupe_representative_articles(articles)
+    articles, over_limit = _limit_dongguk_articles_by_section(articles, section_limits)
+    removed, _ = _dedupe_exact_dongguk_articles([*exact_duplicates, *topic_duplicates, *over_limit])
+    return articles, removed
+
+
 def _dongguk_mail_section_policy(
     selected_articles: list[DonggukMailArticle],
     excluded_articles: list[DonggukMailArticle],
     all_candidates: list[DonggukMailArticle],
     mail_date: str | None = None,
+    section_limits: dict[str, int] | None = None,
 ) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
+    normalized_limits = _normalize_dongguk_section_limits(section_limits)
     section_targets = {
-        "foundation": {"min": 4, "max": 6},
-        "education": {"min": 2, "max": 2},
-        "buddhism": {"min": 2, "max": 2},
+        section: {"min": min(limit, DONGGUK_DEFAULT_SECTION_LIMITS[section]), "max": limit}
+        for section, limit in normalized_limits.items()
     }
     selected_articles, selected_exact_duplicates = _dedupe_exact_dongguk_articles(selected_articles)
     selected_articles, selected_topic_duplicates = _dedupe_representative_articles(selected_articles)
     all_candidates, candidate_exact_duplicates = _dedupe_exact_dongguk_articles(all_candidates)
     candidate_topic_duplicates: list[DonggukMailArticle] = []
     selected_keys = {_dongguk_article_key(article) for article in selected_articles}
+    selected_order = {
+        _dongguk_article_key(article): index
+        for index, article in enumerate(selected_articles)
+    }
     excluded_by_key = {_dongguk_article_key(article): article for article in excluded_articles}
 
     qualified_pool: dict[str, list[DonggukMailArticle]] = {key: [] for key in section_targets}
@@ -1207,6 +1318,8 @@ def _dongguk_mail_section_policy(
     for section, articles in qualified_pool.items():
         articles.sort(
             key=lambda article: (
+                _dongguk_article_key(article) in selected_keys,
+                -selected_order.get(_dongguk_article_key(article), len(selected_order)),
                 _hongbo_selection_score(article, section, _dongguk_article_key(article) in selected_keys, mail_date),
                 str(article.published_at or ""),
             ),
@@ -1223,7 +1336,7 @@ def _dongguk_mail_section_policy(
 
     for section, target in section_targets.items():
         current = 0
-        target_count = target["max"] if section == "foundation" else target["min"]
+        target_count = target["max"]
         for candidate in qualified_pool[section]:
             key = _dongguk_article_key(candidate)
             if key in used_keys:
@@ -1257,6 +1370,14 @@ def _dongguk_mail_section_policy(
         capped_articles.append(article)
         section_counts[section] += 1
 
+    # Keep the persisted draft identical to what readers, previews, and senders
+    # receive. Topic matching can become stricter as representative records are
+    # merged, so run the shared final guard once more before saving the result.
+    capped_articles, final_rule_removed = _sanitize_dongguk_mail_articles(
+        capped_articles,
+        normalized_limits,
+    )
+
     excluded = [
         *excluded_by_key.values(),
         *selected_exact_duplicates,
@@ -1265,6 +1386,7 @@ def _dongguk_mail_section_policy(
         *candidate_topic_duplicates,
         *disqualified_selected,
         *over_cap,
+        *final_rule_removed,
     ]
     included_keys = {_dongguk_article_key(article) for article in capped_articles}
     for article in all_candidates:
@@ -1604,6 +1726,7 @@ def _dongguk_preview_cache_key(
     articles: list[DonggukMailArticle],
     exclude_similar_sent: bool,
     priority_criteria: str | None = None,
+    section_limits: dict[str, int] | None = None,
 ) -> str:
     articles, _ = _dedupe_exact_dongguk_articles(articles)
     article_payload = []
@@ -1619,13 +1742,14 @@ def _dongguk_preview_cache_key(
             }
         )
     payload = {
-        "version": 2,
+        "version": DONGGUK_MAIL_POLICY_VERSION,
         "user_id": user_id,
         "keyword_id": keyword_id,
         "mail_date": mail_date,
         "subject": subject,
         "exclude_similar_sent": exclude_similar_sent,
         "priority_criteria": _normalize_dongguk_priority_criteria(priority_criteria),
+        "section_limits": _normalize_dongguk_section_limits(section_limits),
         "articles": sorted(article_payload, key=lambda item: (str(item.get("id") or ""), item.get("title") or "")),
     }
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
@@ -1707,23 +1831,33 @@ def _draft_response(draft: DonggukMailDraft | None) -> dict:
         preview_data = json.loads(draft.preview_body) if draft.preview_body else None
     except json.JSONDecodeError:
         preview_data = None
-    if preview_data and preview_data.get("policy_version") != DONGGUK_MAIL_POLICY_VERSION:
-        preview_data = None
-    # Old drafts can contain Google/Naver URL variants of the same publisher article.
-    # Sanitize them on every read so every Hongbo screen uses the same representative list.
-    selected_models = [DonggukMailArticle(**item) for item in selected_articles]
-    selected_models, newly_removed = _dedupe_exact_dongguk_articles(selected_models)
+    stored_section_limits = preview_data.get("section_limits") if isinstance(preview_data, dict) else None
+    if preview_data:
+        preview_data["policy_stale"] = (
+            preview_data.get("policy_version") != DONGGUK_MAIL_POLICY_VERSION
+        )
+    # Every Hongbo screen reads this response, so stale drafts must obey the same
+    # exact-duplicate, same-topic and per-section limit rules as a fresh AI result.
+    selected_models = [DonggukMailArticle(**item) for item in selected_articles if isinstance(item, dict)]
+    selected_models, newly_removed = _sanitize_dongguk_mail_articles(selected_models, stored_section_limits)
     selected_articles = [_dongguk_article_response(item) for item in selected_models]
     if newly_removed:
-        removed_models = [DonggukMailArticle(**item) for item in removed_articles]
+        removed_models = [DonggukMailArticle(**item) for item in removed_articles if isinstance(item, dict)]
         removed_models.extend(newly_removed)
+        removed_models, _ = _dedupe_exact_dongguk_articles(removed_models)
         removed_articles = [_dongguk_article_response(item) for item in removed_models]
     selected_article_keys = [_dongguk_article_key(item, index) for index, item in enumerate(selected_models)]
+    removed_article_keys = [
+        _dongguk_article_key(DonggukMailArticle(**item), index)
+        for index, item in enumerate(removed_articles)
+        if isinstance(item, dict)
+    ]
     if preview_data:
         preview_data["articles"] = selected_articles
         preview_data["excluded_articles"] = removed_articles
         preview_data["article_count"] = len(selected_articles)
         preview_data["excluded_count"] = len(removed_articles)
+        preview_data["section_limits"] = _normalize_dongguk_section_limits(stored_section_limits)
     return {
         "found": True,
         "id": draft.id,
@@ -1816,21 +1950,31 @@ async def _save_dongguk_mail_draft(
 
 
 def _articles_from_editor_result(result: dict, fallback_articles: list[DonggukMailArticle]) -> tuple[list[DonggukMailArticle], list[DonggukMailArticle]]:
-    fallback_by_key: dict[str, DonggukMailArticle] = {}
+    fallback_by_id: dict[str, DonggukMailArticle] = {}
+    fallback_by_position: dict[str, DonggukMailArticle] = {}
+    fallback_by_text: dict[str, DonggukMailArticle] = {}
     for index, article in enumerate(fallback_articles, start=1):
-        keys = {str(article.id or index), str(index), article.title or "", article.url or ""}
-        keys.update(article.links or [])
+        if article.id is not None:
+            fallback_by_id[str(article.id)] = article
+        fallback_by_position[str(index)] = article
+        keys = {article.title or "", article.url or "", *(article.links or [])}
         for key in keys:
             if key:
-                fallback_by_key[key] = article
+                fallback_by_text[key] = article
 
-    def find_fallback(*values: object) -> DonggukMailArticle | None:
+    def find_fallback(representative_id: object = None, *values: object) -> DonggukMailArticle | None:
+        if representative_id is not None:
+            identifier = str(representative_id)
+            if identifier in fallback_by_id:
+                return fallback_by_id[identifier]
         for value in values:
             if value is None:
                 continue
-            match = fallback_by_key.get(str(value))
+            match = fallback_by_text.get(str(value))
             if match:
                 return match
+        if representative_id is not None:
+            return fallback_by_position.get(str(representative_id))
         return None
 
     selected: list[DonggukMailArticle] = []
@@ -1845,7 +1989,7 @@ def _articles_from_editor_result(result: dict, fallback_articles: list[DonggukMa
             links = fallback.links
         selected.append(
             DonggukMailArticle(
-                id=representative_id if isinstance(representative_id, int) else (fallback.id if fallback else None),
+                id=fallback.id if fallback else (representative_id if isinstance(representative_id, int) else None),
                 title=item.get("title") or (fallback.title if fallback else "제목 없음"),
                 source=item.get("source") or (fallback.source if fallback else None),
                 section=fallback.section if fallback else None,
@@ -1867,7 +2011,7 @@ def _articles_from_editor_result(result: dict, fallback_articles: list[DonggukMa
         fallback = find_fallback(article_id, item.get("main_url"), item.get("title"))
         excluded.append(
             DonggukMailArticle(
-                id=article_id if isinstance(article_id, int) else (fallback.id if fallback else None),
+                id=fallback.id if fallback else (article_id if isinstance(article_id, int) else None),
                 title=item.get("title") or (fallback.title if fallback else "제외 기사"),
                 source=fallback.source if fallback else None,
                 section=fallback.section if fallback else None,
@@ -1931,6 +2075,11 @@ def _hongbo_topic_bucket(article: DonggukMailArticle) -> str | None:
     topic_patterns = [
         ("h안거", r"하안거|30일\s*수행|선.?교\s*겸수"),
         ("lotus_donation", r"로터스관.*(기부|희사|발전기금)|기부.*로터스관|희사.*로터스관"),
+        (
+            "mongolia_heritage_camp",
+            r"청년\s*문화유산\s*캠프|몽골.*(?:한[·\-\s]*몽\s*청년|문화유산\s*캠프)|"
+            r"한[·\-\s]*몽\s*청년.*(?:몽골|건학\s*120주년)",
+        ),
         ("iot_degree", r"지능\s*IoT|공동학위"),
         ("meditation_expo", r"서울국제명상엑스포|명상,\s*함께\s*깨어나다|명상엑스포"),
         ("c_forum", r"C포럼"),
@@ -2005,7 +2154,9 @@ def _is_similar_dongguk_article(left: DonggukMailArticle, right: DonggukMailArti
     right_bucket = _hongbo_topic_bucket(right)
     if left_bucket and left_bucket == right_bucket:
         return True
-    if left_title and right_title and SequenceMatcher(None, left_title, right_title).ratio() >= 0.55:
+    # AI performs semantic grouping. The backend only blocks near-identical rows so
+    # a shared school name cannot collapse unrelated Dongguk stories.
+    if left_title and right_title and SequenceMatcher(None, left_title, right_title).ratio() >= 0.82:
         return True
     if "서울시" in left_title and "서울시" in right_title and "앵커" in left_title and "앵커" in right_title:
         return True
@@ -2014,7 +2165,7 @@ def _is_similar_dongguk_article(left: DonggukMailArticle, right: DonggukMailArti
     if left_topic and right_topic:
         if left_topic in right_topic or right_topic in left_topic:
             return True
-        if SequenceMatcher(None, left_topic, right_topic).ratio() >= 0.46:
+        if SequenceMatcher(None, left_topic, right_topic).ratio() >= 0.72:
             return True
     left_title_tokens = _article_title_topic_tokens(left)
     right_title_tokens = _article_title_topic_tokens(right)
@@ -2028,7 +2179,7 @@ def _is_similar_dongguk_article(left: DonggukMailArticle, right: DonggukMailArti
             return True
     left_text = _article_similarity_text(left)
     right_text = _article_similarity_text(right)
-    if left_text and right_text and SequenceMatcher(None, left_text, right_text).ratio() >= 0.68:
+    if left_text and right_text and SequenceMatcher(None, left_text, right_text).ratio() >= 0.78:
         return True
     left_tokens = _article_similarity_tokens(left)
     right_tokens = _article_similarity_tokens(right)
@@ -2088,6 +2239,7 @@ async def _build_dongguk_preview_result(
     exclude_similar_sent: bool,
     keyword_id: int | None = None,
     priority_criteria: str | None = None,
+    section_limits: dict[str, int] | None = None,
 ) -> dict:
     articles, exact_duplicate_excluded = _dedupe_exact_dongguk_articles(articles)
     normalized_priority_criteria = _normalize_dongguk_priority_criteria(priority_criteria)
@@ -2104,6 +2256,7 @@ async def _build_dongguk_preview_result(
         articles=articles,
         exclude_similar_sent=exclude_similar_sent,
         priority_criteria=normalized_priority_criteria,
+        section_limits=section_limits,
     )
     cached = await _get_cached_dongguk_preview(db, cache_key)
     if cached is not None:
@@ -2123,6 +2276,7 @@ async def _build_dongguk_preview_result(
         [*editor_excluded_articles, *exact_duplicate_excluded, *previously_sent_excluded],
         articles,
         mail_date,
+        section_limits,
     )
     excluded_articles = policy_excluded_articles
     data = {
@@ -2133,6 +2287,7 @@ async def _build_dongguk_preview_result(
         "excluded_count": len(excluded_articles),
         "editor_used": editor_result is not None,
         "cached": False,
+        "section_limits": _normalize_dongguk_section_limits(section_limits),
     }
     await _save_dongguk_preview_cache(
         db,
@@ -2163,7 +2318,14 @@ async def preview_dongguk_email(
         )
         draft_data = _draft_response(draft)
         preview_data = draft_data.get("preview_data")
-        if preview_data and preview_data.get("articles") and preview_data.get("editor_used") is not False:
+        requested_limits = _normalize_dongguk_section_limits(body.section_limits)
+        draft_limits = _normalize_dongguk_section_limits(preview_data.get("section_limits")) if preview_data else None
+        if (
+            preview_data
+            and preview_data.get("articles")
+            and preview_data.get("editor_used") is not False
+            and draft_limits == requested_limits
+        ):
             preview_data["cached"] = True
             preview_data["from_draft"] = True
             return success_response(request=request, data=preview_data)
@@ -2177,6 +2339,7 @@ async def preview_dongguk_email(
         exclude_similar_sent=body.exclude_similar_sent,
         keyword_id=body.keyword_id,
         priority_criteria=body.priority_criteria,
+        section_limits=body.section_limits,
     )
     if mail_date:
         selected_articles = [DonggukMailArticle(**item) for item in data.get("articles") or []]
@@ -2220,17 +2383,32 @@ async def save_dongguk_draft(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
+    selected_articles, rule_removed = _sanitize_dongguk_mail_articles(
+        body.selected_articles,
+        body.section_limits,
+    )
+    removed_articles, _ = _dedupe_exact_dongguk_articles([*body.removed_articles, *rule_removed])
+    preview_data = deepcopy(body.preview_data) if body.preview_data is not None else {
+        "editor_used": False,
+        "cached": False,
+    }
+    preview_data["policy_version"] = DONGGUK_MAIL_POLICY_VERSION
+    preview_data["articles"] = [_dongguk_article_response(article) for article in selected_articles]
+    preview_data["excluded_articles"] = [_dongguk_article_response(article) for article in removed_articles]
+    preview_data["article_count"] = len(selected_articles)
+    preview_data["excluded_count"] = len(removed_articles)
+    preview_data["section_limits"] = _normalize_dongguk_section_limits(body.section_limits)
     draft = await _save_dongguk_mail_draft(
         db,
         user_id=current_user.id,
         keyword_id=body.keyword_id,
         mail_date=body.mail_date,
         subject=body.subject,
-        selected_article_keys=body.selected_article_keys,
-        selected_articles=body.selected_articles,
-        removed_article_keys=body.removed_article_keys,
-        removed_articles=body.removed_articles,
-        preview_data=body.preview_data,
+        selected_article_keys=[_dongguk_article_key(article, index) for index, article in enumerate(selected_articles)],
+        selected_articles=selected_articles,
+        removed_article_keys=[_dongguk_article_key(article, index) for index, article in enumerate(removed_articles)],
+        removed_articles=removed_articles,
+        preview_data=preview_data,
         record_feedback=bool(body.feedback_source),
         feedback_source=body.feedback_source or "unknown",
     )
@@ -2407,8 +2585,12 @@ async def send_dongguk_email(
 ):
     mail_date = body.mail_date or _mail_date_from_subject(body.subject)
     if body.use_current_articles:
-        preview_data = {"editor_used": False, "cached": True}
-        articles, excluded_articles = _dedupe_exact_dongguk_articles(body.articles)
+        articles, excluded_articles = _sanitize_dongguk_mail_articles(body.articles, body.section_limits)
+        preview_data = {
+            "editor_used": False,
+            "cached": True,
+            "section_limits": _normalize_dongguk_section_limits(body.section_limits),
+        }
     else:
         preview_data = await _build_dongguk_preview_result(
             db=db,
@@ -2419,6 +2601,7 @@ async def send_dongguk_email(
             exclude_similar_sent=body.exclude_similar_sent,
             keyword_id=body.keyword_id,
             priority_criteria=body.priority_criteria,
+            section_limits=body.section_limits,
         )
         articles = [DonggukMailArticle(**article) for article in preview_data.get("articles") or []]
         excluded_articles = [DonggukMailArticle(**article) for article in preview_data.get("excluded_articles") or []]
@@ -2482,7 +2665,8 @@ async def download_dongguk_hwp(
     current_user: User = Depends(get_current_user_or_dev_user),
 ):
     del current_user
-    hwpx = _dongguk_hwpx_bytes(body.subject, body.articles)
+    articles, _ = _sanitize_dongguk_mail_articles(body.articles, body.section_limits)
+    hwpx = _dongguk_hwpx_bytes(body.subject, articles)
     filename = _dongguk_hwpx_filename(body.subject, body.mail_date)
     encoded_filename = quote(filename)
     return StreamingResponse(
@@ -2558,6 +2742,7 @@ async def deliver_dongguk_email_for_scheduler(
         exclude_similar_sent=body.exclude_similar_sent,
         keyword_id=body.keyword_id,
         priority_criteria=body.priority_criteria,
+        section_limits=body.section_limits,
     )
     articles = [DonggukMailArticle(**article) for article in preview_data.get("articles") or []]
     excluded_articles = [DonggukMailArticle(**article) for article in preview_data.get("excluded_articles") or []]

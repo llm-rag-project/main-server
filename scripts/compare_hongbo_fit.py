@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from collections import Counter
 
 from sqlalchemy import select
@@ -15,7 +16,13 @@ from app.models.user import User
 from scripts.export_dongguk_sheet_rows import dashboard_articles_for_keyword_date
 
 
-DATES = ["2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16"]
+DATES = [
+    value.strip()
+    for value in os.getenv(
+        "TARGET_DATES", "2026-07-13,2026-07-14,2026-07-15,2026-07-16"
+    ).split(",")
+    if value.strip()
+]
 
 
 def score_section(article):
@@ -34,6 +41,7 @@ async def main():
         row = await db.execute(
             select(Keyword, User)
             .join(User, User.id == Keyword.user_id)
+            .where(Keyword.id == int(os.getenv("KEYWORD_ID", "86")))
             .where(Keyword.keyword_text == "동국대학교")
             .limit(1)
         )

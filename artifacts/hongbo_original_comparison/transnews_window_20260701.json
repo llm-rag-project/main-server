@@ -1,0 +1,334 @@
+{
+  "mail_date": "2026-07-01",
+  "window_start": "2026-06-30T08:30:00+09:00",
+  "window_end": "2026-07-01T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 8,
+  "section_counts": {
+    "education": 1,
+    "buddhism": 7
+  },
+  "audit_source_counts": {
+    "section_pool_education": 1,
+    "section_pool_buddhism": 7
+  },
+  "source_type_counts": {
+    "section_pool": 8
+  },
+  "source_debug": {
+    "google_rss": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 21405,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 5766
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 8923,
+          "error": "google_rss timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 5157,
+          "error": "google_rss timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 26262,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6156
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 7384,
+          "error": "naver timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3925,
+          "error": "naver timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "dongguk_official": {
+      "status": "timeout",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 27716,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 15320,
+          "error": "dongguk_official timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 5613,
+          "error": "dongguk_official timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2631,
+          "error": "dongguk_official timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "error": "dongguk_official timed out after 2.0s"
+    },
+    "section_pool_education": {
+      "status": "ok",
+      "count": 1,
+      "retry_count": 0,
+      "duration_ms": 37255,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 1,
+          "duration_ms": 37255
+        }
+      ],
+      "sections": {
+        "education": 1
+      },
+      "source_types": {
+        "section_pool": 1
+      },
+      "collection_sources": {
+        "naver": 1
+      },
+      "section": "education"
+    },
+    "section_pool_buddhism": {
+      "status": "ok",
+      "count": 7,
+      "retry_count": 0,
+      "duration_ms": 37255,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "ok",
+          "count": 7,
+          "duration_ms": 37255
+        }
+      ],
+      "sections": {
+        "buddhism": 7
+      },
+      "source_types": {
+        "section_pool": 7
+      },
+      "collection_sources": {
+        "naver": 7
+      },
+      "section": "buddhism"
+    },
+    "media_direct_pool": {
+      "status": "timeout",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 26278,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 15141,
+          "error": "media_direct_pool timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 5843,
+          "error": "media_direct_pool timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3943,
+          "error": "media_direct_pool timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "error": "media_direct_pool timed out after 2.0s"
+    },
+    "media_site_direct": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 26272,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 6237
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 7281,
+          "error": "media_site_direct timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 3937,
+          "error": "media_site_direct timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "partial_search_without_eligible_articles"
+    },
+    "relation_expansion": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 17956,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 9306
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 4935
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 2503
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "completed_without_eligible_articles"
+    }
+  },
+  "items": [
+    {
+      "title": "[칼럼] 2024 대입 수능시험 결과 분석 소고(小考)",
+      "published_at": "Mon, 29 Jun 2026 19:58:00 +0900",
+      "section": "education",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_education",
+      "url": "http://www.cctimes.kr/news/articleView.html?idxno=913987"
+    },
+    {
+      "title": "조계종 미래본부 \"'천년을 세우다' 왜곡 유감…집행 투명\"",
+      "published_at": "2026-06-29T19:21:19+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.hyunbulnews.com/news/articleView.html?idxno=504104"
+    },
+    {
+      "title": "조계종 \"'천년을 세우다' 불사, 원래 목적대로 투명하게 집행\"",
+      "published_at": "2026-06-29T17:57:01+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.ibulgyo.com/news/articleView.html?idxno=439664"
+    },
+    {
+      "title": "\"'천년을 세우다'는 종합 종책사업...국가는 외형, 종단은 신앙의 성역...",
+      "published_at": "2026-06-29T18:02:34+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://news.bbsi.co.kr/news/articleView.html?idxno=4092041"
+    },
+    {
+      "title": "미래본부 \"'마애부처님 기금 전용' 주장은 명백한 허위… 정치적 이용 ...",
+      "published_at": "2026-06-29T18:27:03+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.beopbo.com/news/articleView.html?idxno=336308"
+    },
+    {
+      "title": "'천년을 세우다' 불사 왜곡 비방 \"심히 유감\"",
+      "published_at": "Tue, 30 Jun 2026 00:18:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "http://www.bulkyo21.com/news/articleView.html?idxno=64473"
+    },
+    {
+      "title": "부산 범어사 대웅전 벽화 4점 ‘보물’ 됐다",
+      "published_at": "Sun, 28 Jun 2026 14:35:00 +0900",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.busan.com/view/busan/view.php?code=2026062802064507851"
+    },
+    {
+      "title": "구미의 숨결을 느끼는 여름, 풍성한 이야기 가득한 가볼 만한 곳",
+      "published_at": "2026-06-29T12:44:50+09:00",
+      "section": "buddhism",
+      "source_type": "section_pool",
+      "collection_source": "naver",
+      "audit_source": "section_pool_buddhism",
+      "url": "https://www.cbci.co.kr/news/articleView.html?idxno=585335"
+    }
+  ]
+}

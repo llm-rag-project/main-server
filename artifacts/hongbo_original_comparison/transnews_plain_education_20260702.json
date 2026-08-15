@@ -1,0 +1,76 @@
+{
+  "mail_date": "2026-07-02",
+  "window_start": "2026-07-01T08:30:00+09:00",
+  "window_end": "2026-07-02T08:30:00+09:00",
+  "status": "SUCCESS",
+  "item_count": 0,
+  "section_counts": {},
+  "audit_source_counts": {},
+  "source_type_counts": {},
+  "source_debug": {
+    "google_rss": {
+      "status": "timeout",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 17634,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 9801,
+          "error": "google_rss timed out after 9.3s"
+        },
+        {
+          "attempt": 2,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 4251,
+          "error": "google_rss timed out after 3.8s"
+        },
+        {
+          "attempt": 3,
+          "status": "timeout",
+          "count": 0,
+          "duration_ms": 2501,
+          "error": "google_rss timed out after 2.0s"
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "error": "google_rss timed out after 2.0s"
+    },
+    "naver": {
+      "status": "empty",
+      "count": 0,
+      "retry_count": 2,
+      "duration_ms": 4431,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 1475
+        },
+        {
+          "attempt": 2,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 776
+        },
+        {
+          "attempt": 3,
+          "status": "empty",
+          "count": 0,
+          "duration_ms": 860
+        }
+      ],
+      "sections": {},
+      "source_types": {},
+      "collection_sources": {},
+      "empty_reason": "completed_without_eligible_articles"
+    }
+  },
+  "items": []
+}

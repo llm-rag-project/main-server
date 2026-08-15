@@ -2,6 +2,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 const tokenKey = "news_console_access_token";
 const refreshKey = "news_console_refresh_token";
+const inflightGetRequests = new Map();
 
 export const authStore = {
   get token() {
@@ -22,7 +23,7 @@ function unwrap(body) {
   return body;
 }
 
-export async function api(path, options = {}) {
+async function executeApi(path, options = {}) {
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   headers.set("ngrok-skip-browser-warning", "true");
@@ -48,6 +49,23 @@ export async function api(path, options = {}) {
   if (options.raw) return response;
   const text = await response.text();
   return text ? unwrap(JSON.parse(text)) : null;
+}
+
+export function api(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  if (method !== "GET" || options.raw) return executeApi(path, options);
+
+  const requestKey = `${authStore.token || "anonymous"}:${path}`;
+  const existing = inflightGetRequests.get(requestKey);
+  if (existing) return existing;
+
+  const pending = executeApi(path, options);
+  inflightGetRequests.set(requestKey, pending);
+  return pending.finally(() => {
+    if (inflightGetRequests.get(requestKey) === pending) {
+      inflightGetRequests.delete(requestKey);
+    }
+  });
 }
 
 export const endpoints = {
@@ -165,6 +183,7 @@ export const endpoints = {
   searchVolumeTrend: (hours = 48) => api(`/stats/search-volume/trend?hours=${hours}`),
   priorityInsights: (params) => api(`/stats/priority-insights?${new URLSearchParams(params)}`),
   priorityInsight: (id) => api(`/stats/priority-insights/${id}`),
+  hongboEvaluation: (keywordId) => api(`/stats/hongbo-evaluation?keyword_id=${keywordId}`),
   runPriorityInsight: (body) => api("/stats/priority-insights/run", { method: "POST", body }),
   deletePriorityInsight: (id) => api(`/stats/priority-insights/${id}`, { method: "DELETE" }),
   recordPriorityAction: (body) => api("/stats/priority-actions", { method: "POST", body }),

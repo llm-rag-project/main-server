@@ -1,0 +1,167 @@
+{
+  "keyword_id": 86,
+  "keyword": "동국대학교",
+  "start_date": "2026-07-29",
+  "end_date": "2026-07-29",
+  "dates": [
+    {
+      "mail_date": "2026-07-29",
+      "work_start_date": "2026-07-29",
+      "published_from": "2026-07-28T08:30:00+09:00",
+      "published_to": "2026-07-29T08:30:00+09:00",
+      "candidate_count": 23,
+      "section_counts": {
+        "foundation": 22,
+        "education": 0,
+        "buddhism": 1,
+        "unclassified": 0
+      },
+      "run_ids": [
+        818,
+        819,
+        831,
+        832
+      ],
+      "source_totals": {
+        "dongguk_official": {
+          "runs": 2,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "timeout": 1,
+            "empty": 1
+          }
+        },
+        "google_rss": {
+          "runs": 2,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 2
+          }
+        },
+        "media_direct_pool": {
+          "runs": 2,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 2
+          }
+        },
+        "media_site_direct": {
+          "runs": 2,
+          "discovered": 0,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "empty": 2
+          }
+        },
+        "merged_pipeline": {
+          "runs": 4,
+          "discovered": 194,
+          "processed": 166,
+          "stored": 57,
+          "duplicates": 42,
+          "rejected_date": 28,
+          "rejected_relevance": 67,
+          "failed": 0,
+          "statuses": {
+            "reconstructed": 2,
+            "partial": 1,
+            "success": 1
+          }
+        },
+        "naver": {
+          "runs": 2,
+          "discovered": 75,
+          "processed": 129,
+          "stored": 37,
+          "duplicates": 25,
+          "rejected_date": 28,
+          "rejected_relevance": 67,
+          "failed": 0,
+          "statuses": {
+            "success": 1,
+            "empty": 1
+          }
+        },
+        "relation_expansion": {
+          "runs": 2,
+          "discovered": 11,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 2
+          }
+        },
+        "section_pool_buddhism": {
+          "runs": 2,
+          "discovered": 59,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 2
+          }
+        },
+        "section_pool_education": {
+          "runs": 2,
+          "discovered": 16,
+          "processed": 0,
+          "stored": 0,
+          "duplicates": 0,
+          "rejected_date": 0,
+          "rejected_relevance": 0,
+          "failed": 0,
+          "statuses": {
+            "success": 2
+          }
+        }
+      },
+      "candidate_audit": {
+        "naver:rejected:keyword_not_found": 1,
+        "naver:rejected:outside_date_window": 11,
+        "naver:stored:new_article": 1,
+        "naver:stored:reconstructed_new_keyword_match": 16
+      },
+      "education_titles": [],
+      "buddhism_titles": [
+        "'해양 수호' 해군병 726기 수계법회 ... 태고종 총무원장 상진스님 \"오계..."
+      ]
+    }
+  ],
+  "zero_section_dates": {
+    "foundation": [],
+    "education": [
+      "2026-07-29"
+    ],
+    "buddhism": []
+  }
+}

@@ -125,24 +125,19 @@ const donggukCategoryAliases = {
   alumni_media: "동문/교수 인터뷰·칼럼",
   buddhist_general: "불교계/종단 일반",
 };
-const defaultDonggukPriorityCriteria = `기본 홍보처 우선순위 기준
+const defaultDonggukPriorityCriteria = `홍보처 AI 기사 선정 기준
 
-최우선으로 올릴 기사:
-- 총장/이사장 메시지
-- 기부/장학/발전기금
-- 건학 120주년 등 진행 중 캠페인
-- 연구 성과/AI
-- 협약/사업 선정
-- 수상/인증
-- 학교 공식 행사
-
-일반 또는 참고로 낮출 기사:
-- 학술활동
-- 입시/교육 프로그램
-- 인사/위촉
-- 대학 정책/고등교육 이슈
-- 동문/교수 인터뷰·칼럼
-- 불교계/종단 일반 소식
+우선순위 기준:
+- 총장 또는 이사장의 공식 메시지가 포함된 기사를 가장 먼저 선정합니다.
+- 기부, 장학금, 발전기금처럼 학교 이미지와 직접 연결되는 기사를 우선 선정합니다.
+- 건학 120주년 등 현재 진행 중인 학교 캠페인 관련 기사를 우선 선정합니다.
+- 연구 성과, 기술 개발, 특허, AI 관련 성과 기사를 우선 선정합니다.
+- 공식 기관과의 협약, 사업 선정, 컨소시엄 참여 기사를 우선 선정합니다.
+- 학교, 교직원, 학생의 수상 및 공식 인증 획득 기사를 우선 선정합니다.
+- 학교가 주최하거나 공식적으로 참여한 주요 행사 기사를 우선 선정합니다.
+- [동문소식], 교수 인터뷰·칼럼, 불교학술원, 종학연구소 등 동국대 소속이 제목에 드러나는 기사는 동국대 직접 관련 기사로 판단합니다.
+- 대학 [교육] 섹션은 동국대 직접 언급 여부와 관계없이 파급력 있는 고등교육 정책 기사를 선정합니다.
+- 불교 [종단] 섹션은 동국대 직접 언급 여부와 관계없이 파급력 있는 불교계·종단 기사를 선정합니다.
 
 대표 기사 선정 기준:
 - 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
@@ -150,7 +145,10 @@ const defaultDonggukPriorityCriteria = `기본 홍보처 우선순위 기준
 - 제목이 가장 명확하고 기관명, 행사명, 인물명, 금액, 성과 등 핵심 정보가 잘 드러난 기사를 우선한다.
 - 기사 내용이 길고 요약에 필요한 사실 정보가 충분한 기사를 우선한다.
 - 출처 신뢰도와 홍보처 배포 활용성을 고려한다.
-- 단순 재전송, 제목만 바꾼 기사, 내용이 짧거나 원문 확인이 어려운 기사는 제외한다.`;
+
+제외 기준:
+- 동국대 [법인/건학위] 섹션에서 동국대학교 또는 소속 기관·동문·교수와의 직접 관련성이 확인되지 않는 기사는 제외한다.
+- 원문 확인이 어렵거나 본문 정보가 부족한 기사는 제외한다.`;
 const defaultRepresentativeCriteria = `대표 기사 선정 기준:
 - 동일 주제/동일 보도자료/같은 사건의 반복 보도는 하나의 그룹으로 묶고, 대표 기사 1건만 선정한다.
 - 대표 기사는 원문 URL이 정상이고 본문 확인이 가능한 기사를 우선한다.
@@ -160,8 +158,25 @@ const defaultRepresentativeCriteria = `대표 기사 선정 기준:
 - 단순 재전송, 제목만 바꾼 기사, 내용이 짧거나 원문 확인이 어려운 기사는 제외한다.`;
 
 function normalizeDonggukCriteria(criteria) {
-  const text = (criteria || "").trim();
+  let text = (criteria || "").trim();
   if (!text) return defaultDonggukPriorityCriteria;
+  const legacyReplacements = [
+    [
+      "- 대학 정책과 고등교육 일반 이슈는 동국대학교와의 직접 관련성을 확인해 선정합니다.",
+      "- 대학 [교육] 섹션은 동국대 직접 언급 여부와 관계없이 교육부, 대교협, 사총협, 고등교육법, 교육교부금, 등록금, 입시 등 파급력 있는 고등교육 정책 기사를 선정합니다.",
+    ],
+    [
+      "- 불교계와 종단 일반 소식은 동국대학교와 직접 연결될 때만 참고 기사로 선정합니다.",
+      "- 불교 [종단] 섹션은 동국대 직접 언급 여부와 관계없이 조계종, 종단, 포교, 출가, 성보, 불교문화유산 등 불교계 파급력이 있는 기사를 선정합니다.",
+    ],
+    [
+      "- 동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.",
+      "- 동국대 [법인/건학위] 섹션에서 동국대학교 또는 소속 기관·동문·교수와의 직접 관련성이 확인되지 않는 기사는 제외합니다.",
+    ],
+  ];
+  legacyReplacements.forEach(([legacy, replacement]) => {
+    text = text.replace(legacy, replacement);
+  });
   return text;
 }
 
@@ -176,9 +191,9 @@ const priorityRuleSentenceMap = {
   "학술활동": "학술대회, 세미나, 토론회 관련 기사는 주요 성과 기사보다 낮게 선정합니다.",
   "입시/교육 프로그램": "입시와 교육 프로그램 기사는 홍보 활용도를 확인해 일반 순위로 선정합니다.",
   "인사/위촉": "임용, 위촉, 취임 등 인사 관련 기사는 일반 순위로 선정합니다.",
-  "대학 정책/고등교육 이슈": "대학 정책과 고등교육 일반 이슈는 동국대학교와의 직접 관련성을 확인해 선정합니다.",
+  "대학 정책/고등교육 이슈": "대학 [교육] 섹션은 동국대 직접 언급 여부와 관계없이 교육부, 대교협, 사총협, 고등교육법, 교육교부금, 등록금, 입시 등 파급력 있는 고등교육 정책 기사를 선정합니다.",
   "동문/교수 인터뷰·칼럼": "동문과 교수의 인터뷰, 칼럼, 방송 출연 기사는 참고 순위로 선정합니다.",
-  "불교계/종단 일반 소식": "불교계와 종단 일반 소식은 동국대학교와 직접 연결될 때만 참고 기사로 선정합니다.",
+  "불교계/종단 일반 소식": "불교 [종단] 섹션은 동국대 직접 언급 여부와 관계없이 조계종, 종단, 포교, 출가, 성보, 불교문화유산 등 불교계 파급력이 있는 기사를 선정합니다.",
 };
 const defaultPriorityRuleItems = Object.values(priorityRuleSentenceMap);
 const defaultRepresentativeRuleItems = [
@@ -189,7 +204,7 @@ const defaultRepresentativeRuleItems = [
   "언론사 신뢰도와 홍보처 배포 활용도가 높은 기사를 우선합니다.",
 ];
 const defaultExclusionRuleItems = [
-  "동국대학교와 직접 관련성이 확인되지 않는 기사는 제외합니다.",
+  "동국대 [법인/건학위] 섹션에서 동국대학교 또는 소속 기관·동문·교수와의 직접 관련성이 확인되지 않는 기사는 제외합니다.",
   "원문 확인이 어렵거나 본문 정보가 부족한 기사는 제외합니다.",
 ];
 
@@ -249,6 +264,23 @@ function defaultDonggukSectionLimits() {
     [donggukSections.foundation]: 4,
     [donggukSections.education]: 2,
     [donggukSections.buddhism]: 2,
+  };
+}
+
+function donggukSectionLimitPayload(limits) {
+  return {
+    foundation: Number(limits[donggukSections.foundation] ?? 0),
+    education: Number(limits[donggukSections.education] ?? 0),
+    buddhism: Number(limits[donggukSections.buddhism] ?? 0),
+  };
+}
+
+function donggukSectionLimitsFromPayload(payload, fallback = defaultDonggukSectionLimits()) {
+  if (!payload) return fallback;
+  return {
+    [donggukSections.foundation]: Number(payload.foundation ?? fallback[donggukSections.foundation] ?? 0),
+    [donggukSections.education]: Number(payload.education ?? fallback[donggukSections.education] ?? 0),
+    [donggukSections.buddhism]: Number(payload.buddhism ?? fallback[donggukSections.buddhism] ?? 0),
   };
 }
 
@@ -565,6 +597,9 @@ function isSimilarDonggukArticle(left = {}, right = {}) {
   const leftLinks = realArticleLinks(left);
   const rightLinks = realArticleLinks(right);
   if (leftLinks.some((link) => rightLinks.includes(link))) return true;
+  const leftTopic = representativeTopicKey(left);
+  const rightTopic = representativeTopicKey(right);
+  if (leftTopic && leftTopic === rightTopic) return true;
   const leftTokens = articleSimilarityTokens(left);
   const rightTokens = articleSimilarityTokens(right);
   if (!leftTokens.size || !rightTokens.size) return false;
@@ -597,18 +632,59 @@ function aiDuplicateExcludedKeys(excludedArticles = [], candidates = []) {
 }
 
 function candidateKeysForAiArticles(aiArticles = [], candidates = []) {
-  const keys = new Set();
+  return new Set(
+    candidateIndexesForAiArticles(aiArticles, candidates)
+      .map((index) => articleKey(candidates[index], index))
+  );
+}
+
+function candidateIndexesForAiArticles(aiArticles = [], candidates = []) {
+  const usedIndexes = new Set();
+  const indexes = [];
+
   aiArticles.forEach((selected) => {
-    const selectedLinks = realArticleLinks(selected);
-    const index = candidates.findIndex((candidate) => {
-      const sameId = selected.id && candidate.id && String(selected.id) === String(candidate.id);
-      const sameTitle = selected.title && candidate.title && selected.title === candidate.title;
-      const sameLink = selectedLinks.some((link) => realArticleLinks(candidate).includes(link));
-      return sameId || sameTitle || sameLink;
+    const selectedLinks = realArticleLinks(selected).map(canonicalArticleUrl);
+    const selectedPrimaryLink = selectedLinks[0] || "";
+    const selectedTitle = normalizedArticleTitle(selected);
+    const selectedSource = String(selected.source || "").replace(/\s+/g, " ").trim().toLowerCase();
+    let bestIndex = -1;
+    let bestScore = 0;
+
+    candidates.forEach((candidate, index) => {
+      if (usedIndexes.has(index)) return;
+      const candidateLinks = realArticleLinks(candidate).map(canonicalArticleUrl);
+      const candidatePrimaryLink = candidateLinks[0] || "";
+      const candidateTitle = normalizedArticleTitle(candidate);
+      const candidateSource = String(candidate.source || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const sameId = selected.id != null && candidate.id != null && String(selected.id) === String(candidate.id);
+      const samePrimaryLink = Boolean(selectedPrimaryLink && selectedPrimaryLink === candidatePrimaryLink);
+      const sameLink = selectedLinks.some((link) => candidateLinks.includes(link));
+      const sameTitle = Boolean(selectedTitle && selectedTitle === candidateTitle);
+      const sameSource = Boolean(selectedSource && selectedSource === candidateSource);
+      const similarity = titleSimilarity(selected.title, candidate.title);
+
+      let score = 0;
+      if (sameId) score = 1000;
+      else if (samePrimaryLink) score = 900;
+      else if (sameLink) score = 800;
+      else if (sameTitle && sameSource) score = 700;
+      else if (sameTitle) score = 650;
+      else if (sameSource && similarity >= 0.72) score = 500 + Math.round(similarity * 100);
+      else if (similarity >= 0.82) score = 400 + Math.round(similarity * 100);
+
+      if (score > bestScore) {
+        bestIndex = index;
+        bestScore = score;
+      }
     });
-    if (index >= 0) keys.add(articleKey(candidates[index], index));
+
+    if (bestIndex >= 0) {
+      usedIndexes.add(bestIndex);
+      indexes.push(bestIndex);
+    }
   });
-  return keys;
+
+  return indexes;
 }
 
 async function loadAllArticlePages(params = {}) {
@@ -2770,6 +2846,56 @@ function ChartVisual({
   );
 }
 
+function representativeTopicKey(article = {}) {
+  const title = String(article.title || "").replace(/\s+/g, " ").trim();
+  const patterns = [
+    ["meditation-retreat", /하안거|30일\s*수행|선.?교\s*겸수/i],
+    ["lotus-donation", /로터스관.*(?:기부|희사|발전기금)|(?:기부|희사).*로터스관/i],
+    ["mongolia-heritage-camp", /청년\s*문화유산\s*캠프|몽골.*(?:한[·\-\s]*몽\s*청년|문화유산\s*캠프)|한[·\-\s]*몽\s*청년.*(?:몽골|건학\s*120주년)/i],
+    ["iot-degree", /지능\s*IoT|공동학위/i],
+    ["meditation-expo", /서울국제명상엑스포|명상,?\s*함께\s*깨어나다|명상엑스포/i],
+    ["anchor-goyang", /경기앵커|앵커사업단|고양산업진흥원|지역성장\s*인재양성체계/i],
+  ];
+  return patterns.find(([, pattern]) => pattern.test(title))?.[0] || "";
+}
+
+function areRepresentativeDuplicates(left = {}, right = {}) {
+  const leftLinks = realArticleLinks(left).map(canonicalArticleUrl);
+  const rightLinks = new Set(realArticleLinks(right).map(canonicalArticleUrl));
+  if (leftLinks.some((link) => rightLinks.has(link))) return true;
+  const leftTopic = representativeTopicKey(left);
+  const rightTopic = representativeTopicKey(right);
+  if (leftTopic && leftTopic === rightTopic) return true;
+  const leftTokens = new Set((String(left.title || "").toLowerCase().match(/[가-힣A-Za-z0-9]{2,}/g) || []).filter((token) => !["동국대", "동국대학교"].includes(token)));
+  const rightTokens = new Set((String(right.title || "").toLowerCase().match(/[가-힣A-Za-z0-9]{2,}/g) || []).filter((token) => !["동국대", "동국대학교"].includes(token)));
+  const shared = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  return shared >= 3 && shared / Math.max(1, Math.min(leftTokens.size, rightTokens.size)) >= 0.7;
+}
+
+function dedupeRepresentativeArticles(articles = []) {
+  const kept = [];
+  dedupeExactArticles(articles).forEach((article) => {
+    const matchIndex = kept.findIndex((candidate) => areRepresentativeDuplicates(candidate, article));
+    if (matchIndex < 0) {
+      kept.push(article);
+      return;
+    }
+    const current = kept[matchIndex];
+    const representative = Number(article.score || 0) > Number(current.score || 0) ? article : current;
+    const links = [...new Set([...realArticleLinks(representative), ...realArticleLinks(representative === article ? current : article)])];
+    kept[matchIndex] = {
+      ...representative,
+      links,
+      isSyndicated: links.length > 1 || representative.isSyndicated,
+    };
+  });
+  return kept;
+}
+
+function sanitizeDonggukMailArticles(articles, limits) {
+  return applyDonggukSectionLimits(dedupeRepresentativeArticles(articles), limits);
+}
+
 function hasChartValues(data, yKey) {
   return Boolean(data?.length && data.some((item) => {
     const value = Number(item?.[yKey]);
@@ -2847,15 +2973,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   const [autoSendEnabled, setAutoSendEnabled] = useState(false);
   const [autoSendTime, setAutoSendTime] = useState("08:30");
   const [mailDate, setMailDate] = useState(localDateKey());
-  const [dateRangeMode, setDateRangeMode] = useState("business");
-  const [rangeStartDate, setRangeStartDate] = useState(localDateKey());
-  const [rangeEndDate, setRangeEndDate] = useState(localDateKey());
-  const [customDateRange, setCustomDateRange] = useState({
-    start_date: localDateKey(),
-    end_date: localDateKey(),
-  });
   const [workWindow, setWorkWindow] = useState(null);
-  const [rangeError, setRangeError] = useState("");
   const [loadingWorkWindow, setLoadingWorkWindow] = useState(false);
   const [schoolHolidays, setSchoolHolidays] = useState([]);
   const [schoolHolidayForm, setSchoolHolidayForm] = useState({
@@ -2944,28 +3062,18 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     [candidateArticles.length, selectedCandidates, categoryArticleLimits]
   );
   const effectiveMailArticles = useMemo(
-    () => dedupeExactArticles(previewArticles.length ? previewArticles : mailArticles),
-    [previewArticles, mailArticles]
+    () => sanitizeDonggukMailArticles(previewArticles.length ? previewArticles : mailArticles, categoryArticleLimits),
+    [previewArticles, mailArticles, categoryArticleLimits]
   );
   const maxMailArticleTotal = useMemo(
     () => Object.values(categoryArticleLimits).reduce((total, value) => total + Number(value || 0), 0),
     [categoryArticleLimits]
   );
   const mailArticleKeySet = useMemo(() => {
-    const keys = new Set();
-    effectiveMailArticles.forEach((article) => {
-      const articleLinks = realArticleLinks(article);
-      const index = candidateArticles.findIndex((candidate) => {
-        const candidateLinks = realArticleLinks(candidate);
-        return candidate === article
-          || (article.id && candidate.id && String(candidate.id) === String(article.id))
-          || (article.url && candidate.url && String(candidate.url) === String(article.url))
-          || (article.title && candidate.title && String(candidate.title) === String(article.title))
-          || articleLinks.some((link) => candidateLinks.includes(link));
-      });
-      if (index >= 0) keys.add(articleKey(article, index));
-    });
-    return keys;
+    return new Set(
+      candidateIndexesForAiArticles(effectiveMailArticles, candidateArticles)
+        .map((index) => articleKey(candidateArticles[index], index))
+    );
   }, [effectiveMailArticles, candidateArticles]);
   useEffect(() => {
     if (candidateSortSnapshotReady || loadingCandidates || loadingPreview || !draftLoaded) return;
@@ -3255,7 +3363,9 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   useEffect(() => {
-    if (viewMode === "stats") loadPriorityInsights();
+    if (viewMode === "stats") {
+      loadPriorityInsights();
+    }
   }, [viewMode, selectedKeywordId]);
 
   useEffect(() => {
@@ -3271,12 +3381,9 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     };
   }, []);
 
-  const activeRangeStart = dateRangeMode === "custom"
-    ? customDateRange.start_date
-    : workWindow?.start_date || mailDate;
-  const activeRangeEnd = dateRangeMode === "custom"
-    ? customDateRange.end_date
-    : workWindow?.end_date || mailDate;
+  const workWindowMatchesMailDate = workWindow?.target_date === mailDate;
+  const activeRangeStart = workWindowMatchesMailDate ? workWindow.start_date : mailDate;
+  const activeRangeEnd = workWindowMatchesMailDate ? workWindow.end_date : mailDate;
   const activeArticleWindow = useMemo(
     () => reportWindowForRange(activeRangeStart, activeRangeEnd, autoSendTime),
     [activeRangeStart, activeRangeEnd, autoSendTime]
@@ -3338,11 +3445,6 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     try {
       const data = await endpoints.workWindow(targetDate);
       setWorkWindow(data);
-      if (dateRangeMode === "business") {
-        setRangeStartDate(data.start_date);
-        setRangeEndDate(data.end_date);
-        setRangeError("");
-      }
       return data;
     } catch (err) {
       setWorkWindow({
@@ -3389,6 +3491,8 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   useEffect(() => {
+    setWorkWindow(null);
+    setLoadingCandidates(true);
     loadWorkWindow(mailDate);
     loadSchoolHolidays(mailDate);
   }, [mailDate]);
@@ -3398,34 +3502,6 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     loadCalendarDays(calendarMonth);
     loadSchoolHolidays(`${calendarMonth}-01`);
   }, [viewMode, calendarMonth]);
-
-  function applyCustomDateRange() {
-    if (!rangeStartDate || !rangeEndDate) {
-      setRangeError("시작일과 종료일을 모두 선택해 주세요.");
-      return;
-    }
-    if (rangeStartDate > rangeEndDate) {
-      setRangeError("시작일은 종료일보다 늦을 수 없습니다.");
-      return;
-    }
-    const days = Math.floor((new Date(`${rangeEndDate}T12:00:00`) - new Date(`${rangeStartDate}T12:00:00`)) / 86400000) + 1;
-    if (days > 31) {
-      setRangeError("조회 기간은 최대 31일까지 선택할 수 있습니다.");
-      return;
-    }
-    setRangeError("");
-    setCustomDateRange({ start_date: rangeStartDate, end_date: rangeEndDate });
-    setDateRangeMode("custom");
-  }
-
-  async function resetToBusinessRange() {
-    setDateRangeMode("business");
-    const data = await loadWorkWindow(mailDate);
-    if (data) {
-      setRangeStartDate(data.start_date);
-      setRangeEndDate(data.end_date);
-    }
-  }
 
   async function createSchoolHoliday() {
     const { name, holiday_type, start_date, end_date } = schoolHolidayForm;
@@ -3624,6 +3700,8 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 .filter((key) => restoredMailableKeySet.has(key) && !removedKeys.has(key));
           setSelectedArticleKeys(new Set(nextKeys));
           const preview = draft.preview_data;
+          const restoredSectionLimits = donggukSectionLimitsFromPayload(preview?.section_limits, categoryArticleLimits);
+          if (preview?.section_limits) setCategoryArticleLimits(restoredSectionLimits);
           const aiExcluded = (preview?.excluded_articles || draft.removed_articles || []).map(normalizeDonggukPreviewArticle);
           const aiSelected = (preview?.articles || draft.selected_articles || []).map(normalizeDonggukPreviewArticle);
           const aiSelectedKeys = candidateKeysForAiArticles(aiSelected, restoredRows);
@@ -3631,7 +3709,10 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
           setDuplicateExcludedKeys(aiDuplicateExcludedKeys(aiExcluded, restoredRows));
           setAiProcessedArticleCount(aiSelected.length + aiExcluded.length);
           if (preview?.articles?.length && nextKeys.length && preview.editor_used !== false) {
-            setPreviewArticles(dedupeExactArticles((preview.articles || []).map(normalizeDonggukPreviewArticle).filter((article) => isArticleInActiveRange(article))).slice(0, maxMailArticleTotal));
+            setPreviewArticles(sanitizeDonggukMailArticles(
+              (preview.articles || []).map(normalizeDonggukPreviewArticle).filter((article) => isArticleInActiveRange(article)),
+              restoredSectionLimits
+            ));
             if (aiSelectedKeys.size) setSelectedArticleKeys(aiSelectedKeys);
             setPreviewExcludedCount(Number(preview.excluded_count || 0));
             setPreviewEditorUsed(Boolean(preview.editor_used));
@@ -3718,15 +3799,19 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
   }
 
   useEffect(() => {
+    if (!workWindowMatchesMailDate) return;
     loadCandidateArticles();
-  }, [selectedKeywordId, mailDate, activeRangeStart, activeRangeEnd]);
+  }, [selectedKeywordId, mailDate, activeRangeStart, activeRangeEnd, workWindowMatchesMailDate]);
 
   useEffect(() => {
-    if (previewArticles.length <= maxMailArticleTotal) return;
-    const next = previewArticles.slice(0, maxMailArticleTotal);
+    if (!previewArticles.length) return;
+    const next = sanitizeDonggukMailArticles(previewArticles, categoryArticleLimits);
+    const currentSignature = previewArticles.map((article) => exactArticleIdentity(article)).join("|");
+    const nextSignature = next.map((article) => exactArticleIdentity(article)).join("|");
+    if (currentSignature === nextSignature) return;
     setPreviewArticles(next);
     saveEditedPreview(next, "settings-limit");
-  }, [maxMailArticleTotal]);
+  }, [categoryArticleLimits, previewArticles]);
 
   function addRecipient(email) {
     const current = emails.replaceAll(",", "\n").split("\n").map((item) => item.trim()).filter(Boolean);
@@ -4030,12 +4115,12 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
     const section = article.sectionLabel || article.section || donggukSections.foundation;
     const sectionMailCount = mailArticles.filter((item) => (item.sectionLabel || item.section) === section).length;
     const sectionLimit = Number(categoryArticleLimits[section] ?? 0);
-    const nextLimits = sectionMailCount >= sectionLimit
-      ? { ...categoryArticleLimits, [section]: sectionLimit + 1 }
-      : categoryArticleLimits;
+    if (sectionMailCount >= sectionLimit) {
+      showToast?.(`${section}은 최대 ${sectionLimit}건으로 설정되어 있습니다. 먼저 포함 기사를 제외하거나 최대 기사 수를 변경해 주세요.`, "error");
+      return;
+    }
 
     setSelectedArticleKeys(nextKeys);
-    setCategoryArticleLimits(nextLimits);
     setPreviewArticles([]);
     setPreviewExcludedCount(0);
     setPreviewEditorUsed(false);
@@ -4137,6 +4222,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         removed_article_keys: removedKeys,
         removed_articles: removedForDraft.map(donggukArticlePayload),
         preview_data: previewData,
+        section_limits: donggukSectionLimitPayload(categoryArticleLimits),
         feedback_source: feedbackSource,
       });
       setDraftLoaded(true);
@@ -4155,6 +4241,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       editor_used: previewEditorUsed,
       cached: true,
       manually_edited: true,
+      section_limits: donggukSectionLimitPayload(categoryArticleLimits),
     };
     await saveDraftSelection(selectedArticleKeys, previewData, candidateArticles, feedbackSource);
   }
@@ -4284,7 +4371,8 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
       const response = await endpoints.donggukHwp({
         subject: mailSubject,
         mail_date: mailDate,
-        articles: articles.slice(0, maxMailArticleTotal).map(donggukArticlePayload),
+        articles: sanitizeDonggukMailArticles(articles, categoryArticleLimits).map(donggukArticlePayload),
+        section_limits: donggukSectionLimitPayload(categoryArticleLimits),
       });
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -4328,10 +4416,14 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         removed_article_keys: removedRows.map(({ key }) => key),
         removed_articles: removedRows.map(({ article }) => donggukArticlePayload(article)),
         priority_criteria: normalizeDonggukCriteria(priorityCriteria),
+        section_limits: donggukSectionLimitPayload(categoryArticleLimits),
         force_rebuild: forceRebuild,
         articles: candidates.map(donggukArticlePayload),
       });
-      const nextArticles = dedupeExactArticles((result.articles || []).map(normalizeDonggukPreviewArticle));
+      const nextArticles = sanitizeDonggukMailArticles(
+        (result.articles || []).map(normalizeDonggukPreviewArticle),
+        categoryArticleLimits
+      );
       const nextExcludedArticles = (result.excluded_articles || []).map(normalizeDonggukPreviewArticle);
       const nextSelectedKeys = candidateKeysForAiArticles(nextArticles, candidateArticles);
       setPreviewArticles(nextArticles);
@@ -4465,7 +4557,10 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         return;
       }
       const loadedCandidates = candidateArticles.length ? selectedCandidates : await loadCandidateArticles();
-      const editedCandidates = editedMailArticles.length ? editedMailArticles : applyDonggukSectionLimits(loadedCandidates, categoryArticleLimits);
+      const editedCandidates = sanitizeDonggukMailArticles(
+        editedMailArticles.length ? editedMailArticles : loadedCandidates,
+        categoryArticleLimits
+      );
       const candidates = editedCandidates.filter((article) => realArticleLinks(article).length > 0);
       if (!candidates.length) {
         showToast?.(`${mailDate} 기준 수집된 원문 URL 포함 기사 후보가 없습니다.`, "error");
@@ -4480,6 +4575,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
         use_current_articles: editedMailArticles.length > 0,
         articles: candidates.map(donggukArticlePayload),
         priority_criteria: normalizeDonggukCriteria(priorityCriteria),
+        section_limits: donggukSectionLimitPayload(categoryArticleLimits),
         is_test: isTest,
       });
       if (Number(result?.article_count || 0) === 0) {
@@ -5374,26 +5470,13 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
             <div className="article-date-range-toolbar">
               <div className="date-range-fields">
                 <label>
-                  <span>시작일</span>
-                  <input type="date" value={rangeStartDate} onChange={(event) => setRangeStartDate(event.target.value)} />
+                  <span>기준일</span>
+                  <input type="date" value={mailDate} onChange={(event) => setMailDate(event.target.value)} />
                 </label>
-                <label>
-                  <span>종료일</span>
-                  <input type="date" value={rangeEndDate} onChange={(event) => setRangeEndDate(event.target.value)} />
-                </label>
-                <button className="secondary compact" onClick={applyCustomDateRange} type="button">
-                  기간 조회
-                </button>
-                <button className="secondary compact" disabled={loadingWorkWindow} onClick={resetToBusinessRange} type="button">
-                  {loadingWorkWindow ? <Loader2 className="spin" size={14} /> : <Calendar size={14} />}
-                  업무일 기준
-                </button>
                 <button
                   className="secondary compact"
                   onClick={() => {
-                    const today = localDateKey();
-                    setMailDate(today);
-                    setDateRangeMode("business");
+                    setMailDate(localDateKey());
                   }}
                   type="button"
                 >
@@ -5401,9 +5484,10 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 </button>
               </div>
               <div className="date-range-summary">
-                <strong>{dateRangeMode === "custom" ? "사용자 지정 기간" : "휴일 포함 업무일 범위"}</strong>
-                <span>{activeRangeStart} ~ {activeRangeEnd}</span>
-                {workWindow?.days?.some((day) => !day.is_business_day) && (
+                <strong>{loadingWorkWindow || !workWindowMatchesMailDate ? "조회 범위 계산 중" : "자동 기사 조회 범위"}</strong>
+                <span>{activeArticleWindow.label}</span>
+                <span>주말·공휴일·캘린더에 등록한 휴일을 자동으로 포함합니다.</span>
+                {workWindowMatchesMailDate && workWindow?.days?.some((day) => !day.is_business_day) && (
                   <span>
                     {workWindow.days
                       .filter((day) => !day.is_business_day)
@@ -5412,7 +5496,6 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                   </span>
                 )}
               </div>
-              {rangeError && <span className="field-error">{rangeError}</span>}
             </div>
             <div className="candidate-heading">
               <div>
@@ -5424,7 +5507,7 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 <span>
                   {loadingCandidates
                     ? "불러오는 중"
-                    : `오늘 기사 ${candidateArticles.length}건${exactLinkDuplicateCount ? ` · 동일 원문 링크 ${exactLinkDuplicateCount}건 통합` : ""} · 검색 결과 ${filteredCandidateRows.length}건 · 메일 포함 ${effectiveMailArticles.length}건${duplicateExcludedCount ? ` · 중복 주제 ${duplicateExcludedCount}건` : ""} · ${normalizedCandidatePage}/${candidateTotalPages}페이지`}
+                    : `조회 기사 ${candidateArticles.length}건${exactLinkDuplicateCount ? ` · 동일 원문 링크 ${exactLinkDuplicateCount}건 통합` : ""} · 검색 결과 ${filteredCandidateRows.length}건 · 메일 포함 ${effectiveMailArticles.length}건${duplicateExcludedCount ? ` · 중복 주제 ${duplicateExcludedCount}건` : ""} · ${normalizedCandidatePage}/${candidateTotalPages}페이지`}
                 </span>
               </div>
               <div className="candidate-actions">
@@ -5866,6 +5949,11 @@ function DonggukPrConsole({ selectedKeyword, selectedKeywordId, selectedKeywordN
                 <div className="insight-detail-heading">
                   <div>
                     <span>{priorityInsightDetail.period_key} · {priorityInsightDetail.cadence_label}</span>
+                    {!!priorityInsightDetail.demo_action_count && (
+                      <span className="insight-demo-badge">
+                        7월 확인용 목 데이터 {priorityInsightDetail.demo_action_count}건 포함
+                      </span>
+                    )}
                     <strong>{priorityInsightDetail.summary}</strong>
                     <p>{priorityInsightDetail.rationale}</p>
                   </div>

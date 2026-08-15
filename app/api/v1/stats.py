@@ -11,6 +11,7 @@ from app.core.ttl_cache import stats_cache
 from app.models.user import User
 from app.repositories.stats_repository import StatsRepository
 from app.services.stats_service import StatsService
+from app.services.hongbo_evaluation_service import HongboEvaluationService
 from app.services.priority_insight_service import (
     PriorityInsightService,
     previous_month_period,
@@ -172,6 +173,33 @@ async def list_priority_insights(
         keyword_id=keyword_id,
         limit=limit,
     )
+    return success_response(request, data=data)
+
+
+@router.get("/hongbo-evaluation")
+async def get_hongbo_evaluation(
+    request: Request,
+    keyword_id: int = Query(..., ge=1),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_or_dev_user),
+):
+    data = HongboEvaluationService().load()
+    insights = await PriorityInsightService(db).list_insights(
+        user_id=current_user.id,
+        keyword_id=keyword_id,
+        limit=24,
+    )
+    monthly_items = [item for item in insights.get("items") or [] if item.get("cadence") == "monthly"]
+    latest_monthly = monthly_items[0] if monthly_items else None
+    data["monthly_learning"] = {
+        "enabled": True,
+        "active_rule_count": len(insights.get("active_rules") or []),
+        "monthly_run_count": len(monthly_items),
+        "latest_period_key": latest_monthly.get("period_key") if latest_monthly else None,
+        "latest_status": latest_monthly.get("status") if latest_monthly else None,
+        "latest_change_count": len(latest_monthly.get("changes") or []) if latest_monthly else 0,
+        "description": (insights.get("cadence") or {}).get("monthly"),
+    }
     return success_response(request, data=data)
 
 

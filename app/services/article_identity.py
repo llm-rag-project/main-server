@@ -77,7 +77,9 @@ def is_same_publisher_article(
     right_content: str | None,
     right_url: str | None,
 ) -> bool:
-    if canonicalize_article_url(left_url) == canonicalize_article_url(right_url):
+    left_canonical_url = canonicalize_article_url(left_url)
+    right_canonical_url = canonicalize_article_url(right_url)
+    if left_canonical_url and left_canonical_url == right_canonical_url:
         return True
     if normalize_publisher(left_publisher) != normalize_publisher(right_publisher):
         return False
