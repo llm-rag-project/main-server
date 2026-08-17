@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     transnews_request_timeout: int = 60
 
     crawl_scheduler_interval_minutes: int = Field(default=30, alias="CRAWL_SCHEDULER_INTERVAL_MINUTES")
+    enable_scheduler: bool = Field(default=True, alias="ENABLE_SCHEDULER")
 
     # SMTP 이메일
     smtp_host: str = Field(default="smtp.gmail.com", alias="SMTP_HOST")

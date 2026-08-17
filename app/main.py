@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -83,11 +84,13 @@ async def lifespan(app: FastAPI):
             )
         """))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_dongguk_trash_user_date ON dongguk_article_trash(user_id, mail_date)"))
-    start_scheduler()
+    if settings.enable_scheduler:
+        start_scheduler()
     try:
         yield
     finally:
-        shutdown_scheduler()
+        if settings.enable_scheduler:
+            shutdown_scheduler()
         await TransNewsClient.close_shared_client()
         await DifyService.close_shared_client()
 
@@ -157,7 +160,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.get("/")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "pod": os.getenv("HOSTNAME", "local"),
+    }
 
 
 @app.get("/metrics", include_in_schema=False)

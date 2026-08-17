@@ -12,6 +12,8 @@ docs
 tests
 .agents
 .codex
+.vendor
+artifacts
 *.xlsx
 react-app/node_modules
 react-app/dist

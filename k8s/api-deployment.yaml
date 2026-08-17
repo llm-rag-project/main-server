@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: news-api
+  namespace: news-monitor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: news-api
+  template:
+    metadata:
+      labels:
+        app: news-api
+    spec:
+      containers:
+        - name: api
+          image: news-monitor-api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - uvicorn
+            - app.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8001"
+            - --workers
+            - "1"
+          envFrom:
+            - secretRef:
+                name: news-api-env
+          env:
+            - name: ENABLE_SCHEDULER
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8001
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
